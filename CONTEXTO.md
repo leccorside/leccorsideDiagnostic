@@ -89,6 +89,19 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 | Uma inicialização levou ~30–60 s até a primeira linha de log (PID 18728, 17/10/2026 ~17:04–17:05) | **Não identificada.** Ver "Investigação: inicialização lenta" abaixo | Não reproduzida em 62 aberturas; instrumentação de fases + watchdog adicionados para capturar a fase exata se voltar |
 | Saída de ferramentas de console com acentos corrompidos (ex.: `hostname -x`) | Ferramentas usam a code page OEM | Não afeta o Passo 1; tratar `StandardOutputEncoding` por ferramenta ao implementar DISM/SFC (Passo 5) |
 
+### PRODUCT.md via `/impeccable init` (17/10/2026)
+
+- Criado `PRODUCT.md` (contexto de produto lido pelo impeccable em toda revisão de UI). Confirmado com o usuário:
+  **usuário principal = desenvolvedor / power user**; **distribuição = uso interno / clientes próprios**;
+  **idioma = pt-BR agora, inglês depois** (textos de UI devem ficar prontos para localização).
+- Mantida a exigência do PROMPT: resultados compreensíveis para usuário comum no modo padrão; detalhe técnico no modo avançado.
+- Limitação do impeccable: só reconhece plataformas `web`, `ios`, `android`, `adaptive`. O campo ficou `windows` (verdadeiro);
+  a ferramenta avisa e trata como `web`. Ignorar orientações específicas de navegador/CSS e o `impeccable detect`
+  (não analisa XAML) — a verificação real é visual nos dois temas + contraste medido.
+- O impeccable não reconhece XAML como "implementação visual existente": sem `DESIGN.md`, telas novas (Passo 2) seriam
+  tratadas como projeto do zero. Próximo passo recomendado: `/impeccable document` para registrar o sistema visual atual.
+- Em aberto: quem são exatamente os "clientes próprios" (operadores técnicos ou usuários finais) e o modelo de suporte/atualização.
+
 ### Investigação: inicialização lenta (17/10/2026)
 
 - **Sintoma original:** durante a validação visual, o app não mostrou janela em 5 s; um minuto depois ainda sem janela e,
