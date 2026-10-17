@@ -1,0 +1,68 @@
+﻿<Window x:Class="LeccorWindowsHealthCenter.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:LeccorWindowsHealthCenter.App.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+        Title="Leccor Windows Health Center"
+        Icon="/Assets/app.ico"
+        Width="1280" Height="820" MinWidth="980" MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppBackgroundBrush}"
+        FontFamily="{StaticResource UiFont}"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="248" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="10,14,10,10">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,0,0,18">
+                    <Image Source="/Assets/logo-mark.png" Width="36" Height="36" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="LECCOR" FontFamily="{StaticResource DisplayFont}" FontSize="17" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="Windows Health Center" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <ListBox DockPanel.Dock="Bottom" Style="{StaticResource NavList}" ItemsSource="{Binding FooterItems}"
+                         SelectedItem="{Binding SelectedFooterItem}" AutomationProperties.Name="Configurações">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:NavigationItem}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" Width="28" />
+                                <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <ListBox Style="{StaticResource NavList}" ItemsSource="{Binding MainItems}" SelectedItem="{Binding SelectedMainItem}"
+                         AutomationProperties.Name="Menu principal">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:NavigationItem}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" Width="28" />
+                                <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Conteúdo -->
+        <ContentControl x:Name="PageHost" Grid.Column="1" Content="{Binding CurrentPage}" Focusable="False">
+            <ContentControl.RenderTransform>
+                <TranslateTransform />
+            </ContentControl.RenderTransform>
+        </ContentControl>
+    </Grid>
+</Window>

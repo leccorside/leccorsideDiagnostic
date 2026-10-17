@@ -1,0 +1,36 @@
+﻿<Application x:Class="LeccorWindowsHealthCenter.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:LeccorWindowsHealthCenter.App.ViewModels"
+             xmlns:views="clr-namespace:LeccorWindowsHealthCenter.App.Views"
+             xmlns:conv="clr-namespace:LeccorWindowsHealthCenter.App.Converters"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Índice 0 é substituído em tempo de execução pelo ThemeService (Light/Dark). -->
+                <ResourceDictionary Source="Themes/Light.xaml" />
+                <ResourceDictionary Source="Themes/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <conv:SemanticBrushConverter x:Key="SemanticBrush" />
+            <conv:VisibleWhenConverter x:Key="VisibleWhen" />
+            <conv:ScoreToValueConverter x:Key="ScoreToValue" />
+            <conv:EnumEqualsConverter x:Key="EnumEquals" />
+
+            <!-- Cada ViewModel de página é exibido pela sua View correspondente. -->
+            <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+                <views:DashboardView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ScanViewModel}">
+                <views:ScanView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+                <views:SettingsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
+                <views:PlaceholderView />
+            </DataTemplate>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

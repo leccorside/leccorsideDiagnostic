@@ -1,0 +1,2110 @@
+
+# PROJETO
+
+Crie um software desktop profissional para Windows chamado provisoriamente:
+
+# Leccor Windows Health Center
+
+O software deve realizar uma **auditoria completa do computador**, detectar problemas de hardware, Windows, aplicativos, armazenamento, processos, drivers, rede e performance e permitir corrigir problemas de maneira segura.
+
+O objetivo é criar uma ferramenta semelhante conceitualmente à combinação de:
+
+* diagnóstico do Windows;
+* Gerenciador de Tarefas;
+* Resource Monitor;
+* Event Viewer;
+* Storage Sense;
+* ferramentas Sysinternals;
+* SFC/DISM/CHKDSK;
+* análise SMART;
+* gerenciador de inicialização;
+* diagnóstico de rede;
+* análise de aplicativos;
+* limpeza segura;
+* monitor de hardware;
+* sistema de relatórios.
+
+Porém tudo centralizado em uma única interface moderna e simples.
+
+---
+
+# 1. OBJETIVO PRINCIPAL
+
+O aplicativo deverá conseguir executar:
+
+**VARREDURA → DIAGNÓSTICO → CLASSIFICAÇÃO → CORREÇÃO → VALIDAÇÃO → RELATÓRIO**
+
+O software NÃO deve funcionar como um "PC Cleaner" genérico.
+
+Toda recomendação deve possuir:
+
+* evidência;
+* motivo;
+* impacto;
+* risco;
+* ação recomendada;
+* possibilidade de rollback quando aplicável.
+
+O software nunca deve inventar problemas para aumentar artificialmente a quantidade de erros encontrados.
+
+---
+
+# 2. PLATAFORMA
+
+Compatibilidade inicial:
+
+* Windows 10 64-bit;
+* Windows 11 64-bit.
+
+Arquitetura preparada para versões futuras.
+
+---
+
+# 3. STACK RECOMENDADA
+
+Utilize:
+
+## Desktop
+
+**C# + .NET 10 LTS**
+
+Interface:
+
+**WPF**
+
+Arquitetura:
+
+**MVVM**
+
+Utilizar:
+
+* CommunityToolkit.Mvvm;
+* Microsoft.Extensions.DependencyInjection;
+* Microsoft.Extensions.Logging;
+* Microsoft.Extensions.Configuration.
+
+Evitar Electron para o aplicativo principal para reduzir:
+
+* consumo de RAM;
+* tamanho;
+* processos adicionais;
+* impacto da própria ferramenta durante os benchmarks.
+
+---
+
+# 4. ARQUITETURA
+
+Utilizar:
+
+**Clean Architecture + MVVM + módulos independentes**
+
+Estrutura sugerida:
+
+```text
+LeccorWindowsHealthCenter/
+│
+├── src/
+│   ├── LeccorWindowsHealthCenter.App/
+│   ├── LeccorWindowsHealthCenter.Application/
+│   ├── LeccorWindowsHealthCenter.Domain/
+│   ├── LeccorWindowsHealthCenter.Infrastructure/
+│   ├── LeccorWindowsHealthCenter.Diagnostics/
+│   ├── LeccorWindowsHealthCenter.Repair/
+│   ├── LeccorWindowsHealthCenter.Monitoring/
+│   ├── LeccorWindowsHealthCenter.Reporting/
+│   └── LeccorWindowsHealthCenter.Shared/
+│
+├── tests/
+│   ├── UnitTests/
+│   ├── IntegrationTests/
+│   └── SystemTests/
+│
+├── docs/
+├── scripts/
+└── installer/
+```
+
+---
+
+# 5. PRINCÍPIO DE SEGURANÇA
+
+Separe completamente:
+
+**Scanner**
+
+de:
+
+**Repair Engine**
+
+Encontrar um problema NÃO significa corrigi-lo automaticamente.
+
+Fluxo obrigatório:
+
+```text
+Scanner
+   ↓
+Evidence
+   ↓
+Diagnosis
+   ↓
+Risk Analyzer
+   ↓
+Recommendation
+   ↓
+User Approval
+   ↓
+Backup
+   ↓
+Repair
+   ↓
+Validation
+   ↓
+Rollback disponível
+```
+
+---
+
+# 6. NÍVEIS DE RISCO
+
+Toda ação deve possuir:
+
+```text
+SAFE
+LOW
+MEDIUM
+HIGH
+CRITICAL
+```
+
+## SAFE
+
+Pode ser executada automaticamente.
+
+Exemplo:
+
+* limpar cache temporário comprovadamente descartável.
+
+## LOW
+
+Baixo risco e facilmente reversível.
+
+## MEDIUM
+
+Pode alterar comportamento do sistema.
+
+Exigir confirmação.
+
+## HIGH
+
+Pode afetar:
+
+* boot;
+* drivers;
+* serviços;
+* rede;
+* aplicações.
+
+Exigir confirmação explícita.
+
+## CRITICAL
+
+Pode envolver:
+
+* partições;
+* corrupção;
+* perda de dados;
+* hardware falhando.
+
+Não executar automaticamente.
+
+---
+
+# 7. DASHBOARD
+
+A tela inicial deverá mostrar:
+
+```text
+┌─────────────────────────────────────────────┐
+│ Windows Health Center                      │
+│                                             │
+│ Saúde do computador                         │
+│                                             │
+│                 87 / 100                    │
+│                    BOM                      │
+│                                             │
+├─────────────────────────────────────────────┤
+│ CPU       12%                               │
+│ RAM       48%                               │
+│ Disco C   71%                               │
+│ GPU       8%                                │
+│                                             │
+├─────────────────────────────────────────────┤
+│ 🔴 1 problema crítico                       │
+│ 🟠 3 problemas importantes                  │
+│ 🟡 8 recomendações                          │
+│                                             │
+│          [ Executar varredura ]             │
+└─────────────────────────────────────────────┘
+```
+
+O score deve ser calculado com base em métricas reais.
+
+Não diminuir score por problemas irrelevantes apenas para incentivar correções.
+
+---
+
+# 8. MENU PRINCIPAL
+
+Criar:
+
+```text
+Dashboard
+
+Varredura
+   ├── Varredura rápida
+   ├── Varredura completa
+   └── Personalizada
+
+Performance
+
+Processos
+
+Windows Explorer
+
+Armazenamento
+
+Hardware
+
+Drivers
+
+Inicialização
+
+Serviços
+
+Aplicativos
+
+Windows
+
+Eventos
+
+Rede
+
+Segurança
+
+Desenvolvimento
+
+Limpeza
+
+Correções
+
+Histórico
+
+Relatórios
+
+Configurações
+```
+
+---
+
+# 9. MODOS DE VARREDURA
+
+## RÁPIDA
+
+Duração aproximada:
+
+1–3 minutos.
+
+Verificar:
+
+* CPU;
+* RAM;
+* disco;
+* processos;
+* espaço;
+* Explorer;
+* startup;
+* serviços com erro;
+* Event Viewer recente;
+* Windows Update.
+
+## COMPLETA
+
+Executar todos os módulos.
+
+## PERSONALIZADA
+
+Permitir selecionar individualmente:
+
+```text
+☑ Windows
+☑ Hardware
+☑ Performance
+☑ Discos
+☑ Explorer
+☑ Drivers
+☑ Aplicativos
+☑ Startup
+☑ Serviços
+☑ Eventos
+☑ Rede
+☑ Segurança
+☑ Desenvolvimento
+☑ Armazenamento
+```
+
+---
+
+# 10. MOTOR DE DIAGNÓSTICO
+
+Criar interface semelhante a:
+
+```csharp
+public interface IDiagnosticScanner
+{
+    string Name { get; }
+
+    Task<DiagnosticResult> ScanAsync(
+        CancellationToken cancellationToken);
+}
+```
+
+Resultado:
+
+```csharp
+DiagnosticResult
+{
+    Scanner
+    Timestamp
+    Duration
+    Findings[]
+}
+```
+
+Cada finding deve possuir:
+
+```text
+ID
+Categoria
+Título
+Descrição
+Severidade
+Evidência
+Causa provável
+Impacto
+Recomendação
+Correção disponível
+Risco da correção
+Necessita administrador
+Necessita reinicialização
+Pode fazer rollback
+```
+
+---
+
+# 11. CPU
+
+Monitorar:
+
+* utilização;
+* frequência;
+* cores;
+* threads;
+* processos;
+* tempo de CPU;
+* throttling quando detectável;
+* utilização média;
+* picos.
+
+Mostrar gráfico histórico.
+
+Identificar processos responsáveis por uso excessivo.
+
+Nunca considerar simplesmente "CPU alta" como problema.
+
+Analisar duração e contexto.
+
+---
+
+# 12. MEMÓRIA
+
+Mostrar:
+
+* RAM instalada;
+* utilizada;
+* disponível;
+* committed;
+* cached;
+* paged pool;
+* non-paged pool;
+* page file;
+* hard faults.
+
+Identificar:
+
+* processos consumindo memória;
+* possível memory leak;
+* paginação excessiva;
+* crescimento contínuo.
+
+---
+
+# 13. GPU
+
+Mostrar:
+
+* GPU;
+* fabricante;
+* VRAM;
+* utilização;
+* driver;
+* processos;
+* versão do driver.
+
+Detectar eventos relacionados a:
+
+* driver crash;
+* TDR;
+* LiveKernelEvent;
+* Display Driver.
+
+---
+
+# 14. DISCOS
+
+Mostrar todos os dispositivos físicos.
+
+Para cada disco:
+
+```text
+Samsung SSD 990 PRO
+--------------------
+Tipo: NVMe
+Capacidade: 2 TB
+Utilizado: 1.3 TB
+Livre: 700 GB
+Saúde: 98%
+Temperatura: 43°C
+SMART: OK
+TRIM: Ativo
+```
+
+Quando suportado, coletar SMART/NVMe Health Information.
+
+Nunca inventar percentual de saúde caso o dispositivo não forneça métrica confiável.
+
+Nesse caso mostrar:
+
+`Saúde: não disponível`
+
+---
+
+# 15. ANÁLISE DE ESPAÇO
+
+Criar visualização semelhante a analisadores de armazenamento.
+
+Mostrar:
+
+```text
+C:\
+├── Users          380 GB
+├── Program Files  140 GB
+├── Windows         65 GB
+├── ProgramData     35 GB
+└── Outros          90 GB
+```
+
+Permitir navegar pelos maiores diretórios.
+
+Mostrar:
+
+* maiores arquivos;
+* maiores pastas;
+* arquivos antigos;
+* temporários;
+* caches.
+
+NÃO excluir automaticamente arquivos pessoais.
+
+---
+
+# 16. WINDOWS EXPLORER
+
+Criar módulo dedicado.
+
+Investigar:
+
+* `explorer.exe`;
+* shell extensions;
+* context menu handlers;
+* thumbnail handlers;
+* preview handlers;
+* Quick Access;
+* network locations;
+* icon cache;
+* thumbnail cache;
+* Search Indexer;
+* OneDrive;
+* cloud providers.
+
+Mostrar extensões Shell instaladas:
+
+```text
+Nome
+Fabricante
+Tipo
+Assinado
+Status
+Impacto estimado
+```
+
+Permitir desativar extensão problemática com rollback.
+
+---
+
+# 17. DETECTOR DE PASTAS LENTAS
+
+Permitir selecionar uma pasta e executar benchmark.
+
+Medir:
+
+* tempo de enumeração;
+* quantidade de arquivos;
+* quantidade de diretórios;
+* tamanho;
+* tempo para leitura de metadados.
+
+Detectar possíveis causas:
+
+* arquivos demais;
+* thumbnails;
+* disco lento;
+* rede;
+* OneDrive;
+* antivírus;
+* shell extension;
+* indexação.
+
+---
+
+# 18. PROCESS MANAGER
+
+Criar gerenciador avançado.
+
+Mostrar:
+
+```text
+Processo
+PID
+CPU
+RAM
+Disco
+Rede
+GPU
+Threads
+Handles
+Usuário
+Executável
+Fabricante
+Assinatura
+```
+
+Permitir:
+
+* abrir localização;
+* propriedades;
+* finalizar processo;
+* visualizar árvore;
+* pesquisar processo.
+
+Processos críticos do Windows devem possuir proteção contra encerramento acidental.
+
+---
+
+# 19. STARTUP MANAGER
+
+Mapear:
+
+* Registry Run;
+* RunOnce;
+* Startup folders;
+* Scheduled Tasks;
+* serviços;
+* inicialização de aplicações.
+
+Mostrar impacto estimado:
+
+```text
+Discord
+Impacto: Médio
+Startup: Ativo
+
+[Desativar]
+```
+
+Salvar estado anterior para permitir rollback.
+
+---
+
+# 20. SERVIÇOS
+
+Mostrar:
+
+* nome;
+* display name;
+* fabricante;
+* status;
+* startup type;
+* PID;
+* dependências.
+
+Destacar:
+
+* serviços falhando;
+* serviços órfãos;
+* serviços de aplicações inexistentes.
+
+Não recomendar desativação baseada em listas genéricas.
+
+---
+
+# 21. EVENT VIEWER ANALYZER
+
+Ler automaticamente:
+
+* System;
+* Application;
+* Setup;
+* WHEA;
+* Windows Update;
+* Kernel;
+* Disk;
+* NTFS.
+
+Agrupar erros repetidos.
+
+Exemplo:
+
+```text
+Disk / Event 153
+
+Ocorrências: 47
+Últimas 24h: 19
+
+Severidade: ALTA
+
+Possível problema de comunicação com armazenamento.
+```
+
+Permitir abrir os eventos associados.
+
+---
+
+# 22. WINDOWS HEALTH
+
+Criar módulo:
+
+**Integridade do Windows**
+
+Executar inicialmente verificações não destrutivas.
+
+Integrar:
+
+* DISM;
+* SFC;
+* CHKDSK.
+
+Mostrar comandos executados e resultado.
+
+Exemplo:
+
+```text
+Windows
+
+Component Store       OK
+System Files           PROBLEMA
+NTFS                   OK
+
+Encontrados:
+3 arquivos corrompidos.
+
+[Reparar]
+```
+
+---
+
+# 23. COMMAND EXECUTION ENGINE
+
+Nunca espalhar execução de PowerShell/CMD diretamente pela aplicação.
+
+Criar:
+
+```text
+ICommandExecutor
+```
+
+Responsável por:
+
+* execução;
+* timeout;
+* stdout;
+* stderr;
+* exit code;
+* cancelamento;
+* privilégios;
+* logging.
+
+Nunca construir comandos concatenando diretamente entrada do usuário.
+
+Evitar command injection.
+
+---
+
+# 24. ADMINISTRADOR
+
+O programa deve funcionar normalmente sem administrador.
+
+Solicitar elevação somente quando determinada operação exigir.
+
+Utilizar UAC.
+
+Não executar todo o aplicativo permanentemente como administrador sem necessidade.
+
+---
+
+# 25. DRIVERS
+
+Criar módulo de drivers.
+
+Mostrar:
+
+```text
+Dispositivo
+Fabricante
+Driver
+Versão
+Data
+Status
+```
+
+Identificar:
+
+* dispositivos com erro;
+* drivers ausentes;
+* dispositivos desconhecidos;
+* drivers com eventos recorrentes.
+
+Não implementar inicialmente um "driver updater" baixando arquivos de sites aleatórios.
+
+Preferir:
+
+* Windows Update;
+* fabricante oficial.
+
+---
+
+# 26. WINDOWS UPDATE
+
+Mostrar:
+
+* status;
+* último update;
+* updates pendentes;
+* reboot pendente;
+* erros recentes.
+
+Criar diagnóstico para falhas recorrentes.
+
+---
+
+# 27. REDE
+
+Dashboard:
+
+```text
+Download
+Upload
+Latência
+DNS
+Gateway
+Interface
+```
+
+Executar testes:
+
+* gateway;
+* DNS;
+* conectividade;
+* perda de pacotes;
+* latência.
+
+Listar adaptadores:
+
+* físicos;
+* Wi-Fi;
+* Ethernet;
+* VPN;
+* Docker;
+* WSL;
+* Hyper-V.
+
+---
+
+# 28. APLICATIVOS
+
+Criar inventário de software.
+
+Mostrar:
+
+```text
+Aplicativo
+Versão
+Fabricante
+Instalado em
+Tamanho estimado
+Startup
+Processos
+```
+
+Detectar:
+
+* aplicações potencialmente abandonadas;
+* aplicações com crashes recorrentes;
+* versões duplicadas;
+* aplicações pesadas.
+
+Não desinstalar automaticamente.
+
+---
+
+# 29. CRASH ANALYZER
+
+Analisar:
+
+* Application Error;
+* Application Hang;
+* WER;
+* minidumps;
+* LiveKernelEvent;
+* BSOD.
+
+Dashboard:
+
+```text
+Últimos 30 dias
+
+Chrome          7 crashes
+Explorer        4 crashes
+Driver NVIDIA   2 crashes
+Aplicativo X   18 hangs
+```
+
+---
+
+# 30. SECURITY SCANNER
+
+Não tente substituir antivírus.
+
+Utilize informações disponíveis no Windows Security/Defender.
+
+Mostrar:
+
+* proteção ativa;
+* última verificação;
+* ameaças;
+* configurações relevantes.
+
+Detectar persistências potencialmente suspeitas:
+
+* Startup;
+* serviços;
+* tarefas;
+* executáveis em diretórios temporários.
+
+Não declarar malware sem evidência suficiente.
+
+---
+
+# 31. DEVELOPER MODE
+
+Criar módulo especial para computadores de desenvolvimento.
+
+Detectar:
+
+```text
+Docker
+WSL
+Hyper-V
+
+Node.js
+npm
+Yarn
+pnpm
+
+Java
+Maven
+Gradle
+
+.NET
+
+Git
+
+VS Code
+Visual Studio
+IntelliJ
+Android Studio
+```
+
+Mostrar versões.
+
+---
+
+# 32. DOCKER ANALYZER
+
+Detectar Docker Desktop/Engine.
+
+Mostrar:
+
+```text
+Containers       12 GB
+Images           37 GB
+Volumes          84 GB
+Build Cache      23 GB
+
+Total           156 GB
+```
+
+Permitir inspeção detalhada.
+
+Nunca executar automaticamente:
+
+```text
+docker system prune
+docker volume prune
+```
+
+Volumes devem receber destaque:
+
+**Pode conter bancos de dados ou dados permanentes.**
+
+---
+
+# 33. WSL ANALYZER
+
+Mostrar:
+
+* distribuições;
+* versão WSL;
+* estado;
+* VHDX;
+* tamanho;
+* consumo.
+
+Não remover distribuições.
+
+---
+
+# 34. SAFE CLEANER
+
+Criar limpeza baseada em categorias.
+
+Exemplo:
+
+```text
+Temporários Windows        3.8 GB
+Thumbnail Cache            800 MB
+Crash Dumps                2.1 GB
+Delivery Optimization      4.3 GB
+
+Total seguro:
+11 GB
+
+[Visualizar]
+[Limpar]
+```
+
+Separar:
+
+**Seguro**
+
+**Revisar**
+
+**Avançado**
+
+Arquivos pessoais nunca devem entrar automaticamente em "Seguro".
+
+---
+
+# 35. REPAIR ENGINE
+
+Criar:
+
+```csharp
+public interface IRepairAction
+{
+    string Id { get; }
+
+    RiskLevel Risk { get; }
+
+    bool RequiresElevation { get; }
+
+    bool RequiresRestart { get; }
+
+    bool SupportsRollback { get; }
+
+    Task<RepairResult> ExecuteAsync();
+
+    Task<RollbackResult> RollbackAsync();
+}
+```
+
+---
+
+# 36. BACKUP ENGINE
+
+Antes de alterações relevantes salvar estado anterior em:
+
+```text
+%ProgramData%\LeccorWindowsHealthCenter\Backups\
+```
+
+Registrar:
+
+* timestamp;
+* ação;
+* valores anteriores;
+* novos valores;
+* usuário;
+* resultado.
+
+---
+
+# 37. ROLLBACK
+
+Criar tela:
+
+# Histórico de Correções
+
+Exemplo:
+
+```text
+26/08/2026 18:42
+
+Extensão Shell XYZ desativada.
+
+Motivo:
+Explorer demorava 14 segundos.
+
+Resultado:
+Explorer passou para 1.8 segundos.
+
+[Desfazer]
+```
+
+---
+
+# 38. RESTORE POINT
+
+Para operações de maior impacto, quando tecnicamente aplicável, oferecer criação de Restore Point.
+
+Não considerar Restore Point substituto para backup de dados.
+
+---
+
+# 39. BEFORE / AFTER
+
+Uma funcionalidade central deve ser comprovar se a correção funcionou.
+
+Exemplo:
+
+```text
+WINDOWS EXPLORER
+
+Antes:
+12.4 segundos
+
+Depois:
+1.7 segundos
+
+Melhoria:
+86%
+```
+
+Nunca afirmar melhoria sem medição.
+
+---
+
+# 40. HISTÓRICO
+
+Utilizar SQLite local.
+
+Armazenar:
+
+```text
+Scans
+Findings
+Metrics
+Repairs
+Rollbacks
+Applications
+HardwareSnapshots
+EventsSummary
+```
+
+Não armazenar desnecessariamente conteúdo de arquivos pessoais.
+
+---
+
+# 41. PRIVACIDADE
+
+O aplicativo deverá funcionar **localmente por padrão**.
+
+Não enviar:
+
+* nomes de arquivos;
+* documentos;
+* histórico;
+* processos;
+* hardware;
+* logs;
+* informações pessoais
+
+para servidores externos sem consentimento explícito.
+
+---
+
+# 42. LOGS
+
+Utilizar logging estruturado.
+
+Exemplo:
+
+```text
+%ProgramData%\LeccorWindowsHealthCenter\Logs\
+```
+
+Implementar:
+
+* rotação;
+* limite de tamanho;
+* retenção configurável.
+
+Nunca registrar:
+
+* senhas;
+* tokens;
+* API keys;
+* conteúdo de `.env`;
+* cookies;
+* credenciais.
+
+---
+
+# 43. INTERFACE
+
+Design moderno inspirado no Windows 11.
+
+Características:
+
+* sidebar;
+* cards;
+* gráficos;
+* dark/light mode;
+* animações discretas;
+* responsividade;
+* ícones;
+* navegação simples.
+Usar as logos logo1.jpg e logo2.png no projeto como logos principais do sistema.
+
+Evitar aparência de software "PC Cleaner" duvidoso.
+
+O software deve transmitir:
+
+**diagnóstico técnico + transparência + segurança.**
+
+---
+
+# 44. TELA DE RESULTADO
+
+Exemplo:
+
+```text
+Varredura concluída
+
+Saúde
+82/100
+
+1 crítico
+4 importantes
+7 moderados
+11 informações
+
+----------------------------------
+
+🔴 Disco D:
+
+Foram detectados eventos recorrentes de I/O.
+
+Evidências:
+47 eventos Disk 153.
+
+Recomendação:
+Verificar integridade e realizar backup.
+
+[Detalhes]
+
+----------------------------------
+
+🟠 Windows Explorer
+
+Tempo médio de abertura:
+11.8 segundos
+
+Possível responsável:
+Shell Extension XYZ
+
+[Investigar]
+```
+
+---
+
+# 45. BOTÃO "CORRIGIR"
+
+Não crie simplesmente:
+
+`CORRIGIR TODOS`
+
+Crie:
+
+```text
+Correções seguras
+7 disponíveis
+
+[Aplicar correções seguras]
+```
+
+Mudanças MEDIUM/HIGH precisam ser analisadas individualmente.
+
+---
+
+# 46. SCORING ENGINE
+
+Criar score entre:
+
+`0–100`
+
+Categorias:
+
+```text
+Hardware
+Windows
+Performance
+Storage
+Stability
+Security
+```
+
+Cada problema possui peso baseado em:
+
+* severidade;
+* frequência;
+* evidência;
+* impacto.
+
+Não utilizar score comercial artificial.
+
+---
+
+# 47. SISTEMA DE REGRAS
+
+Não espalhar regras pelo código.
+
+Criar mecanismo central:
+
+```text
+RuleEngine
+```
+
+Exemplo conceitual:
+
+```text
+Rule:
+ExplorerHighStartupTime
+
+IF
+ExplorerAverageStartup > threshold
+
+AND
+SampleCount >= minimum
+
+THEN
+CreateFinding
+```
+
+Thresholds devem possuir justificativa técnica e possibilidade de configuração.
+
+---
+
+# 48. EVIDENCE ENGINE
+
+Cada Finding precisa apontar para sua origem.
+
+Exemplo:
+
+```text
+Finding:
+Explorer lento
+
+Evidence:
+- Startup médio: 11.8s
+- 5 medições
+- Shell extension XYZ: 8.7s
+- Event 1002 registrado 4 vezes
+```
+
+---
+
+# 49. DETECÇÃO DE FALSOS POSITIVOS
+
+Antes de criar alerta, verificar:
+
+* quantidade de amostras;
+* duração;
+* recorrência;
+* contexto;
+* baseline.
+
+Exemplo:
+
+CPU 100% durante 2 segundos NÃO deve automaticamente gerar problema.
+
+CPU > 90% durante períodos prolongados e repetidos deve gerar investigação.
+
+---
+
+# 50. TESTES
+
+Criar:
+
+* Unit Tests;
+* Integration Tests;
+* System Tests.
+
+Testar especialmente:
+
+* scanners;
+* parsers;
+* RuleEngine;
+* RiskEngine;
+* RepairEngine;
+* rollback;
+* command execution;
+* permissões.
+
+Nunca executar correções destrutivas durante testes automatizados.
+
+Utilizar mocks.
+
+---
+
+# 51. MODO SIMULAÇÃO
+
+Implementar:
+
+`Dry Run`
+
+Nesse modo nenhuma alteração deve ser realizada.
+
+Mostrar:
+
+```text
+Ação que seria executada:
+
+Desativar Shell Extension XYZ
+
+Risco:
+LOW
+
+Rollback:
+SIM
+
+Alterações:
+Registry XYZ
+
+Nenhuma alteração foi realizada.
+```
+
+---
+
+# 52. CANCELAMENTO
+
+Toda operação longa deve aceitar:
+
+`CancellationToken`
+
+Botão:
+
+**Cancelar varredura**
+
+Não deixar processos PowerShell ou CMD órfãos.
+
+---
+
+# 53. PROGRESSO
+
+Mostrar:
+
+```text
+Varredura completa
+
+██████████████░░░░░ 72%
+
+✓ Hardware
+✓ CPU
+✓ Memória
+✓ Discos
+✓ Windows
+→ Event Viewer
+○ Drivers
+○ Rede
+○ Aplicativos
+```
+
+---
+
+# 54. RELATÓRIO
+
+Permitir exportar:
+
+* HTML;
+* JSON;
+* CSV;
+* PDF.
+
+O HTML deverá possuir visual profissional.
+
+---
+
+# 55. RELATÓRIO TÉCNICO
+
+Gerar:
+
+```text
+Computer Health Report
+
+Computer
+Windows
+Hardware
+CPU
+Memory
+GPU
+Storage
+
+Performance
+
+Problems
+
+Critical
+High
+Medium
+Low
+
+Repairs
+
+Before / After
+
+Recommendations
+```
+
+---
+
+# 56. MODO AVANÇADO
+
+Criar configuração:
+
+`Modo avançado`
+
+Quando ativado mostrar:
+
+* Event IDs;
+* Registry Paths;
+* comandos;
+* exit codes;
+* stdout/stderr;
+* PID;
+* paths;
+* métricas detalhadas.
+
+---
+
+# 57. NÃO IMPLEMENTAR COMO "OTIMIZAÇÃO"
+
+Nunca implementar funcionalidades como:
+
+* "RAM Booster";
+* limpar RAM indiscriminadamente;
+* desativar serviços aleatoriamente;
+* limpar Prefetch indiscriminadamente;
+* Registry Cleaner genérico;
+* apagar registros porque são "inválidos";
+* desabilitar Defender;
+* desligar Windows Update;
+* remover telemetria indiscriminadamente;
+* desabilitar SysMain sem diagnóstico.
+
+O sistema deve ser baseado em evidências.
+
+---
+
+# 58. PERFORMANCE DO PRÓPRIO SOFTWARE
+
+A ferramenta não pode ser responsável pela lentidão que está medindo.
+
+Objetivos:
+
+Idle:
+
+`< 1% CPU`
+
+RAM:
+
+preferencialmente `< 200 MB`
+
+Scans pesados devem possuir limites de concorrência.
+
+Evitar varrer milhões de arquivos simultaneamente.
+
+---
+
+# 59. MVP
+
+Não tente implementar tudo imediatamente.
+
+## MVP 1
+
+Implementar:
+
+* projeto;
+* arquitetura;
+* dashboard;
+* hardware;
+* CPU;
+* RAM;
+* discos;
+* processos;
+* armazenamento;
+* Event Viewer;
+* Windows Health;
+* startup;
+* scanner;
+* RuleEngine;
+* findings;
+* SQLite;
+* logs.
+
+## MVP 2
+
+Adicionar:
+
+* Explorer Analyzer;
+* aplicações;
+* serviços;
+* drivers;
+* rede;
+* Windows Update;
+* limpeza segura.
+
+## MVP 3
+
+Adicionar:
+
+* RepairEngine;
+* backup;
+* rollback;
+* Restore Point;
+* comparação antes/depois.
+
+## MVP 4
+
+Adicionar:
+
+* Docker;
+* WSL;
+* developer tools;
+* crash analyzer;
+* análise avançada de discos.
+
+## MVP 5
+
+Adicionar:
+
+* relatórios avançados;
+* histórico;
+* agendamento;
+* notificações;
+* melhorias de UX.
+
+---
+
+# 60. AGENDAMENTO
+
+Posteriormente permitir:
+
+```text
+Executar diagnóstico:
+
+○ Manualmente
+○ Diariamente
+○ Semanalmente
+○ Mensalmente
+```
+
+Utilizar Windows Task Scheduler ou mecanismo apropriado.
+
+O monitoramento permanente deve ser opcional.
+
+---
+
+# 61. MODO PORTABLE
+
+Arquitetura deve permitir futuramente:
+
+```text
+LeccorWindowsHealthCenter.exe
+```
+
+sem instalação completa.
+
+Funcionalidades dependentes de serviços persistentes podem ficar indisponíveis nesse modo.
+
+---
+
+# 62. INSTALADOR
+
+Criar instalador profissional.
+
+Permitir:
+
+* instalar;
+* atualizar;
+* reparar instalação;
+* desinstalar.
+
+A desinstalação deve remover arquivos do aplicativo sem remover relatórios/backups do usuário sem confirmação.
+
+---
+
+# 63. SEGURANÇA DO SOFTWARE
+
+Considere o aplicativo uma ferramenta privilegiada.
+
+Aplicar:
+
+* princípio do menor privilégio;
+* validação de inputs;
+* proteção contra command injection;
+* paths seguros;
+* validação de executáveis;
+* assinatura de código preparada;
+* comunicação segura entre processos;
+* ACLs adequadas;
+* proteção dos diretórios de backup.
+
+Nunca utilizar entrada do usuário diretamente em:
+
+```text
+cmd.exe
+powershell.exe
+Registry
+WMI
+filesystem
+```
+
+sem validação.
+
+---
+
+# 64. ARQUITETURA DE PRIVILÉGIOS
+
+Para operações administrativas, considere separar:
+
+```text
+LeccorWindowsHealthCenter.exe
+          ↓
+LeccorWindowsHealthCenter.Elevated.exe
+```
+
+O processo principal permanece sem privilégios administrativos.
+
+Somente operações específicas utilizam processo elevado.
+
+Criar comunicação IPC autenticada e limitada.
+
+---
+
+# 65. SISTEMA DE PLUGINS
+
+Prepare a arquitetura para futuramente permitir:
+
+```text
+IDiagnosticPlugin
+```
+
+Exemplo:
+
+```text
+NvidiaPlugin
+DockerPlugin
+WSLPlugin
+PostgreSQLPlugin
+VisualStudioPlugin
+```
+
+Plugins nunca devem receber privilégios administrativos automaticamente.
+
+---
+
+# 66. BANCO
+
+SQLite.
+
+Tabelas iniciais:
+
+```text
+Scan
+Finding
+Evidence
+Metric
+Repair
+Rollback
+HardwareSnapshot
+EventSummary
+Application
+Configuration
+```
+
+Implementar migrations.
+
+---
+
+# 67. MODELO FINDING
+
+Estrutura aproximada:
+
+```text
+Finding
+
+Id
+ScannerId
+Category
+Title
+Description
+
+Severity
+Confidence
+
+DetectedAt
+
+Evidence[]
+
+ProbableCause
+
+Recommendation
+
+RepairActionId
+
+RiskLevel
+
+RequiresElevation
+RequiresRestart
+SupportsRollback
+
+Status
+```
+
+Adicionar `Confidence` para diferenciar:
+
+**problema confirmado**
+
+de:
+
+**possível problema**
+
+---
+
+# 68. OBSERVABILIDADE
+
+O próprio aplicativo precisa registrar:
+
+* duração dos scanners;
+* exceptions;
+* comandos;
+* falhas;
+* tempo de consultas;
+* memória;
+* operações canceladas.
+
+Não coletar telemetria externa por padrão.
+
+---
+
+# 69. DOCUMENTAÇÃO
+
+Criar:
+
+```text
+README.md
+ARCHITECTURE.md
+SECURITY.md
+DIAGNOSTICS.md
+REPAIR_ENGINE.md
+RULE_ENGINE.md
+DEVELOPMENT.md
+BUILD.md
+RELEASE.md
+PASSOS.md (ONDE VOCE VAI DIVIDIR O PROJETO EM PASSOS E EXECUTAR CADA UM DELES UM POR VEZ E SEMPRE AGUARDAR MINHA AUTORIZACAO PARA SEGUIR PARA O PROXIMO PASSO. e AO FINAL DE CADA PASSO ENVIAR UM TEXTO DE COMMIT.)
+CONTEXTO.md (ONDE VOCE SALVARA O CONTEXTO GERAL DO PROJETO E ONDE VOCE DEVE CONSULTAR PARA ENTENDER O PROJETO, E SEMPRE ATUALIZAR ELE AO FINAL DE CADA ACAO.)
+DOCUMENTACAO.md (ONDE VOCE SALVARA A DOCUMENTACAO DO PROJETO E ONDE VOCE DEVE CONSULTAR PARA ENTENDER O PROJETO, E SEMPRE ATUALIZAR ELE AO FINAL DE CADA ACAO.)
+```
+
+Documentar cada scanner.
+
+---
+
+# 70. CI/CD
+
+Preparar GitHub Actions para:
+
+```text
+restore
+build
+test
+lint/analyzers
+publish
+```
+
+Build:
+
+```text
+win-x64
+```
+
+Posteriormente:
+
+```text
+win-arm64
+```
+
+---
+
+# 71. DEFINITION OF DONE
+
+Uma funcionalidade somente é considerada concluída quando possuir:
+
+* implementação;
+* tratamento de erro;
+* logging;
+* cancelamento;
+* teste;
+* documentação;
+* validação de permissões;
+* análise de risco;
+* interface;
+* evidências;
+* resultado compreensível para usuário comum.
+
+---
+
+# 72. REQUISITO FUNDAMENTAL
+
+Nunca mostrar apenas:
+
+> "Encontramos 154 problemas."
+
+Mostrar:
+
+> "Encontramos 3 problemas confirmados e 8 recomendações."
+
+Cada problema precisa ser explicável.
+
+O usuário precisa conseguir clicar e descobrir:
+
+**O que aconteceu?**
+
+**Como sabemos disso?**
+
+**Qual impacto?**
+
+**Como corrigir?**
+
+**Qual risco da correção?**
+
+**Posso desfazer?**
+
+---
+
+# 73. EXPERIÊNCIA FINAL
+
+Quero conseguir instalar o software, abrir e clicar:
+
+# Executar varredura completa
+
+O programa então deve analisar automaticamente:
+
+```text
+Hardware
+↓
+CPU
+↓
+RAM
+↓
+GPU
+↓
+Discos
+↓
+Windows
+↓
+Explorer
+↓
+Pastas
+↓
+Processos
+↓
+Startup
+↓
+Serviços
+↓
+Drivers
+↓
+Aplicativos
+↓
+Event Viewer
+↓
+Windows Update
+↓
+Rede
+↓
+Segurança
+↓
+Docker/WSL
+↓
+Armazenamento
+```
+
+Ao terminar apresentar:
+
+```text
+SAÚDE DO COMPUTADOR
+
+84 / 100
+BOM
+
+1 problema crítico
+2 problemas altos
+5 problemas médios
+8 recomendações
+
+--------------------------------
+
+Problema mais importante
+
+Disco D:
+47 erros de I/O detectados nas últimas 24 horas.
+
+Risco:
+Possível problema no armazenamento.
+
+Recomendação:
+Backup dos dados e diagnóstico aprofundado.
+
+[Investigar]
+
+--------------------------------
+
+Windows Explorer
+
+Status:
+LENTO
+
+Tempo médio:
+9.8 segundos
+
+Causa provável:
+Shell Extension XYZ
+
+Confiança:
+92%
+
+[Corrigir]
+
+--------------------------------
+
+Espaço recuperável
+
+12.7 GB
+
+[Visualizar]
+```
+
+---
+
+# 74. ORDEM DE IMPLEMENTAÇÃO
+
+Não gere milhares de arquivos aleatoriamente.
+
+Comece analisando requisitos e criando:
+
+1. arquitetura;
+2. solution `.sln`;
+3. projetos;
+4. Domain;
+5. Application;
+6. Infrastructure;
+7. banco SQLite;
+8. logging;
+9. scanner framework;
+10. RuleEngine;
+11. RiskEngine;
+12. dashboard.
+
+Depois implemente os scanners do MVP.
+
+Faça build após cada conjunto relevante de mudanças.
+
+Corrija erros antes de continuar.
+
+---
+
+# 75. PRIMEIRA EXECUÇÃO DO AGENTE
+
+Comece agora criando a estrutura do projeto.
+
+Antes de implementar scanners específicos:
+
+0. gere `CONTEXTO.md`;
+0. gere `DOCUMENTACAO.md`;
+0. gere `PASSOS.md`;
+0. gere `README.md`;
+1. gere `ARCHITECTURE.md`;
+2. defina os projetos da solution;
+3. configure Dependency Injection;
+4. configure logging;
+5. configure SQLite;
+6. crie interfaces dos scanners;
+7. crie `Finding`, `Evidence`, `Metric` e enums;
+8. implemente `ScanOrchestrator`;
+9. implemente `RuleEngine`;
+10. implemente estrutura inicial do `RepairEngine`;
+11. crie dashboard inicial;
+12. faça o primeiro build;
+13. execute testes;
+14. corrija todos os erros encontrados.
+
+Depois comece o **MVP 1**.
+
+Não pule diretamente para otimizações ou correções do Windows antes que a infraestrutura de diagnóstico, evidências, risco, logs e rollback esteja corretamente implementada.
+
+O princípio central de todo o projeto é:
+
+# MEDIR → DETECTAR → COMPROVAR → EXPLICAR → CORRIGIR → VALIDAR → DESFAZER SE NECESSÁRIO
+
+Crie um software tecnicamente confiável, transparente e seguro, e não apenas mais um "PC Cleaner".

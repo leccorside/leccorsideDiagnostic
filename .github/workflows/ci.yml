@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  SOLUTION: LeccorWindowsHealthCenter.sln
+  APP_PROJECT: src/LeccorWindowsHealthCenter.App/LeccorWindowsHealthCenter.App.csproj
+
+jobs:
+  build-test:
+    name: restore · build · analyzers · test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      - name: Build + analyzers (avisos tratados como erro no CI)
+        run: dotnet build ${{ env.SOLUTION }} --no-restore -c Release -warnaserror
+
+      - name: Test
+        run: dotnet test ${{ env.SOLUTION }} --no-build -c Release --logger "trx" --results-directory TestResults --collect "XPlat Code Coverage"
+
+      - name: Resultados dos testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
+
+  publish:
+    name: publish ${{ matrix.rid }}
+    needs: build-test
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        # win-arm64 entra quando houver validação em hardware ARM (ver docs/RELEASE.md).
+        rid: [win-x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Publish
+        run: dotnet publish ${{ env.APP_PROJECT }} -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishReadyToRun=true -o publish/${{ matrix.rid }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LeccorWindowsHealthCenter-${{ matrix.rid }}
+          path: publish/${{ matrix.rid }}

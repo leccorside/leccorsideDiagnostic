@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>LeccorWindowsHealthCenter</AssemblyName>
+    <RootNamespace>LeccorWindowsHealthCenter.App</RootNamespace>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LeccorWindowsHealthCenter.Infrastructure\LeccorWindowsHealthCenter.Infrastructure.csproj" />
+    <ProjectReference Include="..\LeccorWindowsHealthCenter.Diagnostics\LeccorWindowsHealthCenter.Diagnostics.csproj" />
+    <ProjectReference Include="..\LeccorWindowsHealthCenter.Repair\LeccorWindowsHealthCenter.Repair.csproj" />
+    <ProjectReference Include="..\LeccorWindowsHealthCenter.Monitoring\LeccorWindowsHealthCenter.Monitoring.csproj" />
+    <ProjectReference Include="..\LeccorWindowsHealthCenter.Reporting\LeccorWindowsHealthCenter.Reporting.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\logo1.jpg" />
+    <Resource Include="Assets\logo2.png" />
+    <Resource Include="Assets\logo-mark.png" />
+    <Resource Include="Assets\app.ico" />
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

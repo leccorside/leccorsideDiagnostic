@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <Company>Leccor</Company>
+    <Product>Leccor Windows Health Center</Product>
+    <Copyright>Copyright © Leccor 2026</Copyright>
+    <Version>0.1.0</Version>
+    <NeutralLanguage>pt-BR</NeutralLanguage>
+    <!-- Mensagens de log e textos da UI são em pt-BR; localização formal fica para depois. -->
+    <NoWarn>$(NoWarn);CA1303;CA1848;CA1873;CA1716;CA1711;CA2007</NoWarn>
+  </PropertyGroup>
+</Project>

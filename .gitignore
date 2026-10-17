@@ -1,0 +1,52 @@
+# Build
+bin/
+obj/
+artifacts/
+publish/
+*.binlog
+*.nupkg
+*.snupkg
+
+# IDEs
+.vs/
+*.user
+*.suo
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.DotSettings.user
+
+# Testes
+TestResults/
+*.trx
+coverage*.xml
+coverage*.json
+*.coverage
+*.coveragexml
+
+# Modo portable (os dados ficam ao lado do .exe, dentro de bin/, já ignorado)
+portable.flag
+
+# Dados locais gerados pelo app fora de bin/ (banco SQLite, logs, backups)
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# Configuração local de desenvolvimento (não versionar overrides pessoais)
+appsettings.Local.json
+appsettings.*.local.json
+
+# Claude Code: configurações locais da máquina (settings.json compartilhado pode ser versionado)
+.claude/settings.local.json
+
+# Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Segredos (nunca versionar)
+.env
+.env.*
+*.pfx
+*.snk

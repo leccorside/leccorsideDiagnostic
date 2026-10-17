@@ -1,0 +1,7 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <PropertyGroup>
+    <!-- Convenções de testes: nomes com sublinhado (Metodo_cenario_resultado) e tipos públicos de teste. -->
+    <NoWarn>$(NoWarn);CA1707;CA1515;CA1861;CA2201</NoWarn>
+  </PropertyGroup>
+</Project>
