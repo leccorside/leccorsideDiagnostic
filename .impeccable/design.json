@@ -1,0 +1,976 @@
+{
+    "schemaVersion":  2,
+    "generatedAt":  "2026-10-17T21:05:49.1930558Z",
+    "title":  "Design System: Leccor Windows Health Center",
+    "extensions":  {
+                       "colorMeta":  {
+                                         "brasa-leccor":  {
+                                                              "role":  "primary",
+                                                              "displayName":  "Brasa Leccor",
+                                                              "canonical":  "oklch(57.5% 0.160 45.2)",
+                                                              "tonalRamp":  [
+                                                                                "#190500",
+                                                                                "#411601",
+                                                                                "#6E2A00",
+                                                                                "#9F4001",
+                                                                                "#CD5C1C",
+                                                                                "#F58046",
+                                                                                "#FEB695",
+                                                                                "#FEEAE0"
+                                                                            ]
+                                                          },
+                                         "brasa-leccor-hover":  {
+                                                                    "role":  "primary",
+                                                                    "displayName":  "Brasa Leccor Profunda",
+                                                                    "canonical":  "oklch(51.6% 0.146 43.7)",
+                                                                    "tonalRamp":  [
+                                                                                      "#1A0400",
+                                                                                      "#421501",
+                                                                                      "#6F2901",
+                                                                                      "#A13E00",
+                                                                                      "#C8602F",
+                                                                                      "#EF8354",
+                                                                                      "#FFB596",
+                                                                                      "#FFE9E1"
+                                                                                  ]
+                                                                },
+                                         "on-brasa":  {
+                                                          "role":  "primary",
+                                                          "displayName":  "Sobre a Brasa",
+                                                          "canonical":  "oklch(100.0% 0.000 89.9)",
+                                                          "tonalRamp":  [
+                                                                            "#0B0B0B",
+                                                                            "#252525",
+                                                                            "#424242",
+                                                                            "#616161",
+                                                                            "#828282",
+                                                                            "#A5A5A5",
+                                                                            "#C9C9C9",
+                                                                            "#EEEEEE"
+                                                                        ]
+                                                      },
+                                         "brasa-leccor-dark":  {
+                                                                   "role":  "primary",
+                                                                   "displayName":  "Brasa Leccor (escuro)",
+                                                                   "canonical":  "oklch(73.6% 0.164 56.6)",
+                                                                   "tonalRamp":  [
+                                                                                     "#160700",
+                                                                                     "#3C1B00",
+                                                                                     "#663300",
+                                                                                     "#924C04",
+                                                                                     "#C26705",
+                                                                                     "#F08523",
+                                                                                     "#FFB784",
+                                                                                     "#FEEADD"
+                                                                                 ]
+                                                               },
+                                         "brasa-leccor-hover-dark":  {
+                                                                         "role":  "primary",
+                                                                         "displayName":  "Brasa Leccor Profunda (escuro)",
+                                                                         "canonical":  "oklch(77.8% 0.157 59.0)",
+                                                                         "tonalRamp":  [
+                                                                                           "#160700",
+                                                                                           "#3B1C00",
+                                                                                           "#643401",
+                                                                                           "#904E00",
+                                                                                           "#BF6903",
+                                                                                           "#EB8929",
+                                                                                           "#FEB880",
+                                                                                           "#FEEADC"
+                                                                                       ]
+                                                                     },
+                                         "on-brasa-dark":  {
+                                                               "role":  "primary",
+                                                               "displayName":  "Sobre a Brasa (escuro)",
+                                                               "canonical":  "oklch(22.2% 0.000 89.9)",
+                                                               "tonalRamp":  [
+                                                                                 "#0B0B0B",
+                                                                                 "#252525",
+                                                                                 "#424242",
+                                                                                 "#616161",
+                                                                                 "#828282",
+                                                                                 "#A5A5A5",
+                                                                                 "#C9C9C9",
+                                                                                 "#EEEEEE"
+                                                                             ]
+                                                           },
+                                         "brand-gradient-start":  {
+                                                                      "role":  "primary",
+                                                                      "displayName":  "Faísca Vermelha",
+                                                                      "canonical":  "oklch(66.6% 0.225 36.6)",
+                                                                      "tonalRamp":  [
+                                                                                        "#1C0300",
+                                                                                        "#470E00",
+                                                                                        "#771F01",
+                                                                                        "#AA3003",
+                                                                                        "#E24100",
+                                                                                        "#FE7650",
+                                                                                        "#FEB5A0",
+                                                                                        "#FFE9E3"
+                                                                                    ]
+                                                                  },
+                                         "brand-gradient-mid":  {
+                                                                    "role":  "primary",
+                                                                    "displayName":  "Laranja Raposa",
+                                                                    "canonical":  "oklch(77.4% 0.174 65.1)",
+                                                                    "tonalRamp":  [
+                                                                                      "#150800",
+                                                                                      "#381E00",
+                                                                                      "#603702",
+                                                                                      "#8B5203",
+                                                                                      "#B86E02",
+                                                                                      "#E88C01",
+                                                                                      "#FFB972",
+                                                                                      "#FFEBD8"
+                                                                                  ]
+                                                                },
+                                         "brand-gradient-end":  {
+                                                                    "role":  "primary",
+                                                                    "displayName":  "Ouro da Raposa",
+                                                                    "canonical":  "oklch(87.6% 0.176 98.2)",
+                                                                    "tonalRamp":  [
+                                                                                      "#0F0B00",
+                                                                                      "#2C2500",
+                                                                                      "#4D4200",
+                                                                                      "#706105",
+                                                                                      "#968205",
+                                                                                      "#BEA505",
+                                                                                      "#E7C905",
+                                                                                      "#FFF0A6"
+                                                                                  ]
+                                                                },
+                                         "chart-cpu":  {
+                                                           "role":  "secondary",
+                                                           "displayName":  "Traço CPU",
+                                                           "canonical":  "oklch(66.0% 0.182 45.7)",
+                                                           "tonalRamp":  [
+                                                                             "#190500",
+                                                                             "#411600",
+                                                                             "#6D2B01",
+                                                                             "#9E4103",
+                                                                             "#D15905",
+                                                                             "#FE792F",
+                                                                             "#FEB695",
+                                                                             "#FEEAE0"
+                                                                         ]
+                                                       },
+                                         "chart-ram":  {
+                                                           "role":  "secondary",
+                                                           "displayName":  "Traço RAM",
+                                                           "canonical":  "oklch(52.6% 0.149 251.6)",
+                                                           "tonalRamp":  [
+                                                                             "#000B1D",
+                                                                             "#012549",
+                                                                             "#01437B",
+                                                                             "#0162B0",
+                                                                             "#3185D8",
+                                                                             "#57A9FF",
+                                                                             "#A2CDFF",
+                                                                             "#E4F0FE"
+                                                                         ]
+                                                       },
+                                         "chart-ram-dark":  {
+                                                                "role":  "secondary",
+                                                                "displayName":  "Traço RAM (escuro)",
+                                                                "canonical":  "oklch(68.1% 0.125 244.2)",
+                                                                "tonalRamp":  [
+                                                                                  "#000C19",
+                                                                                  "#002742",
+                                                                                  "#01466F",
+                                                                                  "#0366A0",
+                                                                                  "#3389C7",
+                                                                                  "#59ADED",
+                                                                                  "#98D0FE",
+                                                                                  "#E1F1FF"
+                                                                              ]
+                                                            },
+                                         "surface-app":  {
+                                                             "role":  "neutral",
+                                                             "displayName":  "Névoa de Laudo",
+                                                             "canonical":  "oklch(96.4% 0.000 89.9)",
+                                                             "tonalRamp":  [
+                                                                               "#0B0B0B",
+                                                                               "#252525",
+                                                                               "#424242",
+                                                                               "#616161",
+                                                                               "#828282",
+                                                                               "#A5A5A5",
+                                                                               "#C9C9C9",
+                                                                               "#EEEEEE"
+                                                                           ]
+                                                         },
+                                         "surface-sidebar":  {
+                                                                 "role":  "neutral",
+                                                                 "displayName":  "Lateral",
+                                                                 "canonical":  "oklch(94.9% 0.000 89.9)",
+                                                                 "tonalRamp":  [
+                                                                                   "#0B0B0B",
+                                                                                   "#252525",
+                                                                                   "#424242",
+                                                                                   "#616161",
+                                                                                   "#828282",
+                                                                                   "#A5A5A5",
+                                                                                   "#C9C9C9",
+                                                                                   "#EEEEEE"
+                                                                               ]
+                                                             },
+                                         "surface-card":  {
+                                                              "role":  "neutral",
+                                                              "displayName":  "Folha do Laudo",
+                                                              "canonical":  "oklch(100.0% 0.000 89.9)",
+                                                              "tonalRamp":  [
+                                                                                "#0B0B0B",
+                                                                                "#252525",
+                                                                                "#424242",
+                                                                                "#616161",
+                                                                                "#828282",
+                                                                                "#A5A5A5",
+                                                                                "#C9C9C9",
+                                                                                "#EEEEEE"
+                                                                            ]
+                                                          },
+                                         "surface-card-alt":  {
+                                                                  "role":  "neutral",
+                                                                  "displayName":  "Folha Recuada",
+                                                                  "canonical":  "oklch(98.2% 0.000 89.9)",
+                                                                  "tonalRamp":  [
+                                                                                    "#0B0B0B",
+                                                                                    "#252525",
+                                                                                    "#424242",
+                                                                                    "#616161",
+                                                                                    "#828282",
+                                                                                    "#A5A5A5",
+                                                                                    "#C9C9C9",
+                                                                                    "#EEEEEE"
+                                                                                ]
+                                                              },
+                                         "border-card":  {
+                                                             "role":  "neutral",
+                                                             "displayName":  "Fio do Cartão",
+                                                             "canonical":  "oklch(92.2% 0.000 89.9)",
+                                                             "tonalRamp":  [
+                                                                               "#0B0B0B",
+                                                                               "#252525",
+                                                                               "#424242",
+                                                                               "#616161",
+                                                                               "#828282",
+                                                                               "#A5A5A5",
+                                                                               "#C9C9C9",
+                                                                               "#EEEEEE"
+                                                                           ]
+                                                         },
+                                         "text-primary":  {
+                                                              "role":  "neutral",
+                                                              "displayName":  "Tinta Principal",
+                                                              "canonical":  "oklch(22.2% 0.000 89.9)",
+                                                              "tonalRamp":  [
+                                                                                "#0B0B0B",
+                                                                                "#252525",
+                                                                                "#424242",
+                                                                                "#616161",
+                                                                                "#828282",
+                                                                                "#A5A5A5",
+                                                                                "#C9C9C9",
+                                                                                "#EEEEEE"
+                                                                            ]
+                                                          },
+                                         "text-secondary":  {
+                                                                "role":  "neutral",
+                                                                "displayName":  "Tinta Secundária",
+                                                                "canonical":  "oklch(48.5% 0.000 89.9)",
+                                                                "tonalRamp":  [
+                                                                                  "#0B0B0B",
+                                                                                  "#252525",
+                                                                                  "#424242",
+                                                                                  "#616161",
+                                                                                  "#828282",
+                                                                                  "#A5A5A5",
+                                                                                  "#C9C9C9",
+                                                                                  "#EEEEEE"
+                                                                              ]
+                                                            },
+                                         "text-tertiary":  {
+                                                               "role":  "neutral",
+                                                               "displayName":  "Tinta Terciária",
+                                                               "canonical":  "oklch(63.3% 0.000 89.9)",
+                                                               "tonalRamp":  [
+                                                                                 "#0B0B0B",
+                                                                                 "#252525",
+                                                                                 "#424242",
+                                                                                 "#616161",
+                                                                                 "#828282",
+                                                                                 "#A5A5A5",
+                                                                                 "#C9C9C9",
+                                                                                 "#EEEEEE"
+                                                                             ]
+                                                           },
+                                         "nav-hover":  {
+                                                           "role":  "neutral",
+                                                           "displayName":  "Menu em Hover",
+                                                           "canonical":  "oklch(91.6% 0.000 89.9)",
+                                                           "tonalRamp":  [
+                                                                             "#0B0B0B",
+                                                                             "#252525",
+                                                                             "#424242",
+                                                                             "#616161",
+                                                                             "#828282",
+                                                                             "#A5A5A5",
+                                                                             "#C9C9C9",
+                                                                             "#EEEEEE"
+                                                                         ]
+                                                       },
+                                         "nav-selected":  {
+                                                              "role":  "neutral",
+                                                              "displayName":  "Menu Selecionado",
+                                                              "canonical":  "oklch(90.7% 0.000 89.9)",
+                                                              "tonalRamp":  [
+                                                                                "#0B0B0B",
+                                                                                "#252525",
+                                                                                "#424242",
+                                                                                "#616161",
+                                                                                "#828282",
+                                                                                "#A5A5A5",
+                                                                                "#C9C9C9",
+                                                                                "#EEEEEE"
+                                                                            ]
+                                                          },
+                                         "track":  {
+                                                       "role":  "neutral",
+                                                       "displayName":  "Trilho",
+                                                       "canonical":  "oklch(92.5% 0.000 89.9)",
+                                                       "tonalRamp":  [
+                                                                         "#0B0B0B",
+                                                                         "#252525",
+                                                                         "#424242",
+                                                                         "#616161",
+                                                                         "#828282",
+                                                                         "#A5A5A5",
+                                                                         "#C9C9C9",
+                                                                         "#EEEEEE"
+                                                                     ]
+                                                   },
+                                         "button-secondary":  {
+                                                                  "role":  "neutral",
+                                                                  "displayName":  "Botão Secundário",
+                                                                  "canonical":  "oklch(98.8% 0.000 89.9)",
+                                                                  "tonalRamp":  [
+                                                                                    "#0B0B0B",
+                                                                                    "#252525",
+                                                                                    "#424242",
+                                                                                    "#616161",
+                                                                                    "#828282",
+                                                                                    "#A5A5A5",
+                                                                                    "#C9C9C9",
+                                                                                    "#EEEEEE"
+                                                                                ]
+                                                              },
+                                         "button-secondary-hover":  {
+                                                                        "role":  "neutral",
+                                                                        "displayName":  "Botão Secundário em Hover",
+                                                                        "canonical":  "oklch(95.5% 0.000 89.9)",
+                                                                        "tonalRamp":  [
+                                                                                          "#0B0B0B",
+                                                                                          "#252525",
+                                                                                          "#424242",
+                                                                                          "#616161",
+                                                                                          "#828282",
+                                                                                          "#A5A5A5",
+                                                                                          "#C9C9C9",
+                                                                                          "#EEEEEE"
+                                                                                      ]
+                                                                    },
+                                         "surface-app-dark":  {
+                                                                  "role":  "neutral",
+                                                                  "displayName":  "Névoa de Laudo (escuro)",
+                                                                  "canonical":  "oklch(23.9% 0.000 89.9)",
+                                                                  "tonalRamp":  [
+                                                                                    "#0B0B0B",
+                                                                                    "#252525",
+                                                                                    "#424242",
+                                                                                    "#616161",
+                                                                                    "#828282",
+                                                                                    "#A5A5A5",
+                                                                                    "#C9C9C9",
+                                                                                    "#EEEEEE"
+                                                                                ]
+                                                              },
+                                         "surface-sidebar-dark":  {
+                                                                      "role":  "neutral",
+                                                                      "displayName":  "Lateral (escuro)",
+                                                                      "canonical":  "oklch(21.3% 0.000 89.9)",
+                                                                      "tonalRamp":  [
+                                                                                        "#0B0B0B",
+                                                                                        "#252525",
+                                                                                        "#424242",
+                                                                                        "#616161",
+                                                                                        "#828282",
+                                                                                        "#A5A5A5",
+                                                                                        "#C9C9C9",
+                                                                                        "#EEEEEE"
+                                                                                    ]
+                                                                  },
+                                         "surface-card-dark":  {
+                                                                   "role":  "neutral",
+                                                                   "displayName":  "Folha do Laudo (escuro)",
+                                                                   "canonical":  "oklch(28.9% 0.000 89.9)",
+                                                                   "tonalRamp":  [
+                                                                                     "#0B0B0B",
+                                                                                     "#252525",
+                                                                                     "#424242",
+                                                                                     "#616161",
+                                                                                     "#828282",
+                                                                                     "#A5A5A5",
+                                                                                     "#C9C9C9",
+                                                                                     "#EEEEEE"
+                                                                                 ]
+                                                               },
+                                         "surface-card-alt-dark":  {
+                                                                       "role":  "neutral",
+                                                                       "displayName":  "Folha Recuada (escuro)",
+                                                                       "canonical":  "oklch(26.9% 0.000 89.9)",
+                                                                       "tonalRamp":  [
+                                                                                         "#0B0B0B",
+                                                                                         "#252525",
+                                                                                         "#424242",
+                                                                                         "#616161",
+                                                                                         "#828282",
+                                                                                         "#A5A5A5",
+                                                                                         "#C9C9C9",
+                                                                                         "#EEEEEE"
+                                                                                     ]
+                                                                   },
+                                         "border-card-dark":  {
+                                                                  "role":  "neutral",
+                                                                  "displayName":  "Fio do Cartão (escuro)",
+                                                                  "canonical":  "oklch(34.1% 0.000 89.9)",
+                                                                  "tonalRamp":  [
+                                                                                    "#0B0B0B",
+                                                                                    "#252525",
+                                                                                    "#424242",
+                                                                                    "#616161",
+                                                                                    "#828282",
+                                                                                    "#A5A5A5",
+                                                                                    "#C9C9C9",
+                                                                                    "#EEEEEE"
+                                                                                ]
+                                                              },
+                                         "text-primary-dark":  {
+                                                                   "role":  "neutral",
+                                                                   "displayName":  "Tinta Principal (escuro)",
+                                                                   "canonical":  "oklch(97.0% 0.000 89.9)",
+                                                                   "tonalRamp":  [
+                                                                                     "#0B0B0B",
+                                                                                     "#252525",
+                                                                                     "#424242",
+                                                                                     "#616161",
+                                                                                     "#828282",
+                                                                                     "#A5A5A5",
+                                                                                     "#C9C9C9",
+                                                                                     "#EEEEEE"
+                                                                                 ]
+                                                               },
+                                         "text-secondary-dark":  {
+                                                                     "role":  "neutral",
+                                                                     "displayName":  "Tinta Secundária (escuro)",
+                                                                     "canonical":  "oklch(81.4% 0.000 89.9)",
+                                                                     "tonalRamp":  [
+                                                                                       "#0B0B0B",
+                                                                                       "#252525",
+                                                                                       "#424242",
+                                                                                       "#616161",
+                                                                                       "#828282",
+                                                                                       "#A5A5A5",
+                                                                                       "#C9C9C9",
+                                                                                       "#EEEEEE"
+                                                                                   ]
+                                                                 },
+                                         "text-tertiary-dark":  {
+                                                                    "role":  "neutral",
+                                                                    "displayName":  "Tinta Terciária (escuro)",
+                                                                    "canonical":  "oklch(65.0% 0.000 89.9)",
+                                                                    "tonalRamp":  [
+                                                                                      "#0B0B0B",
+                                                                                      "#252525",
+                                                                                      "#424242",
+                                                                                      "#616161",
+                                                                                      "#828282",
+                                                                                      "#A5A5A5",
+                                                                                      "#C9C9C9",
+                                                                                      "#EEEEEE"
+                                                                                  ]
+                                                                },
+                                         "nav-hover-dark":  {
+                                                                "role":  "neutral",
+                                                                "displayName":  "Menu em Hover (escuro)",
+                                                                "canonical":  "oklch(29.7% 0.000 89.9)",
+                                                                "tonalRamp":  [
+                                                                                  "#0B0B0B",
+                                                                                  "#252525",
+                                                                                  "#424242",
+                                                                                  "#616161",
+                                                                                  "#828282",
+                                                                                  "#A5A5A5",
+                                                                                  "#C9C9C9",
+                                                                                  "#EEEEEE"
+                                                                              ]
+                                                            },
+                                         "nav-selected-dark":  {
+                                                                   "role":  "neutral",
+                                                                   "displayName":  "Menu Selecionado (escuro)",
+                                                                   "canonical":  "oklch(32.1% 0.000 89.9)",
+                                                                   "tonalRamp":  [
+                                                                                     "#0B0B0B",
+                                                                                     "#252525",
+                                                                                     "#424242",
+                                                                                     "#616161",
+                                                                                     "#828282",
+                                                                                     "#A5A5A5",
+                                                                                     "#C9C9C9",
+                                                                                     "#EEEEEE"
+                                                                                 ]
+                                                               },
+                                         "track-dark":  {
+                                                            "role":  "neutral",
+                                                            "displayName":  "Trilho (escuro)",
+                                                            "canonical":  "oklch(34.8% 0.000 89.9)",
+                                                            "tonalRamp":  [
+                                                                              "#0B0B0B",
+                                                                              "#252525",
+                                                                              "#424242",
+                                                                              "#616161",
+                                                                              "#828282",
+                                                                              "#A5A5A5",
+                                                                              "#C9C9C9",
+                                                                              "#EEEEEE"
+                                                                          ]
+                                                        },
+                                         "button-secondary-dark":  {
+                                                                       "role":  "neutral",
+                                                                       "displayName":  "Botão Secundário (escuro)",
+                                                                       "canonical":  "oklch(32.1% 0.000 89.9)",
+                                                                       "tonalRamp":  [
+                                                                                         "#0B0B0B",
+                                                                                         "#252525",
+                                                                                         "#424242",
+                                                                                         "#616161",
+                                                                                         "#828282",
+                                                                                         "#A5A5A5",
+                                                                                         "#C9C9C9",
+                                                                                         "#EEEEEE"
+                                                                                     ]
+                                                                   },
+                                         "button-secondary-hover-dark":  {
+                                                                             "role":  "neutral",
+                                                                             "displayName":  "Botão Secundário em Hover (escuro)",
+                                                                             "canonical":  "oklch(35.6% 0.000 89.9)",
+                                                                             "tonalRamp":  [
+                                                                                               "#0B0B0B",
+                                                                                               "#252525",
+                                                                                               "#424242",
+                                                                                               "#616161",
+                                                                                               "#828282",
+                                                                                               "#A5A5A5",
+                                                                                               "#C9C9C9",
+                                                                                               "#EEEEEE"
+                                                                                           ]
+                                                                         },
+                                         "severity-critical":  {
+                                                                   "role":  "tertiary",
+                                                                   "displayName":  "Crítico",
+                                                                   "canonical":  "oklch(53.6% 0.191 30.1)",
+                                                                   "tonalRamp":  [
+                                                                                     "#1F0000",
+                                                                                     "#4C0200",
+                                                                                     "#800700",
+                                                                                     "#B51608",
+                                                                                     "#DD4634",
+                                                                                     "#FF7460",
+                                                                                     "#FEB4A7",
+                                                                                     "#FEE9E5"
+                                                                                 ]
+                                                               },
+                                         "severity-high":  {
+                                                               "role":  "tertiary",
+                                                               "displayName":  "Alto",
+                                                               "canonical":  "oklch(53.6% 0.154 42.9)",
+                                                               "tonalRamp":  [
+                                                                                 "#1A0400",
+                                                                                 "#421400",
+                                                                                 "#702801",
+                                                                                 "#A13D01",
+                                                                                 "#CB5D2A",
+                                                                                 "#F38150",
+                                                                                 "#FFB597",
+                                                                                 "#FEE9E1"
+                                                                             ]
+                                                           },
+                                         "severity-medium":  {
+                                                                 "role":  "tertiary",
+                                                                 "displayName":  "Médio",
+                                                                 "canonical":  "oklch(53.9% 0.121 65.2)",
+                                                                 "tonalRamp":  [
+                                                                                   "#150800",
+                                                                                   "#381E00",
+                                                                                   "#603700",
+                                                                                   "#8A5204",
+                                                                                   "#B37125",
+                                                                                   "#D8944C",
+                                                                                   "#FEB973",
+                                                                                   "#FFEBD8"
+                                                                               ]
+                                                             },
+                                         "severity-low":  {
+                                                              "role":  "tertiary",
+                                                              "displayName":  "Baixo",
+                                                              "canonical":  "oklch(49.1% 0.160 254.6)",
+                                                              "tonalRamp":  [
+                                                                                "#000B1F",
+                                                                                "#00244D",
+                                                                                "#024180",
+                                                                                "#015FB9",
+                                                                                "#3383DF",
+                                                                                "#60A7FF",
+                                                                                "#A5CCFE",
+                                                                                "#E4F0FF"
+                                                                            ]
+                                                          },
+                                         "severity-info":  {
+                                                               "role":  "tertiary",
+                                                               "displayName":  "Recomendação",
+                                                               "canonical":  "oklch(49.3% 0.000 89.9)",
+                                                               "tonalRamp":  [
+                                                                                 "#0B0B0B",
+                                                                                 "#252525",
+                                                                                 "#424242",
+                                                                                 "#616161",
+                                                                                 "#828282",
+                                                                                 "#A5A5A5",
+                                                                                 "#C9C9C9",
+                                                                                 "#EEEEEE"
+                                                                             ]
+                                                           },
+                                         "status-ok":  {
+                                                           "role":  "tertiary",
+                                                           "displayName":  "Saudável",
+                                                           "canonical":  "oklch(50.7% 0.165 142.7)",
+                                                           "tonalRamp":  [
+                                                                             "#001000",
+                                                                             "#002F01",
+                                                                             "#025203",
+                                                                             "#047706",
+                                                                             "#399A36",
+                                                                             "#5FBE5A",
+                                                                             "#84E47E",
+                                                                             "#CCFFC7"
+                                                                         ]
+                                                       },
+                                         "severity-critical-dark":  {
+                                                                        "role":  "tertiary",
+                                                                        "displayName":  "Crítico (escuro)",
+                                                                        "canonical":  "oklch(79.1% 0.123 13.3)",
+                                                                        "tonalRamp":  [
+                                                                                          "#1E0005",
+                                                                                          "#4B0116",
+                                                                                          "#751C2F",
+                                                                                          "#9A3F4D",
+                                                                                          "#C0606D",
+                                                                                          "#E7838E",
+                                                                                          "#FEB1B8",
+                                                                                          "#FFE8EA"
+                                                                                      ]
+                                                                    },
+                                         "severity-high-dark":  {
+                                                                    "role":  "tertiary",
+                                                                    "displayName":  "Alto (escuro)",
+                                                                    "canonical":  "oklch(79.4% 0.134 52.5)",
+                                                                    "tonalRamp":  [
+                                                                                      "#170600",
+                                                                                      "#3D1A01",
+                                                                                      "#683001",
+                                                                                      "#964904",
+                                                                                      "#BF6829",
+                                                                                      "#E68B4F",
+                                                                                      "#FFB78A",
+                                                                                      "#FFEADE"
+                                                                                  ]
+                                                                },
+                                         "severity-medium-dark":  {
+                                                                      "role":  "tertiary",
+                                                                      "displayName":  "Médio (escuro)",
+                                                                      "canonical":  "oklch(90.4% 0.188 100.5)",
+                                                                      "tonalRamp":  [
+                                                                                        "#0E0B00",
+                                                                                        "#2B2501",
+                                                                                        "#4C4301",
+                                                                                        "#6F6201",
+                                                                                        "#948301",
+                                                                                        "#BAA60B",
+                                                                                        "#E3CB0E",
+                                                                                        "#FFF198"
+                                                                                    ]
+                                                                  },
+                                         "severity-low-dark":  {
+                                                                   "role":  "tertiary",
+                                                                   "displayName":  "Baixo (escuro)",
+                                                                   "canonical":  "oklch(80.4% 0.122 230.8)",
+                                                                   "tonalRamp":  [
+                                                                                     "#000D15",
+                                                                                     "#012939",
+                                                                                     "#014963",
+                                                                                     "#046A8E",
+                                                                                     "#018EBD",
+                                                                                     "#42B2E3",
+                                                                                     "#81D5FF",
+                                                                                     "#DDF2FE"
+                                                                                 ]
+                                                               },
+                                         "severity-info-dark":  {
+                                                                    "role":  "tertiary",
+                                                                    "displayName":  "Recomendação (escuro)",
+                                                                    "canonical":  "oklch(74.1% 0.000 89.9)",
+                                                                    "tonalRamp":  [
+                                                                                      "#0B0B0B",
+                                                                                      "#252525",
+                                                                                      "#424242",
+                                                                                      "#616161",
+                                                                                      "#828282",
+                                                                                      "#A5A5A5",
+                                                                                      "#C9C9C9",
+                                                                                      "#EEEEEE"
+                                                                                  ]
+                                                                },
+                                         "status-ok-dark":  {
+                                                                "role":  "tertiary",
+                                                                "displayName":  "Saudável (escuro)",
+                                                                "canonical":  "oklch(75.9% 0.172 141.3)",
+                                                                "tonalRamp":  [
+                                                                                  "#001000",
+                                                                                  "#042E00",
+                                                                                  "#0B5100",
+                                                                                  "#147600",
+                                                                                  "#3A9A2C",
+                                                                                  "#60BE53",
+                                                                                  "#85E477",
+                                                                                  "#CCFFC4"
+                                                                              ]
+                                                            }
+                                     },
+                       "typographyMeta":  {
+                                              "display":  {
+                                                              "displayName":  "Display",
+                                                              "purpose":  "Número do score dentro do anel. Um por tela."
+                                                          },
+                                              "headline":  {
+                                                               "displayName":  "Headline",
+                                                               "purpose":  "Título da página."
+                                                           },
+                                              "verdict":  {
+                                                              "displayName":  "Veredito",
+                                                              "purpose":  "Rating do score (BOM, ATENÇÃO, SEM DADOS) na cor semântica."
+                                                          },
+                                              "metric":  {
+                                                             "displayName":  "Leitura",
+                                                             "purpose":  "Valores ao vivo nos cartões de uso (CPU, RAM, disco)."
+                                                         },
+                                              "title":  {
+                                                            "displayName":  "Title",
+                                                            "purpose":  "Títulos de seção, cartão e achado."
+                                                        },
+                                              "body":  {
+                                                           "displayName":  "Body",
+                                                           "purpose":  "Texto corrido, menu, botões secundários."
+                                                       },
+                                              "button":  {
+                                                             "displayName":  "Botão",
+                                                             "purpose":  "Rótulo do botão principal."
+                                                         },
+                                              "label":  {
+                                                            "displayName":  "Label",
+                                                            "purpose":  "Legendas, confiança, contagens."
+                                                        },
+                                              "label-strong":  {
+                                                                   "displayName":  "Label forte",
+                                                                   "purpose":  "Rótulos de campo dos achados."
+                                                               },
+                                              "technical":  {
+                                                                "displayName":  "Técnico",
+                                                                "purpose":  "Origem técnica de evidências; só no modo avançado."
+                                                            }
+                                          },
+                       "shadows":  [
+                                       {
+                                           "name":  "floating",
+                                           "value":  "0 8px 24px rgba(0, 0, 0, 0.14)",
+                                           "purpose":  "Provisório. Menus, tooltips e diálogos no tema claro. Nunca em cartões ou páginas."
+                                       },
+                                       {
+                                           "name":  "floating-dark",
+                                           "value":  "0 8px 24px rgba(0, 0, 0, 0.45)",
+                                           "purpose":  "Provisório. Mesmo papel no tema escuro."
+                                       }
+                                   ],
+                       "motion":  [
+                                      {
+                                          "name":  "page-enter",
+                                          "value":  "opacity 0→1 + translateY 8px→0, 180ms, cubic ease-out",
+                                          "purpose":  "Troca de página; desativada quando o Windows desliga animações (ClientAreaAnimation)."
+                                      },
+                                      {
+                                          "name":  "chevron-turn",
+                                          "value":  "rotate 0→90deg, 150ms, cubic ease-out",
+                                          "purpose":  "Abrir/fechar seções expansíveis."
+                                      }
+                                  ],
+                       "breakpoints":  [
+                                           {
+                                               "name":  "window-min",
+                                               "value":  "980px"
+                                           },
+                                           {
+                                               "name":  "window-compact-check",
+                                               "value":  "1100px"
+                                           },
+                                           {
+                                               "name":  "window-default",
+                                               "value":  "1280px"
+                                           }
+                                       ]
+                   },
+    "components":  [
+                       {
+                           "name":  "Botão principal",
+                           "kind":  "button",
+                           "refersTo":  "button-primary",
+                           "description":  "Única ação principal da tela, em Brasa Leccor.",
+                           "html":  "\u003cbutton class=\"ds-btn-primary\"\u003e\u003csvg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"\u003e\u003ccircle cx=\"7\" cy=\"7\" r=\"4.5\"/\u003e\u003cpath d=\"M10.5 10.5 14 14\"/\u003e\u003c/svg\u003eExecutar varredura completa\u003c/button\u003e",
+                           "css":  ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; background: #C2520A; color: #FFFFFF; font: 600 14px \u0027Segoe UI Variable Text\u0027, \u0027Segoe UI\u0027, sans-serif; padding: 8px 16px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; transition: background 120ms ease-out; } .ds-btn-primary:hover { background: #A9440A; } .ds-btn-primary:active { background: #8F3A08; } .ds-btn-primary:focus-visible { outline: none; border-color: #1B1B1B; } .ds-btn-primary:disabled { opacity: 0.45; cursor: default; }"
+                       },
+                       {
+                           "name":  "Botão secundário",
+                           "kind":  "button",
+                           "refersTo":  "button-secondary",
+                           "description":  "Ações alternativas (varredura rápida, executar selecionados).",
+                           "html":  "\u003cbutton class=\"ds-btn-secondary\"\u003eVarredura rápida\u003c/button\u003e",
+                           "css":  ".ds-btn-secondary { background: #FBFBFB; color: #1B1B1B; font: 400 14px \u0027Segoe UI Variable Text\u0027, \u0027Segoe UI\u0027, sans-serif; padding: 8px 16px; border: 1px solid #E5E5E5; border-radius: 6px; cursor: pointer; transition: background 120ms ease-out; } .ds-btn-secondary:hover { background: #F0F0F0; } .ds-btn-secondary:active { background: #E6E6E6; } .ds-btn-secondary:focus-visible { outline: none; border-color: #1B1B1B; }"
+                       },
+                       {
+                           "name":  "Cartão",
+                           "kind":  "card",
+                           "refersTo":  "card",
+                           "description":  "Contêiner plano do laudo: tom + borda de 1px, sem sombra.",
+                           "html":  "\u003cdiv class=\"ds-card\"\u003e\u003cdiv class=\"ds-card-title\"\u003eResultado da última varredura\u003c/div\u003e\u003cdiv class=\"ds-card-body\"\u003eEncontramos 1 problema confirmado e 3 recomendações.\u003c/div\u003e\u003c/div\u003e",
+                           "css":  ".ds-card { background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; max-width: 360px; font-family: \u0027Segoe UI Variable Text\u0027, \u0027Segoe UI\u0027, sans-serif; } .ds-card-title { font-size: 16px; font-weight: 600; color: #1B1B1B; margin-bottom: 8px; } .ds-card-body { font-size: 14px; color: #5F5F5F; }"
+                       },
+                       {
+                           "name":  "Item de menu",
+                           "kind":  "nav",
+                           "refersTo":  "nav-item-selected",
+                           "description":  "Sidebar: ícone Fluent + rótulo; selecionado ganha tom e a pílula Brasa.",
+                           "html":  "\u003cnav class=\"ds-nav\"\u003e\u003ca class=\"ds-nav-item ds-nav-item--selected\" href=\"#\"\u003e\u003csvg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"\u003e\u003cpath d=\"M2 7.5 8 2.5l6 5V14H10v-4H6v4H2z\"/\u003e\u003c/svg\u003eDashboard\u003c/a\u003e\u003ca class=\"ds-nav-item\" href=\"#\"\u003e\u003csvg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"\u003e\u003ccircle cx=\"7\" cy=\"7\" r=\"4.5\"/\u003e\u003cpath d=\"M10.5 10.5 14 14\"/\u003e\u003c/svg\u003eVarredura\u003c/a\u003e\u003c/nav\u003e",
+                           "css":  ".ds-nav { display: flex; flex-direction: column; gap: 2px; width: 228px; background: #EEEEEE; padding: 8px; font: 400 14px \u0027Segoe UI Variable Text\u0027, \u0027Segoe UI\u0027, sans-serif; } .ds-nav-item { position: relative; display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-radius: 6px; color: #1B1B1B; text-decoration: none; } .ds-nav-item:hover { background: #E3E3E3; } .ds-nav-item:focus-visible { outline: 1px solid #5F5F5F; } .ds-nav-item--selected { background: #E0E0E0; } .ds-nav-item--selected::before { content: \u0027\u0027; position: absolute; left: 0; top: 50%; width: 3px; height: 16px; margin-top: -8px; border-radius: 1.5px; background: #C2520A; }"
+                       },
+                       {
+                           "name":  "Caixa de seleção",
+                           "kind":  "input",
+                           "refersTo":  "checkbox-checked",
+                           "description":  "Módulos da varredura personalizada; marcada em Brasa com check Fluent.",
+                           "html":  "\u003clabel class=\"ds-check\"\u003e\u003cinput type=\"checkbox\" checked\u003e\u003cspan class=\"ds-check-box\"\u003e\u003csvg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"\u003e\u003cpath d=\"M2.5 6.2 5 8.5l4.5-5\"/\u003e\u003c/svg\u003e\u003c/span\u003eHardware\u003c/label\u003e",
+                           "css":  ".ds-check { display: inline-flex; align-items: center; gap: 10px; font: 400 14px \u0027Segoe UI Variable Text\u0027, \u0027Segoe UI\u0027, sans-serif; color: #1B1B1B; cursor: pointer; } .ds-check input { position: absolute; opacity: 0; } .ds-check-box { width: 18px; height: 18px; box-sizing: border-box; border: 1px solid #8A8A8A; border-radius: 4px; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; color: transparent; } .ds-check:hover .ds-check-box { border-color: #1B1B1B; } .ds-check input:checked + .ds-check-box { background: #C2520A; border-color: #C2520A; color: #FFFFFF; } .ds-check input:focus-visible + .ds-check-box { border-width: 2px; border-color: #1B1B1B; }"
+                       },
+                       {
+                           "name":  "Achado com severidade",
+                           "kind":  "custom",
+                           "refersTo":  "card",
+                           "description":  "Linha de achado: ponto e rótulo na cor semântica, título, confiança.",
+                           "html":  "\u003cdiv class=\"ds-finding\"\u003e\u003cspan class=\"ds-finding-dot\"\u003e\u003c/span\u003e\u003cspan class=\"ds-finding-title\"\u003eDisco D: com erros recorrentes de I/O\u003c/span\u003e\u003cspan class=\"ds-finding-sev\"\u003eCrítico\u003c/span\u003e\u003cspan class=\"ds-finding-conf\"\u003eConfirmado (95%)\u003c/span\u003e\u003c/div\u003e",
+                           "css":  ".ds-finding { display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 12px 16px; max-width: 560px; font-family: \u0027Segoe UI Variable Text\u0027, \u0027Segoe UI\u0027, sans-serif; } .ds-finding-dot { width: 10px; height: 10px; border-radius: 50%; background: #C42B1C; flex: none; } .ds-finding-title { flex: 1; font-size: 14px; font-weight: 600; color: #1B1B1B; } .ds-finding-sev { font-size: 12px; font-weight: 600; color: #C42B1C; } .ds-finding-conf { font-size: 12px; color: #5F5F5F; }"
+                       },
+                       {
+                           "name":  "Anel do score",
+                           "kind":  "custom",
+                           "refersTo":  "progress-bar",
+                           "description":  "Assinatura: arco na cor do rating sobre trilho neutro; sem dados mostra só o trilho e um travessão.",
+                           "html":  "\u003cdiv class=\"ds-ring\"\u003e\u003cdiv class=\"ds-ring-inner\"\u003e\u003cspan class=\"ds-ring-value\"\u003e84\u003c/span\u003e\u003cspan class=\"ds-ring-max\"\u003e/ 100\u003c/span\u003e\u003c/div\u003e\u003c/div\u003e",
+                           "css":  ".ds-ring { width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(#0F7B0F 0 84%, #E6E6E6 84% 100%); display: flex; align-items: center; justify-content: center; } .ds-ring-inner { width: 116px; height: 116px; border-radius: 50%; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: \u0027Segoe UI Variable Display\u0027, \u0027Segoe UI\u0027, sans-serif; } .ds-ring-value { font-size: 40px; font-weight: 600; color: #1B1B1B; line-height: 1; } .ds-ring-max { font-size: 12px; color: #5F5F5F; margin-top: 4px; }"
+                       },
+                       {
+                           "name":  "Cartão de leitura ao vivo",
+                           "kind":  "custom",
+                           "refersTo":  "card",
+                           "description":  "Rótulo + leitura Metric + barra de 6px; indisponível é escrito, nunca estimado.",
+                           "html":  "\u003cdiv class=\"ds-reading\"\u003e\u003cdiv class=\"ds-reading-head\"\u003e\u003cspan class=\"ds-reading-label\"\u003eDisco C:\u003c/span\u003e\u003cspan class=\"ds-reading-value\"\u003e91%\u003c/span\u003e\u003c/div\u003e\u003cdiv class=\"ds-reading-track\"\u003e\u003cdiv class=\"ds-reading-fill\"\u003e\u003c/div\u003e\u003c/div\u003e\u003cspan class=\"ds-reading-caption\"\u003eEspaço utilizado\u003c/span\u003e\u003c/div\u003e",
+                           "css":  ".ds-reading { width: 220px; background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; font-family: \u0027Segoe UI Variable Text\u0027, \u0027Segoe UI\u0027, sans-serif; } .ds-reading-head { display: flex; justify-content: space-between; align-items: baseline; } .ds-reading-label { font-size: 14px; color: #5F5F5F; } .ds-reading-value { font-size: 22px; font-weight: 600; color: #1B1B1B; } .ds-reading-track { height: 6px; border-radius: 3px; background: #E6E6E6; margin: 24px 0 12px; overflow: hidden; } .ds-reading-fill { width: 91%; height: 100%; border-radius: 3px; background: #C2520A; } .ds-reading-caption { font-size: 12px; color: #5F5F5F; }"
+                       }
+                   ],
+    "narrative":  {
+                      "northStar":  "O Laudo Técnico",
+                      "overview":  "A interface é um laudo de diagnóstico. Como um bom laudo, ela é calma, ordenada e sóbria: o que se destaca é o resultado medido, não a moldura. As superfícies são neutras e planas, à maneira do Windows 11, para que número, veredito e evidência tenham toda a atenção. A cor existe para significar — severidade, estado, ação — e nunca para enfeitar. A Brasa Leccor, o laranja queimado da raposa, é a assinatura: aparece no botão que age, na pílula de seleção, no foco e nas leituras ao vivo, e em quase nenhum outro lugar.\n\nA densidade é de ferramenta de trabalho para um desenvolvedor: cartões com respiro, tipografia do sistema, hierarquia clara entre título, veredito, métrica e legenda. O detalhe técnico (Event IDs, caminhos, comandos) existe, mas fica recolhido até o modo avançado, em fonte de medição. Os componentes são táteis e confiantes: respondem visivelmente a hover, foco e seleção, sem sombras em repouso.\n\nRejeitado de forma explícita (PRODUCT.md): a estética de \"PC Cleaner duvidoso\" — alarmes vermelhos por todo lado, contadores inflados, gradientes chamativos, botões de \"corrigir tudo\".",
+                      "keyCharacteristics":  [
+                                                 "Neutros planos do Windows 11 em dois temas completos (claro e escuro), com paridade de papéis entre eles.",
+                                                 "Um único acento de marca (Brasa Leccor), com contraste medido em cada tema.",
+                                                 "Cores semânticas de severidade com contraste ≥ 4,5:1 como texto, iguais em significado nos dois temas.",
+                                                 "Hierarquia por tom e borda de 1 px; sombra apenas em elementos flutuantes.",
+                                                 "Leituras numéricas grandes; legendas pequenas e secundárias; técnico em Consolas só no modo avançado."
+                                             ],
+                      "rules":  [
+                                    {
+                                        "name":  "The Brasa Escassa Rule",
+                                        "body":  "A Brasa Leccor marca apenas ação ou atenção: o botão principal da tela, a seleção atual, o foco e leituras em andamento. Se uma tela tem dois botões em Brasa, um deles está errado.",
+                                        "section":  "colors"
+                                    },
+                                    {
+                                        "name":  "The Significado Fixo Rule",
+                                        "body":  "Uma cor semântica significa a mesma coisa em toda a interface e nos dois temas. Vermelho é crítico; cinza é recomendação. Nunca usar uma cor de severidade como decoração ou para outro sentido.",
+                                        "section":  "colors"
+                                    },
+                                    {
+                                        "name":  "The Contraste Medido Rule",
+                                        "body":  "Toda cor usada como texto tem contraste calculado (≥ 4,5:1; ≥ 3:1 para gráficos e componentes) no fundo real em cada tema antes de entrar no sistema. \"Parece legível\" não é medição.",
+                                        "section":  "colors"
+                                    },
+                                    {
+                                        "name":  "The Faísca Única Rule",
+                                        "body":  "O Gradiente da Raposa pode aparecer em no máximo um elemento de marca por tela (por exemplo, o anel do score em estado excelente ou a tela de boas-vindas) e nunca em texto, botões ou fundos de área.",
+                                        "section":  "colors"
+                                    },
+                                    {
+                                        "name":  "The Uma Leitura Grande Rule",
+                                        "body":  "Cada cartão tem no máximo um número em Display ou Metric; o resto é Body ou Label.",
+                                        "section":  "typography"
+                                    },
+                                    {
+                                        "name":  "The Técnico Recolhido Rule",
+                                        "body":  "Consolas aparece só para dado técnico real (Event ID, caminho, comando) e só no modo avançado — nunca como \"estética técnica\".",
+                                        "section":  "typography"
+                                    },
+                                    {
+                                        "name":  "The Plano em Repouso Rule",
+                                        "body":  "Nada que fica no fluxo da página tem sombra. Se um cartão precisa de destaque, ele ganha tom ou borda, não sombra.",
+                                        "section":  "elevation"
+                                    },
+                                    {
+                                        "name":  "The Sombra Só Flutua Rule",
+                                        "body":  "Sombra significa \"isto está acima do conteúdo e vai sumir\". Usá-la em outro lugar mente sobre a hierarquia.",
+                                        "section":  "elevation"
+                                    }
+                                ],
+                      "dos":  [
+                                  "**Do** usar a Brasa Leccor em no máximo um botão principal por tela, mais seleção e foco (The Brasa Escassa Rule).",
+                                  "**Do** medir o contraste de toda cor nova como texto nos dois temas (≥ 4,5:1; ≥ 3:1 para gráficos) antes de usá-la.",
+                                  "**Do** aplicar cor semântica por estilo com `DynamicResource`, para que mude junto com o tema.",
+                                  "**Do** dar a todo controle estados visíveis de hover, foco de teclado, pressionado e desabilitado (componentes táteis).",
+                                  "**Do** escrever \"não disponível\" quando uma métrica não tem fonte confiável, e mostrar \"SEM DADOS\" no lugar do score.",
+                                  "**Do** usar ícones Segoe Fluent com nome acessível para todo ícone de estado.",
+                                  "**Do** verificar toda tela nos temas claro e escuro, com a janela também em ~1100px de largura."
+                              ],
+                      "donts":  [
+                                    "**Don\u0027t** colocar sombra em cartões, páginas ou botões — sombra só em menus, tooltips e diálogos.",
+                                    "**Don\u0027t** usar o Gradiente da Raposa em texto, botões ou fundos de área; no máximo um elemento de marca por tela.",
+                                    "**Don\u0027t** usar vermelho/laranja para chamar atenção sem um achado de severidade correspondente — nada de alarmes de \"PC Cleaner\".",
+                                    "**Don\u0027t** usar caracteres Unicode (✓ ✗ →) ou emoji como ícone; usar a família Segoe Fluent.",
+                                    "**Don\u0027t** fixar altura de texto nem cortar rótulos de botão; deixar quebrar linha.",
+                                    "**Don\u0027t** usar Consolas como estética fora do dado técnico do modo avançado.",
+                                    "**Don\u0027t** deixar controles com o visual padrão do WPF (barra de rolagem, caixas de seleção, expander) — todo controle usa a paleta do tema."
+                                ]
+                  }
+}

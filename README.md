@@ -55,6 +55,7 @@ Build + testes (o mesmo que o CI executa):
 | [DOCUMENTACAO.md](DOCUMENTACAO.md) | Documentação técnica central: componentes, configuração, banco, como estender |
 | [CONTEXTO.md](CONTEXTO.md) | Estado vivo do projeto, decisões, erros corrigidos, pendências |
 | [PRODUCT.md](PRODUCT.md) | Contexto de produto: usuários, propósito, posicionamento, restrições e princípios |
+| [DESIGN.md](DESIGN.md) | Sistema visual "O Laudo Técnico": tokens dos dois temas, tipografia, formas, componentes e regras |
 | [PASSOS.md](PASSOS.md) | Plano de execução em passos |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Arquitetura e camadas |
 | [docs/SECURITY.md](docs/SECURITY.md) | Modelo de segurança e privacidade |

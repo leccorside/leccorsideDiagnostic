@@ -55,6 +55,9 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   e os estilos semânticos `SemanticText`, `SeverityDot` e `ScoreRing` (valor via `Tag`). Sempre referenciar pincéis
   com `DynamicResource` para acompanhar a troca de tema.
 - **Revisão de UI:** toda alteração de interface passa pelo skill `impeccable` e é verificada nos temas claro e escuro.
+- **Fonte da verdade visual:** [DESIGN.md](DESIGN.md) (tokens normativos e regras) e `.impeccable/design.json`
+  (escalas tonais, sombra, movimento e componentes de referência). Ao mudar um pincel em `Light.xaml`/`Dark.xaml`,
+  atualizar o token correspondente no DESIGN.md.
 
 ## 4. Configuração (`src/LeccorWindowsHealthCenter.App/appsettings.json`)
 

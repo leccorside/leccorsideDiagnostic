@@ -102,6 +102,22 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   tratadas como projeto do zero. Próximo passo recomendado: `/impeccable document` para registrar o sistema visual atual.
 - Em aberto: quem são exatamente os "clientes próprios" (operadores técnicos ou usuários finais) e o modelo de suporte/atualização.
 
+### DESIGN.md via `/impeccable document` (17/10/2026)
+
+- `DESIGN.md` (raiz) registra o sistema visual existente: tokens normativos no frontmatter (50 cores dos dois temas,
+  10 papéis tipográficos, 4 raios, 6 espaçamentos, 15 variantes de componente) e as 8 seções canônicas.
+- Decisões confirmadas com o usuário: **North Star "O Laudo Técnico"**; acento chamado **Brasa Leccor**;
+  **plano em repouso, sombra só no flutuante** (menus, tooltips, diálogos); componentes **táteis e confiantes**;
+  **gradiente da logo com uso pontual** (no máximo um elemento de marca por tela, nunca em texto/botões).
+- `.impeccable/design.json` (sidecar): escalas tonais OKLCH de 8 passos por cor (geradas por script, croma reduzido só
+  quando sai do sRGB), sombra "flutuante" provisória, tokens de movimento, larguras de janela, 8 componentes em HTML/CSS
+  e a narrativa copiada literalmente do DESIGN.md.
+- Lacunas entre o DESIGN.md e o código atual (a corrigir na próxima mudança de UI): os botões ainda não têm estado
+  **pressionado** (o DESIGN.md exige hover, foco, pressionado e desabilitado); a sombra "flutuante" ainda não está
+  aplicada a tooltips; o gradiente da marca existe como recurso, mas não é usado.
+- Avisos do linter de Markdown no DESIGN.md (H1 duplicado, "Named Rules" repetido, "### Do:") vêm do formato oficial
+  e são intencionais.
+
 ### Investigação: inicialização lenta (17/10/2026)
 
 - **Sintoma original:** durante a validação visual, o app não mostrou janela em 5 s; um minuto depois ainda sem janela e,
