@@ -5,12 +5,12 @@ O Leccor Windows Health Center é tratado como **ferramenta privilegiada** (seç
 ## Princípios aplicados
 
 | Princípio | Como está implementado |
-|---|---|
+| --- | --- |
 | Menor privilégio | `app.manifest` com `requestedExecutionLevel=asInvoker`. O app nunca pede admin para abrir. `CommandExecutor` recusa comandos `RequiresElevation` se o processo não estiver elevado; `RepairEngine` bloqueia ações que exigem elevação. |
 | Sem command injection | Todo processo externo passa por `ICommandExecutor`. Argumentos vão em `ProcessStartInfo.ArgumentList` (nunca concatenados), `UseShellExecute=false`. |
 | Validação de executáveis | `ExecutablePolicy`: caminho absoluto e normalizado (sem `..`), apenas `.exe`, existente, dentro de `%windir%`, `System32`, `SysWOW64`, `Sysnative` ou da allowlist explícita (`CommandExecution:AdditionalTrustedExecutables`). |
 | Interpretadores bloqueados | `cmd.exe`, `powershell.exe`, `pwsh.exe`, `wscript.exe`, `cscript.exe`, `mshta.exe`, `rundll32.exe`, `bash.exe` são recusados — eles reinterpretam argumentos e reabririam a porta para injeção. |
-| Argumentos | Rejeição de `\0`, `\r`, `\n`. Metacaracteres (`&`, `|`) são inofensivos sem shell. |
+| Argumentos | Rejeição de `\0`, `\r`, `\n`. Metacaracteres (`&`, `\|`) são inofensivos sem shell. |
 | Processos órfãos | Cada processo filho entra em um Job Object com `KILL_ON_JOB_CLOSE`; cancelamento/timeout fazem `Kill(entireProcessTree: true)`. |
 | Memória | stdout/stderr capturados com limite (`MaxOutputChars`), drenando o pipe para não travar o processo. |
 | Segredos em logs | `SensitiveDataRedactor` + `RedactionEnricher` mascaram propriedades com nomes sensíveis (password, token, apikey, cookie, credential, authorization, connectionstring...) e padrões em texto (`chave=valor`, `Authorization: <esquema> <credencial>`, `Bearer`, tokens GitHub/Slack/AWS/`sk-`). O stdout/stderr de comandos também é redigido. |

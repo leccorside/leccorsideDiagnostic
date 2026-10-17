@@ -22,7 +22,7 @@ Clean Architecture + MVVM + módulos independentes, em C# / .NET 10 / WPF.
 ```
 
 | Projeto | TFM | Responsabilidade |
-|---|---|---|
+| --- | --- | --- |
 | `Shared` | net10.0 | `AppPaths`, `SensitiveDataRedactor`, `ByteSize` |
 | `Domain` | net10.0 | `Finding`, `Evidence`, `Metric`, `Observation`, `Confidence`, `DiagnosticResult`, `ScanReport`, `HealthScore`, enums, modelos de reparo |
 | `Application` | net10.0 | `IDiagnosticScanner`, `ScanOrchestrator`, `RuleEngine`, `RiskAnalyzer`, `ScoringEngine`, `IRepairAction`/`IRepairEngine`, `ICommandExecutor`, repositórios (interfaces) |

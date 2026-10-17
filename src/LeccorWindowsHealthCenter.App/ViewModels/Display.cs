@@ -40,14 +40,25 @@ public static class Display
         _ => $"Possível ({confidence.Percent}%)",
     };
 
+    /// <summary>Ícone Segoe Fluent/MDL2 do status do scanner (exibido com a fonte IconFont).</summary>
     public static string StatusGlyph(ScannerRunStatus status) => status switch
     {
-        ScannerRunStatus.Completed => "✓",
-        ScannerRunStatus.Running => "→",
-        ScannerRunStatus.Failed => "✗",
-        ScannerRunStatus.Cancelled => "⊘",
-        ScannerRunStatus.Skipped => "–",
-        _ => "○",
+        ScannerRunStatus.Completed => "", // CheckMark
+        ScannerRunStatus.Running => "",   // Play
+        ScannerRunStatus.Failed => "",    // Error
+        ScannerRunStatus.Cancelled => "", // Blocked
+        ScannerRunStatus.Skipped => "",   // Remove
+        _ => "",                          // CircleRing (pendente)
+    };
+
+    public static string Status(ScannerRunStatus status) => status switch
+    {
+        ScannerRunStatus.Completed => "Concluído",
+        ScannerRunStatus.Running => "Em execução",
+        ScannerRunStatus.Failed => "Falhou",
+        ScannerRunStatus.Cancelled => "Cancelado",
+        ScannerRunStatus.Skipped => "Ignorado",
+        _ => "Pendente",
     };
 
     public static string Module(ScanModule module) => module switch

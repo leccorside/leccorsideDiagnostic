@@ -54,7 +54,7 @@ Versões de pacotes ficam **só** em `Directory.Packages.props`. Configurações
 ## Testes
 
 | Projeto | O que cobre | Regras |
-|---|---|---|
+| --- | --- | --- |
 | UnitTests | RuleEngine, MetricSeries, RiskAnalyzer, RepairEngine, ScoringEngine, ScanOrchestrator, ExecutablePolicy, redação, domínio | sem I/O real |
 | IntegrationTests | SQLite real (migrations/repositórios), CommandExecutor real (`hostname`, `ping 127.0.0.1`), logging em arquivo, backups, métricas Win32 | só comandos inofensivos e somente-leitura |
 | SystemTests | host real do App (mesma DI) com diretório temporário, varredura ponta a ponta | sem abrir janelas |

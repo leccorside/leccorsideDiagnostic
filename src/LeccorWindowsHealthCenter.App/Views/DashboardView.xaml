@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:LeccorWindowsHealthCenter.App.ViewModels"
              xmlns:controls="clr-namespace:LeccorWindowsHealthCenter.App.Controls"
+             xmlns:domain="clr-namespace:LeccorWindowsHealthCenter.Domain;assembly=LeccorWindowsHealthCenter.Domain"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800"
              d:DataContext="{d:DesignInstance Type=vm:DashboardViewModel}">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -47,10 +48,13 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid Width="140" Height="140" Margin="0,0,24,0">
-                            <controls:RingGauge Value="{Binding ScoreText, Converter={StaticResource ScoreToValue}}" Thickness="12"
-                                                Stroke="{Binding Rating, Converter={StaticResource SemanticBrush}}"
-                                                Track="{DynamicResource TrackBrush}" />
+                            <controls:RingGauge Style="{StaticResource ScoreRing}" Tag="{Binding Rating}" Thickness="12"
+                                                Value="{Binding ScoreText, Converter={StaticResource ScoreToValue}}" />
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <TextBlock HorizontalAlignment="Center" FontFamily="{StaticResource DisplayFont}" FontSize="40" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding ScoreText}" />
@@ -59,19 +63,20 @@
                         </Grid>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" Text="Saúde do computador" />
-                            <TextBlock FontFamily="{StaticResource DisplayFont}" FontSize="26" FontWeight="Bold" Margin="0,2,0,6"
-                                       Foreground="{Binding Rating, Converter={StaticResource SemanticBrush}}" Text="{Binding RatingText}" />
-                            <TextBlock Style="{StaticResource Caption}" Text="{Binding ScoreSubtitle}" Margin="0,0,0,16" />
-                            <WrapPanel>
-                                <Button Style="{StaticResource PrimaryButton}" Command="{Binding StartFullScanCommand}" Margin="0,0,8,8">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" FontSize="14" Margin="0,0,8,0" />
-                                        <TextBlock Text="Executar varredura completa" />
-                                    </StackPanel>
-                                </Button>
-                                <Button Style="{StaticResource SecondaryButton}" Command="{Binding StartQuickScanCommand}" Content="Varredura rápida" Margin="0,0,8,8" />
-                            </WrapPanel>
+                            <TextBlock Style="{StaticResource SemanticText}" Tag="{Binding Rating}" FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="26" FontWeight="Bold" Margin="0,2,0,6" Text="{Binding RatingText}" />
+                            <TextBlock Style="{StaticResource Caption}" Text="{Binding ScoreSubtitle}" />
                         </StackPanel>
+                        <!-- Ações em linha própria, com a largura toda do cartão: o rótulo nunca é cortado. -->
+                        <WrapPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,20,0,0">
+                            <Button Style="{StaticResource PrimaryButton}" Command="{Binding StartFullScanCommand}" Margin="0,0,8,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" FontSize="14" Margin="0,0,8,0" />
+                                    <TextBlock Text="Executar varredura completa" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource SecondaryButton}" Command="{Binding StartQuickScanCommand}" Content="Varredura rápida" Margin="0,0,8,8" />
+                        </WrapPanel>
                     </Grid>
                 </Border>
 
@@ -82,28 +87,21 @@
                         <TextBlock Style="{StaticResource Caption}" Text="Execute uma varredura para ver problemas confirmados e recomendações."
                                    Visibility="{Binding HasScanResult, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
                         <StackPanel Visibility="{Binding HasScanResult, Converter={StaticResource VisibleWhen}}">
-                            <StackPanel.Resources>
-                                <Style TargetType="Ellipse">
-                                    <Setter Property="Width" Value="10" />
-                                    <Setter Property="Height" Value="10" />
-                                    <Setter Property="Margin" Value="0,0,10,0" />
-                                    <Setter Property="VerticalAlignment" Value="Center" />
-                                </Style>
-                            </StackPanel.Resources>
+                            <!-- Mesmas cores da lista de achados: crítico, alto/médio, baixo, recomendação (cinza). -->
                             <StackPanel Orientation="Horizontal" Margin="0,2">
-                                <Ellipse Fill="{StaticResource CriticalBrush}" />
+                                <Ellipse Style="{StaticResource SeverityDot}" Tag="{x:Static domain:Severity.Critical}" Margin="0,0,10,0" />
                                 <TextBlock Style="{StaticResource Body}"><Run Text="{Binding CriticalCount, Mode=OneWay}" FontWeight="SemiBold" /> problema(s) crítico(s)</TextBlock>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,2">
-                                <Ellipse Fill="{StaticResource HighBrush}" />
+                                <Ellipse Style="{StaticResource SeverityDot}" Tag="{x:Static domain:Severity.High}" Margin="0,0,10,0" />
                                 <TextBlock Style="{StaticResource Body}"><Run Text="{Binding ImportantCount, Mode=OneWay}" FontWeight="SemiBold" /> problema(s) importante(s)</TextBlock>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,2">
-                                <Ellipse Fill="{StaticResource LowBrush}" />
+                                <Ellipse Style="{StaticResource SeverityDot}" Tag="{x:Static domain:Severity.Low}" Margin="0,0,10,0" />
                                 <TextBlock Style="{StaticResource Body}"><Run Text="{Binding MinorCount, Mode=OneWay}" FontWeight="SemiBold" /> problema(s) menor(es)</TextBlock>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,2">
-                                <Ellipse Fill="{StaticResource MediumBrush}" />
+                                <Ellipse Style="{StaticResource SeverityDot}" Tag="{x:Static domain:Severity.Info}" Margin="0,0,10,0" />
                                 <TextBlock Style="{StaticResource Body}"><Run Text="{Binding RecommendationCount, Mode=OneWay}" FontWeight="SemiBold" /> recomendação(ões)</TextBlock>
                             </StackPanel>
                             <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0" Text="{Binding FindingsSummary}" />
@@ -113,8 +111,8 @@
                                     Visibility="{Binding TopProblem, Converter={StaticResource VisibleWhen}}">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource Caption}" Text="Problema mais importante" />
-                                    <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" Margin="0,4,0,2" Text="{Binding TopProblem.Title}"
-                                               Foreground="{Binding TopProblem.Severity, Converter={StaticResource SemanticBrush}}" />
+                                    <TextBlock Style="{StaticResource SemanticText}" Tag="{Binding TopProblem.Severity}" FontSize="14"
+                                               TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,4,0,2" Text="{Binding TopProblem.Title}" />
                                     <TextBlock Style="{StaticResource Body}" Text="{Binding TopProblem.WhatHappened}" />
                                     <TextBlock Style="{StaticResource FieldLabel}" Text="Recomendação" />
                                     <TextBlock Style="{StaticResource Body}" Text="{Binding TopProblem.Recommendation}" />

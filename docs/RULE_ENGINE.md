@@ -44,7 +44,7 @@ não declarado é erro de programação (a regra falha e é isolada).
 `context.Series("cpu.total")` devolve uma `MetricSeries` com:
 
 | Membro | Uso |
-|---|---|
+| --- | --- |
 | `Count` | quantidade mínima de amostras |
 | `Duration` | janela observada |
 | `Mean`, `Min`, `Max`, `Percentile(p)` | estatísticas |
@@ -79,5 +79,5 @@ if (series.Count < ctx.Parameter("MinimumSamples") ||
 ## Catálogo de regras
 
 | Regra | Scanners | Parâmetros | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | — | — | — | Nenhuma regra de produção no Passo 1 (as regras chegam junto com os scanners). |

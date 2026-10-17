@@ -12,8 +12,9 @@
     <SolidColorBrush x:Key="NavHoverBrush" Color="#E3E3E3" />
     <SolidColorBrush x:Key="NavSelectedBrush" Color="#E0E0E0" />
     <SolidColorBrush x:Key="TrackBrush" Color="#E6E6E6" />
-    <SolidColorBrush x:Key="AccentBrush" Color="#E8650F" />
-    <SolidColorBrush x:Key="AccentHoverBrush" Color="#D45A0A" />
+    <!-- #C2520A: 4,66:1 com texto branco e como texto sobre cartão branco (o #E8650F da logo dá só 3,33:1). -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#C2520A" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#A9440A" />
     <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="SecondaryButtonBrush" Color="#FBFBFB" />
     <SolidColorBrush x:Key="SecondaryButtonHoverBrush" Color="#F0F0F0" />
@@ -21,6 +22,23 @@
     <SolidColorBrush x:Key="ChartFillBrush" Color="#1FE8650F" />
     <SolidColorBrush x:Key="ChartStroke2Brush" Color="#0F6CBD" />
     <SolidColorBrush x:Key="ChartFill2Brush" Color="#1F0F6CBD" />
+
+    <!-- Barra de rolagem estilo Windows 11: trilho invisível, polegar fino e arredondado. -->
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#8A8A8A" />
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#5F5F5F" />
+
+    <!-- Controles de seleção (CheckBox/RadioButton) -->
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#8A8A8A" />
+    <SolidColorBrush x:Key="ControlFillBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SelectionTextBrush" Color="#55C2520A" />
+
+    <!-- Cores semânticas: todas ≥ 4,5:1 sobre #FFFFFF para servirem também como texto. -->
+    <SolidColorBrush x:Key="CriticalBrush" Color="#C42B1C" />
+    <SolidColorBrush x:Key="HighBrush" Color="#B3470C" />
+    <SolidColorBrush x:Key="MediumBrush" Color="#9D5D00" />
+    <SolidColorBrush x:Key="LowBrush" Color="#005FB8" />
+    <SolidColorBrush x:Key="InfoBrush" Color="#616161" />
+    <SolidColorBrush x:Key="OkBrush" Color="#0F7B0F" />
 
     <!-- logo2.png (fundo transparente, texto escuro) funciona sobre superfícies claras. -->
     <BitmapImage x:Key="LogoImage" UriSource="/Assets/logo2.png" DecodePixelWidth="480" />

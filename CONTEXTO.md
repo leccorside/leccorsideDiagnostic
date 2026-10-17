@@ -56,16 +56,37 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   SQLite/logs gerados fora de `bin/`, `appsettings.Local.json`, `.claude/settings.local.json`, arquivos do Windows
   e segredos. Os 141 arquivos do projeto seguem versionáveis.
 
+### Polimento de UI com impeccable (17/10/2026)
+
+- **Regra do projeto (pedido do usuário):** toda mudança de interface é revisada com o skill `impeccable`
+  (contexto → playbook `polish` → `craft-floor` → rodada visual nos dois temas → no máximo uma rodada de confirmação).
+- ScrollBar própria estilo Windows 11 (sem setas, trilho transparente, polegar 4 px → 7 px no hover), vertical e horizontal,
+  com `ScrollThumbBrush`/`ScrollThumbHoverBrush` por tema — antes aparecia o estilo clássico claro no tema escuro.
+- CheckBox, RadioButton e Expander com templates próprios (chevron Fluent animado), seleção/cursor de `TextBox` com a paleta.
+- Cores semânticas (`CriticalBrush`...`OkBrush`) movidas para `Light.xaml`/`Dark.xaml` com contraste ≥ 4,5:1 calculado nos
+  dois fundos; aplicadas por estilos com gatilho em `Tag` (`SemanticText`, `SeverityDot`, `ScoreRing`) e `DynamicResource`.
+  O `SemanticBrushConverter` foi removido.
+- `AccentBrush` do tema claro: `#E8650F` → `#C2520A` (texto branco do botão principal passou de 3,33:1 para 4,66:1).
+- Ícones de status do progresso: caracteres Unicode (✓ → ✗ ○) trocados por glifos Segoe Fluent, com nome acessível.
+- "Recomendações" no dashboard em cinza (mesma cor das recomendações na lista de achados).
+- Botões quebram linha em vez de cortar o rótulo; cartões de modo sem altura fixa (botão no rodapé); ações do card de score
+  em linha própria.
+
 ## Erros e correções conhecidas
 
 | Erro | Causa | Correção |
-|---|---|---|
+| --- | --- | --- |
 | Teste de redação falhou: `Authorization: Bearer <token>` vazava o token | A regra chave=valor mascarava só a palavra "Bearer" | Regra dedicada para `Authorization` que preserva o esquema (Bearer/Basic) e mascara a credencial, aplicada antes das demais; casos `Basic` e `Bearer` avulso adicionados aos testes |
 | Risco de "pingue-pongue" de seleção na sidebar | Dois `ListBox` (menu e rodapé) ligados ao mesmo `SelectedItem`: um empurraria `null` para o outro | Seleções separadas (`SelectedMainItem`/`SelectedFooterItem`) e `CurrentPage` segue a última seleção não nula |
 | `Rollback` como nome de tabela | É palavra-chave do SQLite | Identificador entre aspas (`"Rollback"`) na migration e no INSERT |
 | SystemTests não compilava (`Path`/`File` inexistentes) | Projetos com `UseWPF` não incluem `System.IO` nos usings implícitos | `using System.IO;` explícito |
 | Botão "Executar varredura completa" cortado no Dashboard | Coluna do card de score estreita | Colunas 6*/5* e anel de 140 px |
 | `MSB3061 ... _wpftmp.csproj.nuget.dgspec.json being used by another process` | Arquivo temporário do build WPF travado momentaneamente (antivírus/extensão do editor) | Transitório — repetir o build. Documentado em `docs/DEVELOPMENT.md` |
+| ScrollBar, CheckBox, RadioButton e Expander com aparência clássica clara no tema escuro | Controles sem template próprio usam o tema do sistema do WPF | Templates próprios em `Styles.xaml` com pincéis por tema |
+| Cores de severidade/rating ficavam com a cor do tema antigo após trocar o tema | `SemanticBrushConverter` resolvia o pincel uma única vez (não reage a `DynamicResource`) | Estilos com gatilho em `Tag` + `DynamicResource` |
+| Contraste insuficiente: âmbar `#E3A300` como texto (~2:1) e branco sobre `#E8650F` (3,33:1) no tema claro | Cores escolhidas pela marca, sem medir | Paleta semântica por tema medida (≥ 4,5:1) e `AccentBrush` claro `#C2520A` |
+| Rótulo "Executar varredura completa" e descrição da varredura rápida cortados em janelas ~1100 px | Botão sem quebra de linha e `Height="54"` fixo na descrição | Quebra de linha nos botões, cartões com `DockPanel` e ações do score em linha própria |
+| Uma inicialização ficou sem janela e sem log durante a validação (não reproduzida em 3 tentativas seguintes) | Desconhecida — possivelmente arquivo de log/banco ainda preso pela instância anterior recém-encerrada | Em observação; se voltar a ocorrer, investigar com dump de threads |
 | Saída de ferramentas de console com acentos corrompidos (ex.: `hostname -x`) | Ferramentas usam a code page OEM | Não afeta o Passo 1; tratar `StandardOutputEncoding` por ferramenta ao implementar DISM/SFC (Passo 5) |
 
 ## Pendências / próximos passos
@@ -78,8 +99,8 @@ Na ordem combinada no `PASSOS.md`:
 4. Passo 5 — Event Viewer, Integridade do Windows (DISM/SFC/CHKDSK não destrutivos) e **processo elevado + IPC**.
 5. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
 
-Pequenos itens de UX anotados: estilizar `ScrollBar` no tema escuro (hoje usa o padrão claro do WPF); tela de
-detalhes de finding dedicada (hoje é um `Expander`).
+Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); criar `PRODUCT.md`/`DESIGN.md`
+com `/impeccable init` e `/impeccable document` para fixar o sistema visual antes das telas do Passo 2.
 
 ## Limitações conhecidas (deliberadas)
 

@@ -1,39 +1,11 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-using System.Windows.Media;
-using LeccorWindowsHealthCenter.Domain;
 
 namespace LeccorWindowsHealthCenter.App.Converters;
 
-/// <summary>Cor semântica por severidade / rating / status de scanner (recursos definidos em Styles.xaml).</summary>
-public sealed class SemanticBrushConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        var key = value switch
-        {
-            Severity.Critical => "CriticalBrush",
-            Severity.High => "HighBrush",
-            Severity.Medium => "MediumBrush",
-            Severity.Low => "LowBrush",
-            Severity.Info => "InfoBrush",
-            HealthRating.Excellent or HealthRating.Good => "OkBrush",
-            HealthRating.Attention => "MediumBrush",
-            HealthRating.Critical => "CriticalBrush",
-            HealthRating.Unknown => "InfoBrush",
-            ScannerRunStatus.Completed => "OkBrush",
-            ScannerRunStatus.Running => "AccentBrush",
-            ScannerRunStatus.Failed => "CriticalBrush",
-            _ => "TextTertiaryBrush",
-        };
-
-        return System.Windows.Application.Current.TryFindResource(key) as Brush ?? Brushes.Gray;
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
-        throw new NotSupportedException();
-}
+// Cores semânticas não usam conversor: ficam nos estilos SemanticText/SeverityDot/ScoreRing (Styles.xaml),
+// com DynamicResource, para acompanhar a troca de tema em tempo de execução.
 
 /// <summary>Visível quando o valor é true / não-nulo / número &gt; 0 / coleção não vazia. "Invert" no parâmetro inverte.</summary>
 public sealed class VisibleWhenConverter : IValueConverter

@@ -22,6 +22,23 @@
     <SolidColorBrush x:Key="ChartStroke2Brush" Color="#4CA0E0" />
     <SolidColorBrush x:Key="ChartFill2Brush" Color="#264CA0E0" />
 
+    <!-- Barra de rolagem estilo Windows 11: trilho invisível, polegar fino e arredondado. -->
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#7A7A7A" />
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#B0B0B0" />
+
+    <!-- Controles de seleção (CheckBox/RadioButton) -->
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#9A9A9A" />
+    <SolidColorBrush x:Key="ControlFillBrush" Color="#1F1F1F" />
+    <SolidColorBrush x:Key="SelectionTextBrush" Color="#80F58A2A" />
+
+    <!-- Cores semânticas: todas ≥ 4,5:1 sobre #2B2B2B (cartão) para servirem também como texto. -->
+    <SolidColorBrush x:Key="CriticalBrush" Color="#FF99A4" />
+    <SolidColorBrush x:Key="HighBrush" Color="#FFA266" />
+    <SolidColorBrush x:Key="MediumBrush" Color="#FCE100" />
+    <SolidColorBrush x:Key="LowBrush" Color="#60CDFF" />
+    <SolidColorBrush x:Key="InfoBrush" Color="#ABABAB" />
+    <SolidColorBrush x:Key="OkBrush" Color="#6CCB5F" />
+
     <!-- logo1.jpg (fundo claro) é exibida como "selo" sobre o tema escuro, onde a logo2 perderia contraste. -->
     <BitmapImage x:Key="LogoImage" UriSource="/Assets/logo1.jpg" DecodePixelWidth="480" />
 </ResourceDictionary>

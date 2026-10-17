@@ -12,7 +12,7 @@ Windows, armazenamento, processos, drivers, rede e performance — e permite cor
 Não é um "PC Cleaner". Cada problema exibido responde:
 
 | Pergunta | Campo |
-|---|---|
+| --- | --- |
 | O que aconteceu? | `Finding.Description` |
 | Como sabemos disso? | `Finding.Evidence` (origem técnica de cada medição) |
 | Qual o impacto? | `Finding.Impact` |
@@ -51,7 +51,7 @@ Build + testes (o mesmo que o CI executa):
 ## Documentação
 
 | Documento | Conteúdo |
-|---|---|
+| --- | --- |
 | [DOCUMENTACAO.md](DOCUMENTACAO.md) | Documentação técnica central: componentes, configuração, banco, como estender |
 | [CONTEXTO.md](CONTEXTO.md) | Estado vivo do projeto, decisões, erros corrigidos, pendências |
 | [PASSOS.md](PASSOS.md) | Plano de execução em passos |

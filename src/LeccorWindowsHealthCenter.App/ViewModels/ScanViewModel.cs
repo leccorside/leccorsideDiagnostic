@@ -188,4 +188,8 @@ public sealed partial class ModuleOption : ObservableObject
     private bool _isSelected = true;
 }
 
-public sealed record ScannerStateItem(string Name, string Glyph, ScannerRunStatus Status);
+public sealed record ScannerStateItem(string Name, string Glyph, ScannerRunStatus Status)
+{
+    /// <summary>Nome acessível do ícone de status (leitores de tela não leem glifos de fonte de ícones).</summary>
+    public string StatusText => Display.Status(Status);
+}

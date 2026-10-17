@@ -46,7 +46,7 @@ public interface IMeasurableRepairAction : IRepairAction
 ## Níveis de risco (seção 6)
 
 | Nível | Exigência | Exemplo |
-|---|---|---|
+| --- | --- | --- |
 | SAFE | pode ser automático | cache temporário comprovadamente descartável |
 | LOW | confirmação | baixo risco, facilmente reversível |
 | MEDIUM | confirmação | altera comportamento do sistema |
@@ -70,7 +70,7 @@ para ações de maior impacto no MVP 3 — e **não** substitui backup de dados.
 ## Ações disponíveis
 
 | Ação | Risco | Rollback | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | — | — | — | Nenhuma ação concreta no Passo 1 (MVP 3 — Passo 8). |
 
 ## Testes

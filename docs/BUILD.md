@@ -30,7 +30,7 @@ Criar um arquivo vazio `portable.flag` ao lado do `.exe`: banco, logs e backups 
 `.github/workflows/ci.yml`:
 
 | Job | Etapas |
-|---|---|
+| --- | --- |
 | `build-test` | restore → build Release com analisadores e `-warnaserror` → testes com cobertura (artefato `test-results`) |
 | `publish` | publish self-contained `win-x64` (ReadyToRun) → artefato `LeccorWindowsHealthCenter-win-x64` |
 

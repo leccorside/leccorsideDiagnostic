@@ -33,17 +33,17 @@ Implementar `CollectAsync(ScanCollector collector, CancellationToken ct)`. A bas
 ## Orquestração (`ScanOrchestrator`)
 
 | Garantia | Implementação |
-|---|---|
+| --- | --- |
 | Concorrência limitada | `Scan:MaxConcurrency` (padrão 2) — a ferramenta não pode causar a lentidão que mede |
 | Timeout por scanner | `Scan:ScannerTimeout` (padrão 5 min) → `Failed` com "Tempo limite excedido" |
 | Cancelamento | botão "Cancelar varredura"; scanners em execução recebem o token; os pendentes viram `Cancelled`; o já coletado é preservado e salvo |
 | Isolamento de falhas | exceção de um scanner não derruba os demais |
-| UI responsiva | scanners rodam em `Task.Run`; progresso via `IProgress<ScanProgress>` (✓ → ○ ✗ ⊘) |
+| UI responsiva | scanners rodam em `Task.Run`; progresso via `IProgress<ScanProgress>`, com ícone Segoe Fluent e nome acessível por status (`Display.StatusGlyph`/`Display.Status`) |
 
 ## Modos
 
 | Modo | Scanners |
-|---|---|
+| --- | --- |
 | Rápida | `IncludedInQuickScan == true` |
 | Completa | todos |
 | Personalizada | os de `ScanModule` selecionados |
@@ -51,7 +51,7 @@ Implementar `CollectAsync(ScanCollector collector, CancellationToken ct)`. A bas
 ## Catálogo de scanners
 
 | Scanner | Id | Módulo | Rápida | Status |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | — | — | — | — | Nenhum scanner implementado no Passo 1. Os scanners do MVP 1 entram nos Passos 2–5 (ver [PASSOS.md](../PASSOS.md)). |
 
 Cada scanner novo deve ser documentado aqui com: fonte de dados (WMI/contador/API/EventLog/comando),

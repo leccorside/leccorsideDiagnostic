@@ -18,7 +18,7 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## 2. Componentes implementados
 
 | Componente | Local | Função |
-|---|---|---|
+| --- | --- | --- |
 | `ScanOrchestrator` | Application/Scanning | Executa scanners (concorrência limitada, timeout, cancelamento, progresso), aplica regras, score e salva |
 | `DiagnosticScannerBase` / `ScanCollector` | Application/Scanning | Base para scanners: duração, logs, falhas isoladas |
 | `RuleEngine` / `MetricSeries` / `ConfigurationRuleSettings` | Application/Rules | Regras centralizadas, thresholds configuráveis, estatísticas anti falso positivo |
@@ -48,11 +48,17 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   Dry Run, caminhos de dados, versão.
 - Logos: `logo2.png` (tema claro) e `logo1.jpg` (tema escuro, como selo); `logo-mark.png` e `app.ico` são
   recortes do símbolo da `logo2.png`.
+- **Sistema visual** (`Themes/`): `Light.xaml`/`Dark.xaml` definem todos os pincéis (superfícies, texto, destaque,
+  barra de rolagem, controles e cores semânticas com contraste ≥ 4,5:1 medido); `Styles.xaml` define tipografia,
+  cartão, botões (com quebra de linha), ScrollBar estilo Windows 11, CheckBox, RadioButton, Expander, seleção de texto
+  e os estilos semânticos `SemanticText`, `SeverityDot` e `ScoreRing` (valor via `Tag`). Sempre referenciar pincéis
+  com `DynamicResource` para acompanhar a troca de tema.
+- **Revisão de UI:** toda alteração de interface passa pelo skill `impeccable` e é verificada nos temas claro e escuro.
 
 ## 4. Configuração (`src/LeccorWindowsHealthCenter.App/appsettings.json`)
 
 | Chave | Padrão | Descrição |
-|---|---|---|
+| --- | --- | --- |
 | `HealthCenter:AdvancedMode` | `false` | Exibe detalhes técnicos (referências de evidência, comandos...) |
 | `HealthCenter:Theme` | `System` | `System`, `Light` ou `Dark` |
 | `HealthCenter:DashboardRefreshInterval` | `00:00:02` | Intervalo de amostragem do dashboard (mín. 1 s) |
@@ -70,7 +76,7 @@ Variáveis de ambiente e argumentos de linha de comando também sobrescrevem (pa
 ## 5. Dados locais
 
 | Item | Caminho (instalado) | Portable (`portable.flag`) |
-|---|---|---|
+| --- | --- | --- |
 | Raiz | `%ProgramData%\LeccorWindowsHealthCenter` (fallback `%LocalAppData%\...`) | `.\Data` |
 | Logs | `...\Logs\lwhc-AAAAMMDD.log` (JSON compacto: `@t`, `@mt`, propriedades) | `.\Data\Logs` |
 | Backups | `...\Backups\{id}.json` (ACL restrita) | `.\Data\Backups` |
@@ -83,7 +89,7 @@ Migrations versionadas em `Infrastructure/Persistence/Migrations.cs` (nunca edit
 sempre adicionar nova versão). Controle em `SchemaMigrations`.
 
 | Tabela | Conteúdo |
-|---|---|
+| --- | --- |
 | `Scan` | varredura: modo, início/fim, cancelada, score, rating, máquina, scores por categoria (JSON) |
 | `ScannerRun` | execução de cada scanner: status, duração, erro |
 | `Finding` | finding completo (regra, categoria, severidade, confiança, impacto, recomendação, risco, rollback, status) |
@@ -117,7 +123,7 @@ logs e saídas, backups com ACL. Detalhes: [docs/SECURITY.md](docs/SECURITY.md).
 ## 10. Testes (Passo 1)
 
 | Projeto | Testes |
-|---|---|
+| --- | --- |
 | UnitTests | 115 |
 | IntegrationTests | 16 |
 | SystemTests | 3 |
