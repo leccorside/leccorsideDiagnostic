@@ -24,7 +24,7 @@ Corresponde à "primeira execução" (seção 75) e à ordem de implementação 
 - [x] Monitoring: amostragem leve de CPU/RAM/disco para o dashboard
 - [x] Reporting: exportador JSON
 - [x] App WPF/MVVM: DI via Generic Host, tema claro/escuro, sidebar com o menu completo, Dashboard, tela de Varredura (rápida/completa/personalizada, progresso, cancelar, resultado), Configurações
-- [x] Testes: 115 unitários, 16 integração, 3 sistema — todos passando
+- [x] Testes: 115 unitários, 16 integração, 5 sistema — todos passando
 - [x] GitHub Actions (restore, build com analisadores como erro, test, publish win-x64)
 
 ## Passo 2 — MVP 1 (a): Hardware, CPU, Memória e GPU ⬜

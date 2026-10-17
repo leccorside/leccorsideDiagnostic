@@ -11,22 +11,30 @@ using Microsoft.Extensions.Options;
 
 namespace LeccorWindowsHealthCenter.App;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+    Justification = "O App vive o processo inteiro; _startup é descartado em OnExit (e ao concluir a inicialização).")]
 public partial class App : System.Windows.Application
 {
+    // Criado no construtor: cobre inclusive o carregamento do XAML do App, antes de existir logger.
+    private readonly StartupTrace _startup = new(StartupTrace.DefaultLogsDirectory());
     private IHost? _host;
     private ILogger<App>? _logger;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        _startup.Mark("XAML do App carregado e Dispatcher em execução");
         base.OnStartup(e);
 
         try
         {
             var paths = AppPaths.ResolveWritable(AppContext.BaseDirectory);
+            _startup.Mark("Diretórios de dados resolvidos");
             _host = HealthCenterHost.Build(e.Args, paths);
+            _startup.Mark("Host construído (configuração, logging, DI)");
         }
         catch (Exception ex)
         {
+            _startup.Dispose();
             MessageBox.Show($"Não foi possível iniciar o Leccor Windows Health Center.\n\n{ex.Message}",
                 "Leccor Windows Health Center", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
@@ -39,6 +47,7 @@ public partial class App : System.Windows.Application
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
 
         await _host.StartAsync();
+        _startup.Mark("Host iniciado");
         _logger.LogInformation("Aplicativo iniciado (versão {Version}, PID {Pid})",
             typeof(App).Assembly.GetName().Version, Environment.ProcessId);
 
@@ -55,12 +64,32 @@ public partial class App : System.Windows.Application
                 "Leccor Windows Health Center", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
+        _startup.Mark("Banco de dados preparado");
+
         var options = _host.Services.GetRequiredService<IOptions<HealthCenterOptions>>().Value;
         _host.Services.GetRequiredService<ThemeService>().Apply(options.Theme);
 
         var window = _host.Services.GetRequiredService<MainWindow>();
+        _startup.Mark("Janela principal criada");
         MainWindow = window;
+        window.ContentRendered += OnFirstRender;
         window.Show();
+    }
+
+    private void OnFirstRender(object? sender, EventArgs e)
+    {
+        ((Window)sender!).ContentRendered -= OnFirstRender;
+        _startup.Mark("Primeiro quadro renderizado");
+        var summary = _startup.Complete();
+        if (_startup.IsSlow)
+        {
+            _logger?.LogWarning("Inicialização lenta ({TotalMs} ms): {StartupPhases}. Relatório: {SlowReport}",
+                (long)_startup.Total.TotalMilliseconds, summary, _startup.SlowReportPath);
+        }
+        else
+        {
+            _logger?.LogInformation("Inicialização concluída em {TotalMs} ms: {StartupPhases}", (long)_startup.Total.TotalMilliseconds, summary);
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)
@@ -72,6 +101,7 @@ public partial class App : System.Windows.Application
             _host.Dispose();
         }
 
+        _startup.Dispose();
         base.OnExit(e);
     }
 

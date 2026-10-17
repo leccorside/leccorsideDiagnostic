@@ -18,7 +18,7 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   personalizada, progresso, cancelar, resultado) e Configurações (tema claro/escuro). Demais menus: páginas
   "em construção" com o MVP previsto.
 - **Nenhum scanner nem regra de produção ainda** — uma varredura hoje termina sem dados e, por design, sem score.
-- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 134/134.
+- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 136/136 (115 unitários, 16 integração, 5 sistema).
 - Consumo medido do app ocioso no Dashboard: ~0,3% CPU, ~90–110 MB privados (~140–170 MB working set).
 
 ## Histórico de implementações
@@ -86,8 +86,29 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 | Cores de severidade/rating ficavam com a cor do tema antigo após trocar o tema | `SemanticBrushConverter` resolvia o pincel uma única vez (não reage a `DynamicResource`) | Estilos com gatilho em `Tag` + `DynamicResource` |
 | Contraste insuficiente: âmbar `#E3A300` como texto (~2:1) e branco sobre `#E8650F` (3,33:1) no tema claro | Cores escolhidas pela marca, sem medir | Paleta semântica por tema medida (≥ 4,5:1) e `AccentBrush` claro `#C2520A` |
 | Rótulo "Executar varredura completa" e descrição da varredura rápida cortados em janelas ~1100 px | Botão sem quebra de linha e `Height="54"` fixo na descrição | Quebra de linha nos botões, cartões com `DockPanel` e ações do score em linha própria |
-| Uma inicialização ficou sem janela e sem log durante a validação (não reproduzida em 3 tentativas seguintes) | Desconhecida — possivelmente arquivo de log/banco ainda preso pela instância anterior recém-encerrada | Em observação; se voltar a ocorrer, investigar com dump de threads |
+| Uma inicialização levou ~30–60 s até a primeira linha de log (PID 18728, 17/10/2026 ~17:04–17:05) | **Não identificada.** Ver "Investigação: inicialização lenta" abaixo | Não reproduzida em 62 aberturas; instrumentação de fases + watchdog adicionados para capturar a fase exata se voltar |
 | Saída de ferramentas de console com acentos corrompidos (ex.: `hostname -x`) | Ferramentas usam a code page OEM | Não afeta o Passo 1; tratar `StandardOutputEncoding` por ferramenta ao implementar DISM/SFC (Passo 5) |
+
+### Investigação: inicialização lenta (17/10/2026)
+
+- **Sintoma original:** durante a validação visual, o app não mostrou janela em 5 s; um minuto depois ainda sem janela e,
+  aparentemente, sem log. A anotação inicial ("sem log, travado") **estava errada**: o log mostra que o PID 18728 gravou
+  "Aplicativo iniciado" às 17:05:28 e "Banco de dados pronto" 60 ms depois — eu olhei o log cedo demais. Foi uma
+  **demora única de ~30–60 s antes da primeira linha de log**, não um deadlock.
+- **Descartado com evidência:** antivírus em nuvem (Defender com `MAPSReporting=0`, sem "bloqueio à primeira vista" e sem
+  eventos no horário); arquivo de log preso (Serilog teria criado `lwhc-*_001.log`; só existe um arquivo); deadlock no
+  código de inicialização (revisado; nenhuma espera síncrona até `StartAsync`).
+- **Reprodução:** 62 aberturas em 3 cenários (reabertura imediata após `Kill`, logo após recompilar, abertura normal) —
+  todas com janela em 0,8–1,2 s.
+- **Hipóteses não comprovadas:** contenção momentânea da máquina logo após o build (nós do MSBuild/servidor do compilador);
+  estado da sessão gráfica (havia sessão do Chrome Remote Desktop desconectada às 16:53).
+- **Instrumentação adicionada (`App/StartupTrace.cs`):** fases cronometradas do processo ao primeiro quadro, gravadas no log
+  ("Inicialização concluída em X ms" ou aviso "Inicialização lenta"); watchdog que, após 10 s, grava a fase atual em
+  `Logs\startup-slow-{pid}.txt` a cada 10 s (funciona antes de o logger existir). Se ocorrer de novo, esse arquivo diz
+  em que fase parou; capturar então `dotnet-stack report -p <PID>` (ferramentas `dotnet-stack`/`dotnet-dump` instaladas
+  globalmente nesta máquina).
+- Abertura típica medida: processo→app ~60 ms, XAML do App ~110 ms, host ~110 ms, banco ~70 ms, janela + primeiro quadro ~570 ms;
+  total ~0,9 s.
 
 ## Pendências / próximos passos
 

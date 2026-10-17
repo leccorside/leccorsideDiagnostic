@@ -33,6 +33,7 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `LiveMetricsProvider` | Monitoring | CPU/RAM/disco do dashboard via Win32 |
 | `JsonReportExporter` | Reporting | Exportação do `ScanReport` em JSON |
 | `HealthCenterHost` | App | Composition root (Generic Host + DI validada) |
+| `StartupTrace` | App | Tempo de cada fase da inicialização (processo → primeiro quadro) e watchdog de inicialização lenta (> 10 s) |
 | Telas | App/Views | Dashboard, Varredura, Configurações e páginas "em construção" para os demais módulos |
 
 ## 3. Interface
@@ -78,7 +79,7 @@ Variáveis de ambiente e argumentos de linha de comando também sobrescrevem (pa
 | Item | Caminho (instalado) | Portable (`portable.flag`) |
 | --- | --- | --- |
 | Raiz | `%ProgramData%\LeccorWindowsHealthCenter` (fallback `%LocalAppData%\...`) | `.\Data` |
-| Logs | `...\Logs\lwhc-AAAAMMDD.log` (JSON compacto: `@t`, `@mt`, propriedades) | `.\Data\Logs` |
+| Logs | `...\Logs\lwhc-AAAAMMDD.log` (JSON compacto: `@t`, `@mt`, propriedades). Cada abertura registra "Inicialização concluída em X ms" com o tempo por fase; acima de 10 s, aviso "Inicialização lenta" e o arquivo `startup-slow-{pid}.txt` com a fase em que estava | `.\Data\Logs` |
 | Backups | `...\Backups\{id}.json` (ACL restrita) | `.\Data\Backups` |
 | Banco | `...\Data\health.db` (SQLite, WAL) | `.\Data\Data\health.db` |
 | Relatórios | `...\Reports` | `.\Data\Reports` |
@@ -126,5 +127,5 @@ logs e saídas, backups com ACL. Detalhes: [docs/SECURITY.md](docs/SECURITY.md).
 | --- | --- |
 | UnitTests | 115 |
 | IntegrationTests | 16 |
-| SystemTests | 3 |
-| **Total** | **134 — todos passando** (Debug e Release com `-warnaserror`) |
+| SystemTests | 5 |
+| **Total** | **136 — todos passando** (Debug e Release com `-warnaserror`) |
