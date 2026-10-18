@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **17/10/2026 — Passo 2 concluído (v0.2.0), aguardando autorização para o Passo 3.**
+Última atualização: **18/10/2026 — Passo 2 concluído (v0.2.0) + correções do break-ui; aguardando autorização para o Passo 3.**
 
 ---
 
@@ -19,7 +19,8 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   (CPU sustentada, possível limitação de frequência, pressão de memória, commit alto, possível vazamento).
 - App abre sem admin: Dashboard (score com cobertura "Avaliou X de 6 áreas", CPU/RAM/disco/GPU ao vivo), Varredura,
   **Performance**, **Hardware** e Configurações. Demais menus: páginas "em construção" com o MVP previsto.
-- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 165/165 (137 unitários, 22 integração, 6 sistema).
+- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 193/193 (160 unitários, 22 integração, 11 sistema).
+- Telas de Performance e Hardware passaram pelo teste de estresse break-ui (16 correções, ver Histórico).
 - Consumo medido (Release, histórico ativo): 0,17% CPU no Dashboard, 0,46% na Performance, 0,00% minimizado;
   101–120 MB privados (~160–180 MB working set).
 
@@ -186,12 +187,26 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 - Fixtures com valores reais do Windows: "To Be Filled By O.E.M.", fabricante de RAM em código JEDEC (`00AD063200AD`),
   part numbers com espaços, Xeon com 2 soquetes, 16/24 módulos, GPUs virtuais sem VRAM, nomes longos reais de processos,
   GPU sem contadores, inventário WMI vazio, histórico com lacuna de suspensão.
-- 16 achados relatados (2 quebras, 11 visuais, 3 frágeis) — **aguardando o usuário escolher quais corrigir**.
-  As capturas ficaram no scratchpad da sessão; refazer com o seletor.
+- 16 achados relatados (2 quebras, 11 visuais, 3 frágeis) e **todos corrigidos** ("fix all", 18/10/2026):
+  - Cabeçalhos de métrica (Dashboard e Performance) em `Grid(*,Auto)` com estilo `MetricValue` (números tabulares);
+    leitura ausente vira "—" + legenda "não disponível" (antes "não disponível" em 22 px sobrepunha o título).
+  - GPU sem contadores: só o texto explicativo, sem linhas de "não disponível" repetidas.
+  - Listas de processos: nome com reticências + tooltip (nome, PID, caminho), coluna de PID, valor alinhado;
+    "< 1%" abaixo de 0,5%; textos de lista vazia.
+  - Inventário vazio: cartão único explicando o motivo (em vez de 4 cartões cheios de "não disponível").
+  - `InventoryText` (Application): placeholders de firmware ocultos, código JEDEC → fabricante, status WMI traduzido
+    com tom (Degradado = âmbar, Com erro/Falha prevista = vermelho, via `InfoRow.Tone`).
+  - Módulos de RAM em linhas compactas (slot · tamanho · velocidade / fabricante · part number), não um cartão por módulo.
+  - Plural correto (`Fmt.Count`: "1 núcleo", "1 thread"), separador de milhar ("123.457 páginas/s"),
+    "Soquete i de n" com vários processadores, título sem repetir fabricante.
+  - `ByteSize.FormatPair`: parte e total na mesma unidade ("1.023,7 GB de 1.024 GB"); se arredondar igual
+    ("2 TB de 2 TB"), desce uma unidade.
+  - `Sparkline` posiciona por horário real (`Timestamps`) e quebra a linha em lacunas > 30 s (suspensão).
+- Verificação: seletor em todos os estados, 980 e 1280 px, claro e escuro; dados reais sem regressão.
+- Teste instável endurecido: `Timeout_kills_the_process_tree` falhou uma vez sob carga pesada (suítes em paralelo)
+  → margem de 20 s e espera ativa de até 5 s pelo fim do PING em vez de atraso fixo.
 
 ## Pendências / próximos passos
-
-- **Antes do próximo passo:** correções do break-ui escolhidas pelo usuário (lista no relatório de 18/10/2026).
 
 Na ordem combinada no `PASSOS.md`:
 

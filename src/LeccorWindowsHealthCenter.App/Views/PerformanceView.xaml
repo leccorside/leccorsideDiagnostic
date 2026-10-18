@@ -8,31 +8,37 @@
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="900"
              d:DataContext="{d:DesignInstance Type=vm:PerformanceViewModel}">
     <UserControl.Resources>
-        <!-- Linha de processo: nome, PID, valor e barra proporcional na cor da série (nunca na Brasa). -->
-        <DataTemplate x:Key="CpuProcessRow" DataType="{x:Type vm:ProcessRow}">
-            <StackPanel Margin="0,4">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Body}" FontWeight="SemiBold" Text="{Binding Value}" />
-                    <TextBlock Style="{StaticResource Body}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap">
-                        <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" />
-                    </TextBlock>
-                </DockPanel>
-                <ProgressBar Style="{StaticResource ThinProgress}" Height="4" Margin="0,4,0,0" Value="{Binding Percent, Mode=OneWay}"
-                             Foreground="{DynamicResource ChartStrokeBrush}" />
-            </StackPanel>
+        <!--
+            Linha de processo: nome (corta no fim) · PID (coluna própria, nunca cortado — distingue processos de mesmo nome)
+            · valor. Barra na cor da série, vinda do Tag da lista (DynamicResource: acompanha o tema; nunca a Brasa).
+            Dica com o nome completo e o caminho.
+        -->
+        <DataTemplate x:Key="ProcessRowTemplate" DataType="{x:Type vm:ProcessRow}">
+            <Grid Margin="0,4" Background="Transparent" ToolTip="{Binding ToolTip}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Style="{StaticResource Body}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Name}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource Caption}" Margin="8,0,12,0" VerticalAlignment="Center"
+                           Typography.NumeralAlignment="Tabular" Text="{Binding Pid}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource Body}" FontWeight="SemiBold" TextWrapping="NoWrap"
+                           Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
+                <ProgressBar Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource ThinProgress}" Height="4" Margin="0,4,0,0"
+                             Value="{Binding Percent, Mode=OneWay}"
+                             Foreground="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+            </Grid>
         </DataTemplate>
-        <DataTemplate x:Key="MemoryProcessRow" DataType="{x:Type vm:ProcessRow}">
-            <StackPanel Margin="0,4">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Body}" FontWeight="SemiBold" Text="{Binding Value}" />
-                    <TextBlock Style="{StaticResource Body}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap">
-                        <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" />
-                    </TextBlock>
-                </DockPanel>
-                <ProgressBar Style="{StaticResource ThinProgress}" Height="4" Margin="0,4,0,0" Value="{Binding Percent, Mode=OneWay}"
-                             Foreground="{DynamicResource ChartStroke2Brush}" />
-            </StackPanel>
-        </DataTemplate>
+
+        <Style x:Key="UnavailableCaption" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Text" Value="não disponível" />
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -42,14 +48,20 @@
                        Text="Leituras ao vivo a cada 2 s. O histórico cobre os últimos 30 minutos enquanto o aplicativo está aberto — é ele que permite distinguir um pico de uma carga sustentada." />
 
             <UniformGrid Columns="3" Margin="0,0,0,16">
-                <!-- CPU -->
+                <!-- CPU: título e valor em colunas separadas — o valor nunca cobre o título. -->
                 <Border Style="{StaticResource Card}" Margin="0,0,8,0">
                     <StackPanel>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Right" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding CpuText}" />
-                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" Text="CPU" />
-                        </DockPanel>
-                        <controls:Sparkline Baseline="{DynamicResource TrackBrush}" Height="64" Margin="0,14,0,0" Capacity="360" Values="{Binding CpuHistory}"
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,12,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="CPU" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}" Text="{Binding CpuText}" />
+                        </Grid>
+                        <TextBlock Style="{StaticResource UnavailableCaption}" Visibility="{Binding CpuUnavailable, Converter={StaticResource VisibleWhen}}" />
+                        <controls:Sparkline Baseline="{DynamicResource TrackBrush}" Height="64" Margin="0,14,0,0" Capacity="360"
+                                            Values="{Binding CpuHistory}" Timestamps="{Binding CpuHistoryTimes}"
                                             Stroke="{DynamicResource ChartStrokeBrush}" Fill="{DynamicResource ChartFillBrush}"
                                             AutomationProperties.Name="Histórico de uso de CPU" />
                         <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,10" Text="{Binding HistoryCaption}" />
@@ -60,11 +72,17 @@
                 <!-- Memória -->
                 <Border Style="{StaticResource Card}" Margin="4,0,4,0">
                     <StackPanel>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Right" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding MemoryText}" />
-                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" Text="Memória" />
-                        </DockPanel>
-                        <controls:Sparkline Baseline="{DynamicResource TrackBrush}" Height="64" Margin="0,14,0,0" Capacity="360" Values="{Binding MemoryHistory}"
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,12,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="Memória" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}" Text="{Binding MemoryText}" />
+                        </Grid>
+                        <TextBlock Style="{StaticResource UnavailableCaption}" Visibility="{Binding MemoryUnavailable, Converter={StaticResource VisibleWhen}}" />
+                        <controls:Sparkline Baseline="{DynamicResource TrackBrush}" Height="64" Margin="0,14,0,0" Capacity="360"
+                                            Values="{Binding MemoryHistory}" Timestamps="{Binding MemoryHistoryTimes}"
                                             Stroke="{DynamicResource ChartStroke2Brush}" Fill="{DynamicResource ChartFill2Brush}"
                                             AutomationProperties.Name="Histórico de uso de memória" />
                         <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,10" Text="{Binding MemoryDetail}" />
@@ -75,10 +93,15 @@
                 <!-- GPU -->
                 <Border Style="{StaticResource Card}" Margin="8,0,0,0">
                     <StackPanel>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Right" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding GpuText}" />
-                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" Text="GPU" />
-                        </DockPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,12,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="GPU" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}" Text="{Binding GpuText}" />
+                        </Grid>
+                        <TextBlock Style="{StaticResource UnavailableCaption}" Visibility="{Binding GpuUnavailable, Converter={StaticResource VisibleWhen}}" />
                         <TextBlock Style="{StaticResource Caption}" Margin="0,14,0,10" Text="{Binding GpuDetail}" />
                         <ItemsControl ItemsSource="{Binding GpuRows}" ItemTemplate="{StaticResource StackedInfoRowTemplate}" Focusable="False" />
                     </StackPanel>
@@ -89,15 +112,19 @@
                 <Border Style="{StaticResource Card}" Margin="0,0,8,0">
                     <StackPanel>
                         <TextBlock Style="{StaticResource SectionTitle}" Text="Maiores consumidores de CPU" />
-                        <TextBlock Style="{StaticResource Caption}" Text="Ainda medindo — o uso de CPU é calculado entre duas leituras."
+                        <TextBlock Style="{StaticResource Caption}" Text="{Binding TopCpuEmptyText}"
                                    Visibility="{Binding TopCpu, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
-                        <ItemsControl ItemsSource="{Binding TopCpu}" ItemTemplate="{StaticResource CpuProcessRow}" Focusable="False" />
+                        <ItemsControl ItemsSource="{Binding TopCpu}" ItemTemplate="{StaticResource ProcessRowTemplate}"
+                                      Tag="{DynamicResource ChartStrokeBrush}" Focusable="False" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource Card}" Margin="8,0,0,0">
                     <StackPanel>
                         <TextBlock Style="{StaticResource SectionTitle}" Text="Maiores consumidores de memória" />
-                        <ItemsControl ItemsSource="{Binding TopMemory}" ItemTemplate="{StaticResource MemoryProcessRow}" Focusable="False" />
+                        <TextBlock Style="{StaticResource Caption}" Text="{Binding TopMemoryEmptyText}"
+                                   Visibility="{Binding TopMemory, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+                        <ItemsControl ItemsSource="{Binding TopMemory}" ItemTemplate="{StaticResource ProcessRowTemplate}"
+                                      Tag="{DynamicResource ChartStroke2Brush}" Focusable="False" />
                     </StackPanel>
                 </Border>
             </UniformGrid>

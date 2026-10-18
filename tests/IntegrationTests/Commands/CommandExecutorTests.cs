@@ -54,8 +54,18 @@ public sealed class CommandExecutorTests : IDisposable
 
         Assert.True(result.TimedOut);
         Assert.Null(result.ExitCode);
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10));
-        await Task.Delay(300);
+
+        // Sem o timeout, "ping -n 30" levaria ~29 s. Margem larga: sob carga pesada (suítes em paralelo)
+        // a criação do processo pode demorar segundos — o que importa é não esperar o comando terminar.
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(20), $"Demorou {stopwatch.Elapsed.TotalSeconds:0.0} s");
+
+        // O encerramento da árvore é assíncrono no SO: aguarda até 5 s em vez de um atraso fixo.
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (Process.GetProcessesByName("PING").Any(p => !before.Contains(p.Id)) && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(100);
+        }
+
         Assert.DoesNotContain(Process.GetProcessesByName("PING"), p => !before.Contains(p.Id));
     }
 

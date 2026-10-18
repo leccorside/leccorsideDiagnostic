@@ -36,7 +36,17 @@
                 <TextBlock Style="{StaticResource Body}" Text="{Binding Error}" />
             </Border>
 
-            <Grid>
+            <!-- Inventário vazio: o Windows respondeu sem dados (não é "este computador não tem hardware"). -->
+            <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource MediumBrush}" Margin="0,0,0,12"
+                    Visibility="{Binding InventoryEmpty, Converter={StaticResource VisibleWhen}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="O Windows não devolveu dados de inventário" />
+                    <TextBlock Style="{StaticResource Body}"
+                               Text="A consulta ao WMI terminou sem erro, mas sem nenhum dado de sistema, processador, memória ou vídeo. Isso costuma ser temporário (serviço WMI reiniciando ou ocupado). Use “Ler novamente”; se persistir, ative o modo avançado nas Configurações para ver quais fontes não responderam." />
+                </StackPanel>
+            </Border>
+
+            <Grid Visibility="{Binding HasInventory, Converter={StaticResource VisibleWhen}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="16" />
@@ -53,8 +63,26 @@
 
                 <StackPanel Grid.Column="2">
                     <TextBlock Style="{StaticResource GroupTitle}" Margin="0,0,0,8" Text="Memória" Visibility="{Binding Memory, Converter={StaticResource VisibleWhen}}" />
-                    <ContentControl Content="{Binding Memory}" ContentTemplate="{StaticResource InfoCardTemplate}" Focusable="False" />
-                    <ItemsControl ItemsSource="{Binding MemoryModules}" ItemTemplate="{StaticResource InfoCardTemplate}" Focusable="False" />
+                    <!-- Resumo + módulos como linhas compactas no mesmo cartão: 24 pentes não viram uma torre de cartões. -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12" Visibility="{Binding Memory, Converter={StaticResource VisibleWhen}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0" TextWrapping="Wrap" Text="{Binding Memory.Title}" />
+                            <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Memory.Rows}" ItemTemplate="{StaticResource InfoRowTemplate}" Focusable="False" />
+                            <Border Margin="0,12,0,0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                                    Visibility="{Binding MemoryModules, Converter={StaticResource VisibleWhen}}">
+                                <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding MemoryModules}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:MemoryModuleRow}">
+                                            <StackPanel Margin="0,6">
+                                                <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Heading}" />
+                                                <TextBlock Style="{StaticResource Caption}" Margin="0,1,0,0" Text="{Binding Detail}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
+                    </Border>
 
                     <TextBlock Style="{StaticResource GroupTitle}" Text="Placa de vídeo" Visibility="{Binding Gpus, Converter={StaticResource VisibleWhen}}" />
                     <ItemsControl ItemsSource="{Binding Gpus}" ItemTemplate="{StaticResource InfoCardTemplate}" Focusable="False" />

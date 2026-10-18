@@ -219,7 +219,7 @@ public sealed partial class DashboardViewModel : ObservableObject, IPageLifecycl
         RamPercent = sample.MemoryPercent ?? 0;
         RamText = Percent(sample.MemoryPercent);
         RamDetail = sample.MemoryTotalBytes is { } total && sample.MemoryAvailableBytes is { } available
-            ? $"{Fmt.Bytes(total - available)} de {Fmt.Bytes(total)}"
+            ? Fmt.BytesOf(total - available, total)
             : string.Empty;
         DiskLabel = $"Disco {sample.SystemDrive}";
         DiskPercent = sample.SystemDrivePercent ?? 0;
@@ -256,6 +256,6 @@ public sealed partial class DashboardViewModel : ObservableObject, IPageLifecycl
         return queue.ToArray();
     }
 
-    private static string Percent(double? value) =>
-        value is null ? NotAvailable : string.Create(CultureInfo.CurrentCulture, $"{value:0}%");
+    // Leitura grande: "—" quando ausente (cabe em qualquer largura); a legenda do cartão explica.
+    private static string Percent(double? value) => Fmt.Reading(value);
 }

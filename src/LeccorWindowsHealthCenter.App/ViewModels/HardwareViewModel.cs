@@ -13,6 +13,9 @@ namespace LeccorWindowsHealthCenter.App.ViewModels;
 /// </summary>
 public sealed record InfoCard(string Title, string? Caption, IReadOnlyList<InfoRow> Rows);
 
+/// <summary>Linha compacta de um módulo de memória (vários módulos não podem virar uma torre de cartões).</summary>
+public sealed record MemoryModuleRow(string Heading, string Detail);
+
 /// <summary>Hardware: inventário lido via WMI e registro, sem administrador. Campos ausentes aparecem como "não disponível".</summary>
 public sealed partial class HardwareViewModel : ObservableObject, IPageLifecycle
 {
@@ -37,10 +40,18 @@ public sealed partial class HardwareViewModel : ObservableObject, IPageLifecycle
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string? _error;
     [ObservableProperty] private string _capturedText = string.Empty;
+
+    /// <summary>
+    /// O Windows não devolveu nada (WMI vazio sem erro — aconteceu de verdade no .NET 10). Sem este estado a tela
+    /// mostraria "Este computador" com tudo "não disponível" e o usuário não saberia que a leitura falhou.
+    /// </summary>
+    [ObservableProperty] private bool _inventoryEmpty;
+
+    [ObservableProperty] private bool _hasInventory;
     [ObservableProperty] private InfoCard? _system;
     [ObservableProperty] private IReadOnlyList<InfoCard> _processors = [];
     [ObservableProperty] private InfoCard? _memory;
-    [ObservableProperty] private IReadOnlyList<InfoCard> _memoryModules = [];
+    [ObservableProperty] private IReadOnlyList<MemoryModuleRow> _memoryModules = [];
     [ObservableProperty] private IReadOnlyList<InfoCard> _gpus = [];
     [ObservableProperty] private IReadOnlyList<string> _warnings = [];
 
@@ -84,20 +95,46 @@ public sealed partial class HardwareViewModel : ObservableObject, IPageLifecycle
     {
         var c = inventory.Computer;
         CapturedText = $"Lido em {Fmt.DateTime(inventory.CapturedAt)} via WMI e registro do Windows.";
-        System = new InfoCard(Join(c.Manufacturer, c.Model) ?? "Este computador", Join(c.OperatingSystem, c.OsArchitecture),
+        Warnings = inventory.Warnings;
+
+        InventoryEmpty = inventory.Processors.Count == 0 && inventory.MemoryModules.Count == 0 && inventory.Gpus.Count == 0
+            && inventory.TotalPhysicalMemoryBytes is null && c.OperatingSystem is null && c.Model is null;
+        HasInventory = !InventoryEmpty;
+        if (InventoryEmpty)
+        {
+            System = null;
+            Processors = [];
+            Memory = null;
+            MemoryModules = [];
+            Gpus = [];
+            return;
+        }
+
+        // Textos genéricos de fábrica ("To Be Filled By O.E.M.") não são dados: viram ausentes.
+        var manufacturer = InventoryText.Clean(c.Manufacturer);
+        var model = InventoryText.Clean(c.Model);
+        var title = string.Equals(manufacturer, model, StringComparison.OrdinalIgnoreCase) ? manufacturer : Join(manufacturer, model);
+        System = new InfoCard(
+            title ?? "Este computador",
+            title is null ? "O fabricante não preencheu o modelo no firmware." : null,
         [
             new("Windows", Fmt.Text(Join(c.OperatingSystem, c.OsArchitecture))),
             new("Versão / build", Fmt.Text(Join(c.OsVersion, c.OsBuild is null ? null : $"(build {c.OsBuild})"))),
             new("Último boot", Fmt.DateTime(c.LastBoot)),
-            new("Placa-mãe", Fmt.Text(c.Motherboard)),
-            new("BIOS", Fmt.Text(Join(c.BiosVendor, c.BiosVersion))),
+            new("Placa-mãe", Fmt.Text(InventoryText.Clean(c.Motherboard))),
+            new("BIOS", Fmt.Text(Join(InventoryText.Clean(c.BiosVendor), InventoryText.Clean(c.BiosVersion)))),
             new("Data da BIOS", Fmt.Date(c.BiosDate)),
         ]);
 
-        Processors = inventory.Processors.Select(p => new InfoCard(p.Name, null,
+        var multipleSockets = inventory.Processors.Count > 1;
+        Processors = inventory.Processors.Select((p, index) => new InfoCard(
+            Fmt.Text(InventoryText.Clean(p.Name)),
+            multipleSockets ? $"Soquete {index + 1} de {inventory.Processors.Count}" : null,
         [
-            new("Fabricante", Fmt.Text(p.Manufacturer)),
-            new("Núcleos / threads", p.Cores is null && p.LogicalProcessors is null ? Fmt.NotAvailable : $"{Fmt.Number(p.Cores)} núcleos · {Fmt.Number(p.LogicalProcessors)} threads"),
+            new("Fabricante", Fmt.Text(InventoryText.Clean(p.Manufacturer))),
+            new("Núcleos / threads", p.Cores is null && p.LogicalProcessors is null
+                ? Fmt.NotAvailable
+                : $"{Fmt.Count(p.Cores, "núcleo", "núcleos")} · {Fmt.Count(p.LogicalProcessors, "thread", "threads")}"),
             new("Clock máximo informado", Fmt.GHz(p.MaxClockMHz)),
             new("Cache L2 / L3", p.L2CacheKb is null && p.L3CacheKb is null ? Fmt.NotAvailable : $"{Fmt.Bytes(p.L2CacheKb * 1024L)} / {Fmt.Bytes(p.L3CacheKb * 1024L)}"),
             new("Virtualização no firmware", p.VirtualizationFirmwareEnabled == true
@@ -109,33 +146,33 @@ public sealed partial class HardwareViewModel : ObservableObject, IPageLifecycle
         Memory = new InfoCard(installed > 0 ? $"{Fmt.Bytes(installed)} instalados" : "Memória instalada não informada", null,
         [
             new("Utilizável pelo Windows", Fmt.Bytes(inventory.TotalPhysicalMemoryBytes)),
-            new("Módulos", inventory.MemoryModules.Count == 0 ? Fmt.NotAvailable : inventory.MemoryModules.Count.ToString(CultureInfo.CurrentCulture)),
+            new("Módulos", inventory.MemoryModules.Count == 0 ? Fmt.NotAvailable : Fmt.Count(inventory.MemoryModules.Count, "módulo", "módulos")),
             new("Velocidade configurada", Speeds(inventory.MemoryModules)),
         ]);
 
-        MemoryModules = inventory.MemoryModules.Select(m => new InfoCard($"{Fmt.Bytes(m.CapacityBytes)} · {Fmt.Text(m.Slot)}", null,
-        [
-            new("Velocidade", m.SpeedMTs is { } speed ? $"{speed} MT/s" : Fmt.NotAvailable),
-            new("Fabricante", Fmt.Text(m.Manufacturer)),
-            new("Part number", Fmt.Text(m.PartNumber)),
-        ])).ToList();
+        MemoryModules = inventory.MemoryModules.Select(m => new MemoryModuleRow(
+            string.Join(" · ", new[] { Fmt.Text(InventoryText.Clean(m.Slot)), Fmt.Bytes(m.CapacityBytes), m.SpeedMTs is { } s ? $"{s} MT/s" : "velocidade não informada" }),
+            string.Join(" · ", new[] { InventoryText.MemoryVendor(m.Manufacturer) ?? "fabricante não informado", InventoryText.Clean(m.PartNumber) ?? "part number não informado" })))
+            .ToList();
 
-        Gpus = inventory.Gpus.Select(g => new InfoCard(g.Name, null,
-        [
-            new("Fabricante", Fmt.Text(g.Vendor)),
-            new("Memória dedicada (VRAM)", Fmt.Bytes(g.DedicatedMemoryBytes)),
-            new("Versão do driver", Fmt.Text(g.DriverVersion)),
-            new("Data do driver", Fmt.Date(g.DriverDate)),
-            new("Status do dispositivo", g.Status switch { "OK" => "OK", null => Fmt.NotAvailable, var other => other }),
-        ])).ToList();
-
-        Warnings = inventory.Warnings;
+        Gpus = inventory.Gpus.Select(g =>
+        {
+            var status = InventoryText.DeviceStatus(g.Status);
+            return new InfoCard(Fmt.Text(InventoryText.Clean(g.Name)), null,
+            [
+                new("Fabricante", Fmt.Text(InventoryText.Clean(g.Vendor))),
+                new("Memória dedicada (VRAM)", Fmt.Bytes(g.DedicatedMemoryBytes)),
+                new("Versão do driver", Fmt.Text(g.DriverVersion)),
+                new("Data do driver", Fmt.Date(g.DriverDate)),
+                new("Status do dispositivo", status?.Text ?? Fmt.NotAvailable, status?.Tone ?? StatusTone.Normal),
+            ]);
+        }).ToList();
     }
 
     private static string Speeds(IReadOnlyList<MemoryModuleInfo> modules)
     {
         var speeds = modules.Where(m => m.SpeedMTs is not null).Select(m => m.SpeedMTs!.Value).Distinct().Order().ToList();
-        return speeds.Count == 0 ? Fmt.NotAvailable : string.Join(" / ", speeds.Select(s => $"{s} MT/s"));
+        return speeds.Count == 0 ? Fmt.NotAvailable : string.Join(" / ", speeds.Select(s => string.Create(CultureInfo.CurrentCulture, $"{s} MT/s")));
     }
 
     private static string? Join(string? first, string? second) =>

@@ -31,6 +31,14 @@
                     <DataTrigger Binding="{Binding IsUnavailable}" Value="True">
                         <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
                     </DataTrigger>
+                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                        <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource MediumBrush}" />
+                        <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                        <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
+                        <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
 
@@ -43,6 +51,14 @@
                 <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding IsUnavailable}" Value="True">
                         <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                        <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource MediumBrush}" />
+                        <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                        <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
+                        <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>

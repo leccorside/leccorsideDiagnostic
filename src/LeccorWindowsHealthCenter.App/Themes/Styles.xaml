@@ -44,6 +44,14 @@
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+    <!-- Leitura ao vivo (Metric, 22px): algarismos tabulares para o valor não "pular" a cada atualização. -->
+    <Style x:Key="MetricValue" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
     <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Margin" Value="0,10,0,2" />

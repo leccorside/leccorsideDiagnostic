@@ -144,11 +144,24 @@ logs e saídas, backups com ACL. Detalhes: [docs/SECURITY.md](docs/SECURITY.md).
 - [docs/BUILD.md](docs/BUILD.md) — build local, publicação, portable, CI
 - [docs/RELEASE.md](docs/RELEASE.md) — versionamento e checklist
 
-## 10. Testes (Passo 2)
+## 10. Testes (Passo 2 + break-ui)
 
 | Projeto | Testes |
 | --- | --- |
-| UnitTests | 137 |
+| UnitTests | 160 (inclui `InventoryTextTests`: placeholders de firmware, JEDEC, status WMI, `ByteSize.FormatPair`) |
 | IntegrationTests | 22 (inclui leitura real de WMI, PDH, memória, processos e histórico desta máquina) |
-| SystemTests | 6 (inclui varredura completa real com os 4 scanners) |
-| **Total** | **165 — todos passando** (Debug e Release com `-warnaserror`) |
+| SystemTests | 11 (inclui varredura completa real com os 4 scanners e `FmtTests`: plural, milhar, "—") |
+| **Total** | **193 — todos passando** (Debug e Release com `-warnaserror`) |
+
+## 11. Dados de desenvolvimento e textos de inventário
+
+- **Seletor de dados (só DEBUG)** — `src/LeccorWindowsHealthCenter.App/DevData/`: Dados reais · Pior caso · Vazio ·
+  Um · Muitos, no centro inferior da janela. Os dados trocam na fronteira (decoradores dos provedores de contadores,
+  processos, histórico e inventário). Modo inicial: `--DevData:Mode=worst|empty|one|many`. Não existe no Release.
+  As fixtures são o teste de regressão visual das telas de Performance e Hardware.
+- **`InventoryText`** (Application/SystemInfo): `Clean` descarta placeholders de firmware ("To Be Filled By O.E.M.",
+  "System Product Name"…); `MemoryVendor` traduz código JEDEC em fabricante; `DeviceStatus` traduz o status WMI com
+  `StatusTone` (Normal/Warning/Critical), exibido em âmbar/vermelho pelos templates de `InfoRow`.
+- **Formatação (`Fmt`, `ByteSize`)**: `Fmt.Reading` → "—" quando não há leitura (a legenda explica); `Fmt.Count` com
+  plural e separador de milhar; `ByteSize.FormatPair`/`Fmt.BytesOf` mostram parte e total na mesma unidade.
+- **Estilo `MetricValue`**: números grandes dos cartões com algarismos tabulares, em `Grid(*,Auto)` ao lado do título.

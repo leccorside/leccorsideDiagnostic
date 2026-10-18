@@ -30,4 +30,32 @@ public static class ByteSize
             ? string.Create(provider, $"{bytes} B")
             : string.Create(provider, $"{value:0.#} {Units[unit]}");
     }
+
+    /// <summary>
+    /// "parte de total" na MESMA unidade — a do menor valor — para a diferença continuar visível
+    /// ("1.023,7 GB de 1.024 GB" em vez de "1023,7 GB de 1 TB" ou "1 TB de 1 TB").
+    /// </summary>
+    public static (string Part, string Total) FormatPair(long part, long total, IFormatProvider? provider = null)
+    {
+        provider ??= CultureInfo.CurrentCulture;
+        var unit = 0;
+        double reference = Math.Max(0, Math.Min(part, total));
+        while (reference >= 1024 && unit < Units.Length - 1)
+        {
+            reference /= 1024;
+            unit++;
+        }
+
+        string Fmt(long v, int u) => u == 0
+            ? string.Create(provider, $"{v:#,##0} B")
+            : string.Create(provider, $"{v / Math.Pow(1024, u):#,##0.#} {Units[u]}");
+
+        // Valores diferentes que arredondam para o mesmo texto ("2 TB de 2 TB"): desce uma unidade até aparecer a diferença.
+        while (unit > 0 && part != total && Fmt(part, unit) == Fmt(total, unit))
+        {
+            unit--;
+        }
+
+        return (Fmt(part, unit), Fmt(total, unit));
+    }
 }

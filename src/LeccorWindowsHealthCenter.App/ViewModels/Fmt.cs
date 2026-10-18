@@ -29,13 +29,36 @@ public static class Fmt
     public static string DateTime(DateTimeOffset? value) =>
         value is { } v ? v.ToLocalTime().ToString("dd/MM/yyyy HH:mm", Culture) : NotAvailable;
 
-    public static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? NotAvailable : value;
+    public static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? NotAvailable : value.Trim();
+
+    /// <summary>Valor grande de leitura ao vivo: ausente vira "—" (cabe em qualquer largura; a legenda explica).</summary>
+    public static string Reading(double? percent) => percent is { } v ? string.Create(Culture, $"{v:0}%") : "—";
+
+    /// <summary>"1 núcleo" / "8 núcleos" — nunca "1 núcleos".</summary>
+    public static string Count(double? value, string singular, string plural) =>
+        value is { } v ? string.Create(Culture, $"{v:#,##0} {(Math.Abs(v - 1) < 0.5 ? singular : plural)}") : NotAvailable;
+
+    /// <summary>"x de y" na mesma unidade (ver <see cref="ByteSize.FormatPair"/>).</summary>
+    public static string BytesOf(long? part, long? total)
+    {
+        if (part is not { } p || total is not { } t)
+        {
+            return NotAvailable;
+        }
+
+        var (partText, totalText) = ByteSize.FormatPair(p, t, Culture);
+        return $"{partText} de {totalText}";
+    }
 }
 
-/// <summary>Linha rótulo → valor dos cartões de informação.</summary>
-public sealed record InfoRow(string Label, string Value)
+/// <summary>Linha rótulo → valor dos cartões de informação. <see cref="Tone"/> colore valores de status.</summary>
+public sealed record InfoRow(string Label, string Value, Application.SystemInfo.StatusTone Tone = Application.SystemInfo.StatusTone.Normal)
 {
     public bool IsUnavailable => Value == Fmt.NotAvailable;
+
+    public bool IsWarning => Tone == Application.SystemInfo.StatusTone.Warning;
+
+    public bool IsCritical => Tone == Application.SystemInfo.StatusTone.Critical;
 }
 
 /// <summary>Página que precisa saber quando está visível (amostragem só com a tela aberta — seção 58).</summary>
