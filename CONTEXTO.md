@@ -177,7 +177,21 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 | Script de rampas OKLCH gerava cores erradas | PowerShell não diferencia `$L`/`$l`; `[Math]::Max(0, x)` escolhe a sobrecarga de inteiros | Variáveis renomeadas e literais `0.0`/`1.0` |
 | Função de medição não executava | `Measure` é alias de `Measure-Object` (alias tem precedência sobre função) | Renomeada para `Get-AppUsage` |
 
+### Teste de estresse da UI com break-ui (18/10/2026)
+
+- Seletor de dados de desenvolvimento **só em DEBUG** (`App/DevData/`): Dados reais · Pior caso · Vazio · Um · Muitos,
+  fixo no centro inferior. Troca os dados na fronteira (decoradores de `IPerformanceCounterSessionFactory`,
+  `IProcessSnapshotProvider`, `IMetricsHistory`, `IHardwareInventoryProvider`), sem tocar nas telas. Modo inicial por
+  argumento: `--DevData:Mode=worst`. Verificado que não existe no binário Release.
+- Fixtures com valores reais do Windows: "To Be Filled By O.E.M.", fabricante de RAM em código JEDEC (`00AD063200AD`),
+  part numbers com espaços, Xeon com 2 soquetes, 16/24 módulos, GPUs virtuais sem VRAM, nomes longos reais de processos,
+  GPU sem contadores, inventário WMI vazio, histórico com lacuna de suspensão.
+- 16 achados relatados (2 quebras, 11 visuais, 3 frágeis) — **aguardando o usuário escolher quais corrigir**.
+  As capturas ficaram no scratchpad da sessão; refazer com o seletor.
+
 ## Pendências / próximos passos
+
+- **Antes do próximo passo:** correções do break-ui escolhidas pelo usuário (lista no relatório de 18/10/2026).
 
 Na ordem combinada no `PASSOS.md`:
 

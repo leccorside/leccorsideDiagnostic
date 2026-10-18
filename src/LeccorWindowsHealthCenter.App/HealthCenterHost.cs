@@ -59,6 +59,12 @@ public static class HealthCenterHost
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 
+#if DEBUG
+        // break-ui: decoradores de dados de desenvolvimento (Dados reais / Pior caso / Vazio / Um / Muitos).
+        // Em "Dados reais" (padrão) repassam para as fontes reais. Não existe no build Release.
+        DevData.DevDataRegistration.AddDevDataSwitching(builder.Services);
+#endif
+
         overrideServices?.Invoke(builder.Services);
 
         builder.ConfigureContainer(new Microsoft.Extensions.DependencyInjection.DefaultServiceProviderFactory(new ServiceProviderOptions

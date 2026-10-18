@@ -73,6 +73,11 @@ public partial class App : System.Windows.Application
         _startup.Mark("Janela principal criada");
         MainWindow = window;
         window.ContentRendered += OnFirstRender;
+#if DEBUG
+        DevData.DevDataToolbar.Attach(window,
+            _host.Services.GetRequiredService<DevData.DevDataSwitch>(),
+            _host.Services.GetRequiredService<ViewModels.HardwareViewModel>());
+#endif
         window.Show();
     }
 
