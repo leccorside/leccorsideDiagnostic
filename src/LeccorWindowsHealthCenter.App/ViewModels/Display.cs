@@ -61,6 +61,41 @@ public static class Display
         _ => "Pendente",
     };
 
+    public static string ScoreArea(ScoreCategory category) => category switch
+    {
+        ScoreCategory.Hardware => "Hardware",
+        ScoreCategory.Windows => "Windows",
+        ScoreCategory.Performance => "Performance",
+        ScoreCategory.Storage => "Armazenamento",
+        ScoreCategory.Stability => "Estabilidade",
+        ScoreCategory.Security => "Segurança",
+        _ => category.ToString(),
+    };
+
+    /// <summary>
+    /// "O score avaliou X de 6 áreas" — um score alto só tem sentido sabendo o que foi medido.
+    /// Null quando nada foi medido (o próprio score já diz "sem dados").
+    /// </summary>
+    public static string? Coverage(IEnumerable<ScoreCategory> measured)
+    {
+        var covered = measured.Distinct().Order().ToList();
+        if (covered.Count == 0)
+        {
+            return null;
+        }
+
+        var all = Enum.GetValues<ScoreCategory>();
+        var missing = all.Except(covered).ToList();
+        var text = $"Avaliou {covered.Count} de {all.Length} áreas: {JoinPt(covered.Select(ScoreArea))}.";
+        return missing.Count == 0 ? text : $"{text} Ainda não medidas: {JoinPt(missing.Select(ScoreArea))}.";
+    }
+
+    private static string JoinPt(IEnumerable<string> items)
+    {
+        var list = items.ToList();
+        return list.Count <= 1 ? string.Concat(list) : $"{string.Join(", ", list.Take(list.Count - 1))} e {list[^1]}";
+    }
+
     public static string Module(ScanModule module) => module switch
     {
         ScanModule.Hardware => "Hardware",

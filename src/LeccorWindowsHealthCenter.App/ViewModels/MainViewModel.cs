@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace LeccorWindowsHealthCenter.App.ViewModels;
 
@@ -24,23 +24,27 @@ public sealed record NavigationItem(string Title, string Glyph, object Page, boo
 /// <summary>Shell: sidebar com o menu principal (seção 8) e a página atual.</summary>
 public sealed partial class MainViewModel : ObservableObject
 {
-    private readonly DashboardViewModel _dashboard;
     private readonly ScanViewModel _scan;
+    private bool _windowVisible = true;
 
-    public MainViewModel(DashboardViewModel dashboard, ScanViewModel scan, SettingsViewModel settings)
+    public MainViewModel(
+        DashboardViewModel dashboard,
+        ScanViewModel scan,
+        PerformanceViewModel performance,
+        HardwareViewModel hardware,
+        SettingsViewModel settings)
     {
-        _dashboard = dashboard;
         _scan = scan;
 
         Items =
         [
             new("Dashboard", "", dashboard),
             new("Varredura", "", scan),
-            Planned("Performance", "", "CPU, memória e GPU com histórico, picos e processos responsáveis.", "MVP 1"),
+            new("Performance", "", performance),
             Planned("Processos", "", "Gerenciador avançado de processos com assinatura, árvore e proteção de processos críticos.", "MVP 1"),
             Planned("Windows Explorer", "", "Shell extensions, handlers, caches e detector de pastas lentas.", "MVP 2"),
             Planned("Armazenamento", "", "Análise de espaço, maiores pastas e arquivos, temporários e caches.", "MVP 1"),
-            Planned("Hardware", "", "Inventário de hardware, discos físicos, SMART/NVMe e temperaturas quando disponíveis.", "MVP 1"),
+            new("Hardware", "", hardware),
             Planned("Drivers", "", "Dispositivos com erro, drivers ausentes e eventos recorrentes.", "MVP 2"),
             Planned("Inicialização", "", "Registry Run/RunOnce, pastas de Startup e tarefas agendadas, com rollback.", "MVP 1"),
             Planned("Serviços", "", "Serviços falhando, órfãos ou de aplicações inexistentes.", "MVP 2"),
@@ -105,27 +109,33 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void Navigate(NavigationItem item)
     {
-        CurrentPage = item.Page;
-        if (item.Page == _dashboard)
+        if (ReferenceEquals(item.Page, CurrentPage))
         {
-            _dashboard.Activate();
+            return;
         }
-        else
+
+        (CurrentPage as IPageLifecycle)?.Deactivate();
+        CurrentPage = item.Page;
+        if (_windowVisible)
         {
-            _dashboard.Deactivate();
+            (CurrentPage as IPageLifecycle)?.Activate();
         }
     }
 
-    /// <summary>Pausa a amostragem quando a janela está minimizada (seção 58: CPU ociosa &lt; 1%).</summary>
+    /// <summary>
+    /// Só a página visível amostra; minimizada, nada amostra (seção 58: CPU ociosa &lt; 1%).
+    /// O histórico de fundo (MetricsHistoryService) continua, por ser barato e necessário às regras.
+    /// </summary>
     public void SetWindowVisible(bool visible)
     {
-        if (visible && CurrentPage == _dashboard)
+        _windowVisible = visible;
+        if (visible)
         {
-            _dashboard.Activate();
+            (CurrentPage as IPageLifecycle)?.Activate();
         }
         else
         {
-            _dashboard.Deactivate();
+            (CurrentPage as IPageLifecycle)?.Deactivate();
         }
     }
 

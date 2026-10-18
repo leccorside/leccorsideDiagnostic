@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,7 +15,7 @@ using Microsoft.Extensions.Options;
 namespace LeccorWindowsHealthCenter.App.ViewModels;
 
 /// <summary>Tela inicial (seção 7): score, uso atual de recursos e resumo da última varredura.</summary>
-public sealed partial class DashboardViewModel : ObservableObject
+public sealed partial class DashboardViewModel : ObservableObject, IPageLifecycle
 {
     private const int HistoryLength = 60;
     private const string NotAvailable = "não disponível";
@@ -67,6 +67,10 @@ public sealed partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasScanResult;
 
+    /// <summary>Quais áreas o score avaliou — um 100 sobre 2 de 6 áreas não é "computador perfeito".</summary>
+    [ObservableProperty]
+    private string _coverageText = string.Empty;
+
     [ObservableProperty]
     private string _cpuText = "…";
 
@@ -95,7 +99,16 @@ public sealed partial class DashboardViewModel : ObservableObject
     private string _gpuText = NotAvailable;
 
     [ObservableProperty]
+    private double _gpuPercent;
+
+    [ObservableProperty]
+    private string _gpuCaption = "Lendo contadores de GPU…";
+
+    [ObservableProperty]
     private IReadOnlyList<double> _cpuHistoryValues = [];
+
+    [ObservableProperty]
+    private string _cpuHistoryCaption = "Medindo…";
 
     [ObservableProperty]
     private IReadOnlyList<double> _ramHistoryValues = [];
@@ -143,7 +156,7 @@ public sealed partial class DashboardViewModel : ObservableObject
 
             var last = recent[0];
             var findings = await _repository.GetFindingsAsync(last.Id, CancellationToken.None);
-            ApplySummary(last.Score, last.Rating, last.CompletedAt, findings, last.WasCancelled);
+            ApplySummary(last.Score, last.Rating, last.CompletedAt, findings, last.WasCancelled, last.MeasuredAreas);
         }
         catch (Exception ex)
         {
@@ -158,11 +171,12 @@ public sealed partial class DashboardViewModel : ObservableObject
     private void StartFullScan() => ScanRequested?.Invoke(this, ScanPlan.Full);
 
     private void ApplyReport(ScanReport report) =>
-        ApplySummary(report.Score.Overall, report.Score.Rating, report.CompletedAt, report.Findings.ToList(), report.WasCancelled);
+        ApplySummary(report.Score.Overall, report.Score.Rating, report.CompletedAt, report.Findings.ToList(), report.WasCancelled, report.Score.Categories.Keys);
 
-    private void ApplySummary(int? score, HealthRating rating, DateTimeOffset completedAt, IReadOnlyList<Finding> findings, bool cancelled)
+    private void ApplySummary(int? score, HealthRating rating, DateTimeOffset completedAt, IReadOnlyList<Finding> findings, bool cancelled, IEnumerable<ScoreCategory> measuredAreas)
     {
         HasScanResult = true;
+        CoverageText = Display.Coverage(measuredAreas) ?? string.Empty;
         Rating = rating;
         ScoreText = score?.ToString(CultureInfo.CurrentCulture) ?? "—";
         RatingText = Display.Rating(rating);
@@ -205,16 +219,24 @@ public sealed partial class DashboardViewModel : ObservableObject
         RamPercent = sample.MemoryPercent ?? 0;
         RamText = Percent(sample.MemoryPercent);
         RamDetail = sample.MemoryTotalBytes is { } total && sample.MemoryAvailableBytes is { } available
-            ? $"{ByteSize.Format(total - available)} de {ByteSize.Format(total)}"
+            ? $"{Fmt.Bytes(total - available)} de {Fmt.Bytes(total)}"
             : string.Empty;
         DiskLabel = $"Disco {sample.SystemDrive}";
         DiskPercent = sample.SystemDrivePercent ?? 0;
         DiskText = Percent(sample.SystemDrivePercent);
         GpuText = Percent(sample.GpuPercent);
+        GpuPercent = sample.GpuPercent ?? 0;
+        GpuCaption = sample.GpuPercent is null
+            ? "Esta máquina não expõe os contadores de GPU do Windows. Não exibimos valores estimados."
+            : "Motor mais ocupado (3D, cópia ou vídeo)";
 
         if (sample.CpuPercent is { } cpu)
         {
             CpuHistoryValues = Push(_cpuHistory, cpu);
+            var span = TimeSpan.FromTicks(_timer.Interval.Ticks * Math.Max(0, _cpuHistory.Count - 1));
+            CpuHistoryCaption = span.TotalMinutes >= 1
+                ? string.Create(CultureInfo.CurrentCulture, $"Últimos {span.TotalMinutes:0} min")
+                : string.Create(CultureInfo.CurrentCulture, $"Últimos {span.TotalSeconds:0} s");
         }
 
         if (sample.MemoryPercent is { } ram)

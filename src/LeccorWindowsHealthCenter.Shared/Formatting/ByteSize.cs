@@ -6,12 +6,16 @@ public static class ByteSize
 {
     private static readonly string[] Units = ["B", "KB", "MB", "GB", "TB", "PB"];
 
-    /// <summary>Formata bytes em unidade legível (base 1024), ex.: 1.3 TB.</summary>
-    public static string Format(long bytes)
+    /// <summary>
+    /// Formata bytes em unidade legível (base 1024), ex.: "1,3 TB" em pt-BR.
+    /// Sem <paramref name="provider"/>, usa a cultura atual (a da interface).
+    /// </summary>
+    public static string Format(long bytes, IFormatProvider? provider = null)
     {
+        provider ??= CultureInfo.CurrentCulture;
         if (bytes < 0)
         {
-            return "-" + Format(-bytes);
+            return "-" + Format(-bytes, provider);
         }
 
         double value = bytes;
@@ -23,7 +27,7 @@ public static class ByteSize
         }
 
         return unit == 0
-            ? string.Create(CultureInfo.InvariantCulture, $"{bytes} B")
-            : string.Create(CultureInfo.InvariantCulture, $"{value:0.#} {Units[unit]}");
+            ? string.Create(provider, $"{bytes} B")
+            : string.Create(provider, $"{value:0.#} {Units[unit]}");
     }
 }

@@ -14,9 +14,11 @@
     <SolidColorBrush x:Key="TrackBrush" Color="#3A3A3A" />
     <SolidColorBrush x:Key="AccentBrush" Color="#F58A2A" />
     <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF9B40" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#D9761F" />
     <SolidColorBrush x:Key="AccentForegroundBrush" Color="#1B1B1B" />
     <SolidColorBrush x:Key="SecondaryButtonBrush" Color="#333333" />
     <SolidColorBrush x:Key="SecondaryButtonHoverBrush" Color="#3C3C3C" />
+    <SolidColorBrush x:Key="SecondaryButtonPressedBrush" Color="#2A2A2A" />
     <SolidColorBrush x:Key="ChartStrokeBrush" Color="#F58A2A" />
     <SolidColorBrush x:Key="ChartFillBrush" Color="#26F58A2A" />
     <SolidColorBrush x:Key="ChartStroke2Brush" Color="#4CA0E0" />

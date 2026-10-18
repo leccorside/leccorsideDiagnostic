@@ -53,13 +53,24 @@ public sealed class MetricSeries
     public double FractionAtOrAbove(double threshold) =>
         IsEmpty ? 0 : Samples.Count(s => s.Value >= threshold) / (double)Count;
 
-    /// <summary>Maior período contínuo (entre timestamps) em que todas as amostras ficaram ≥ threshold.</summary>
-    public TimeSpan LongestRunAtOrAbove(double threshold)
+    /// <summary>
+    /// Maior período contínuo (entre timestamps) em que todas as amostras ficaram ≥ threshold.
+    /// <paramref name="maxGap"/> interrompe a sequência quando duas amostras estão mais distantes que isso
+    /// (ex.: o computador suspendeu): sem medição no intervalo, não há como afirmar que a carga continuou.
+    /// </summary>
+    public TimeSpan LongestRunAtOrAbove(double threshold, TimeSpan? maxGap = null)
     {
         var longest = TimeSpan.Zero;
         DateTimeOffset? runStart = null;
+        DateTimeOffset? previous = null;
         foreach (var sample in Samples)
         {
+            if (maxGap is { } gap && previous is { } last && sample.Timestamp - last > gap)
+            {
+                runStart = null;
+            }
+
+            previous = sample.Timestamp;
             if (sample.Value >= threshold)
             {
                 runStart ??= sample.Timestamp;

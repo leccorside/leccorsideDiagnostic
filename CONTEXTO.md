@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **17/10/2026 — Passo 1 concluído, aguardando autorização para o Passo 2.**
+Última atualização: **17/10/2026 — Passo 2 concluído (v0.2.0), aguardando autorização para o Passo 3.**
 
 ---
 
@@ -11,15 +11,17 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 
 - Solution `LeccorWindowsHealthCenter.sln` (formato `.sln` clássico, pedido no PROMPT) com 9 projetos em `src/` e 3 de teste.
 - .NET SDK 10.0.103, WPF, CommunityToolkit.Mvvm 8.4.0, Microsoft.Extensions.* 10.0.11, Microsoft.Data.Sqlite 10.0.11,
-  Serilog 4.3.1 (+ Extensions.Logging 10.0.0, Sinks.File 7.0.0, Formatting.Compact 3.0.0), xUnit 2.9.3.
+  Serilog 4.3.1 (+ Extensions.Logging 10.0.0, Sinks.File 7.0.0, Formatting.Compact 3.0.0), System.Management 10.0.11,
+  Microsoft.Extensions.Hosting.Abstractions 10.0.11, xUnit 2.9.3.
 - Infraestrutura de diagnóstico completa e testada: orquestrador, RuleEngine, RiskAnalyzer, ScoringEngine,
   RepairEngine (sem ações concretas), executor de comandos seguro, SQLite com migrations, backups, logs.
-- App abre sem admin, mostra Dashboard (score "SEM DADOS", CPU/RAM/disco ao vivo), Varredura (rápida/completa/
-  personalizada, progresso, cancelar, resultado) e Configurações (tema claro/escuro). Demais menus: páginas
-  "em construção" com o MVP previsto.
-- **Nenhum scanner nem regra de produção ainda** — uma varredura hoje termina sem dados e, por design, sem score.
-- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 136/136 (115 unitários, 16 integração, 5 sistema).
-- Consumo medido do app ocioso no Dashboard: ~0,3% CPU, ~90–110 MB privados (~140–170 MB working set).
+- **Scanners em produção (Passo 2):** Hardware, CPU, Memória e GPU, com histórico de fundo de 30 min e 5 regras
+  (CPU sustentada, possível limitação de frequência, pressão de memória, commit alto, possível vazamento).
+- App abre sem admin: Dashboard (score com cobertura "Avaliou X de 6 áreas", CPU/RAM/disco/GPU ao vivo), Varredura,
+  **Performance**, **Hardware** e Configurações. Demais menus: páginas "em construção" com o MVP previsto.
+- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 165/165 (137 unitários, 22 integração, 6 sistema).
+- Consumo medido (Release, histórico ativo): 0,17% CPU no Dashboard, 0,46% na Performance, 0,00% minimizado;
+  101–120 MB privados (~160–180 MB working set).
 
 ## Histórico de implementações
 
@@ -112,9 +114,8 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 - `.impeccable/design.json` (sidecar): escalas tonais OKLCH de 8 passos por cor (geradas por script, croma reduzido só
   quando sai do sRGB), sombra "flutuante" provisória, tokens de movimento, larguras de janela, 8 componentes em HTML/CSS
   e a narrativa copiada literalmente do DESIGN.md.
-- Lacunas entre o DESIGN.md e o código atual (a corrigir na próxima mudança de UI): os botões ainda não têm estado
-  **pressionado** (o DESIGN.md exige hover, foco, pressionado e desabilitado); a sombra "flutuante" ainda não está
-  aplicada a tooltips; o gradiente da marca existe como recurso, mas não é usado.
+- Lacunas entre o DESIGN.md e o código: estado **pressionado** dos botões — resolvido no Passo 2. Ainda abertas: a
+  sombra "flutuante" não está aplicada a tooltips; o gradiente da marca existe como recurso, mas não é usado.
 - Avisos do linter de Markdown no DESIGN.md (H1 duplicado, "Named Rules" repetido, "### Do:") vêm do formato oficial
   e são intencionais.
 
@@ -139,23 +140,61 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 - Abertura típica medida: processo→app ~60 ms, XAML do App ~110 ms, host ~110 ms, banco ~70 ms, janela + primeiro quadro ~570 ms;
   total ~0,9 s.
 
+### Passo 2 — Hardware, CPU, Memória e GPU (17/10/2026)
+
+- **Decisão central — histórico de fundo:** uma varredura amostra ~15 s, insuficiente para afirmar "carga sustentada"
+  (seção 49). `MetricsHistoryService` (BackgroundService) guarda 30 min em memória: CPU/memória/commit a cada 5 s e
+  memória privada por processo (≥ 50 MB) a cada 60 s. Os scanners juntam histórico (tag `source=history`) e janela da
+  varredura (`source=scan`); as regras só concluem com amostras e duração suficientes. Nada é gravado em disco.
+- **Fontes:** PDH via P/Invoke com `PdhAddEnglishCounter` (o Windows pt-BR traduz nomes de contadores — sem isso nada
+  funcionaria aqui); `K32GetPerformanceInfo` + `GlobalMemoryStatusEx`; `Process` (protegidos = null, nunca 0); WMI
+  (`System.Management`) com cache de 60 s; VRAM pelo registro (`HardwareInformation.qwMemorySize`).
+- **GPU:** agregação dos contadores "GPU Engine" igual ao Gerenciador de Tarefas (soma por motor, motor mais ocupado);
+  validado nesta máquina (RTX 3060, 12 GB lidos corretamente pelo registro — o WMI daria 4 GB).
+- **Regras:** `cpu.sustained-high`, `cpu.throttling`, `memory.pressure`, `memory.commit-high`, `memory.possible-leak`,
+  todas com parâmetros justificados e testes "não dispara / dispara". `MetricSeries.LongestRunAtOrAbove` ganhou
+  `maxGap` (30 s): o computador suspenso entre duas amostras altas não conta como carga contínua.
+- **Decisão deliberada:** sem finding de "virtualização desativada" — o WMI reporta falso quando o Hyper-V está ativo.
+- **Persistência:** observação `hardware.inventory` gravada em `HardwareSnapshot` a cada varredura.
+- **UI (revisada com impeccable, 2 rodadas):** telas Performance e Hardware; GPU real no dashboard; `IPageLifecycle`
+  (só a página visível amostra; minimizado nada amostra além do histórico); estado pressionado nos botões; linhas
+  empilhadas em cartões estreitos; `InfoCard` sem rótulo acima do título (regra "Sem Sobretítulo" no DESIGN.md);
+  gráficos cobrindo o período real com legenda calculada; **cobertura do score** ("Avaliou 2 de 6 áreas…") no dashboard
+  e no resultado — um 100 sobre parte das áreas não pode parecer "computador perfeito".
+- `ByteSize.Format` passou a receber a cultura (UI pt-BR: "16,2 GB"; testes fixam invariante).
+- Versão 0.2.0.
+
+## Erros e correções do Passo 2
+
+| Erro | Causa | Correção |
+| --- | --- | --- |
+| Inventário WMI vinha **todo vazio, sem nenhum erro** | No `System.Management` do .NET 10, `EnumerationOptions` com `Rewindable = false` + `ReturnImmediately` devolve coleções vazias em silêncio (no .NET Framework funciona) | Só `Timeout` nas opções; comentário no código e teste de regressão de integração |
+| Processos protegidos apareceriam com "0 s de CPU" | `Try(() => process.TotalProcessorTime)` inferia `TimeSpan` não anulável | `Try<TimeSpan?>` explícito: protegido = null |
+| Scanner do Diagnostics chamava classe do Monitoring | Violação de camada | `TryGetExecutablePath` entrou no contrato `IProcessSnapshotProvider` |
+| Score "100 EXCELENTE" sem dizer o que foi medido | Só 2 de 6 áreas cobertas | Linha de cobertura no dashboard e no resultado (`Display.Coverage`) |
+| Gráficos como "toco" ou barra vertical no início | Escala fixa de 30 min com 1 min de dados | Eixo X cobre o período disponível; legenda calculada; linha de base |
+| Valores quebrando em 3 linhas em 1100 px | Grade rótulo/valor em cartões estreitos | `StackedInfoRowTemplate` (rótulo acima do valor) na Performance |
+| Script de rampas OKLCH gerava cores erradas | PowerShell não diferencia `$L`/`$l`; `[Math]::Max(0, x)` escolhe a sobrecarga de inteiros | Variáveis renomeadas e literais `0.0`/`1.0` |
+| Função de medição não executava | `Measure` é alias de `Measure-Object` (alias tem precedência sobre função) | Renomeada para `Get-AppUsage` |
+
 ## Pendências / próximos passos
 
 Na ordem combinada no `PASSOS.md`:
 
-1. **Passo 2** — Hardware, CPU, Memória e GPU (scanners + regras + telas Performance e Hardware).
-2. Passo 3 — Discos (SMART/NVMe quando disponível) e Armazenamento.
-3. Passo 4 — Processos e Inicialização (somente leitura).
-4. Passo 5 — Event Viewer, Integridade do Windows (DISM/SFC/CHKDSK não destrutivos) e **processo elevado + IPC**.
-5. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
+1. **Passo 3** — Discos (SMART/NVMe quando disponível) e Armazenamento (análise de espaço).
+2. Passo 4 — Processos e Inicialização (somente leitura).
+3. Passo 5 — Event Viewer (inclui eventos de driver de GPU: TDR, LiveKernelEvent), Integridade do Windows e **processo elevado + IPC**.
+4. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
 
-Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); criar `PRODUCT.md`/`DESIGN.md`
-com `/impeccable init` e `/impeccable document` para fixar o sistema visual antes das telas do Passo 2.
+Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); sombra "flutuante" nos tooltips.
 
 ## Limitações conhecidas (deliberadas)
 
-- Sem scanners/regras/ações concretas no Passo 1 — a seção 75 pede a infraestrutura antes dos scanners.
-- GPU no dashboard aparece "não disponível": sem fonte confiável ainda, não exibimos estimativa.
+- Temperatura de CPU/GPU não é exibida: não há fonte confiável sem driver de kernel; não será estimada.
+- O histórico de fundo existe só enquanto o app está aberto (30 min em memória). Logo após abrir, regras de duração
+  (CPU sustentada, vazamento) ainda não têm amostras suficientes e simplesmente não concluem.
+- Uso de CPU por processo não é medido em processos protegidos do sistema sem administrador (a tela informa quantos).
+- GPU sem contadores "GPU Engine" (VMs, drivers antigos) aparece como "não disponível".
 - Preferências alteradas na UI (tema, modo avançado) valem só na sessão; persistência na tabela `Configuration` no Passo 10.
 - Dry Run só é configurável via `appsettings.json` (UI de Dry Run chega com as correções no Passo 8).
 - Processo elevado (`*.Elevated.exe`) e IPC ainda não existem: comandos/ações que exigem admin são recusados.

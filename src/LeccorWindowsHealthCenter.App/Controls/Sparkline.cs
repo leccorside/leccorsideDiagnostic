@@ -18,8 +18,22 @@ public sealed class Sparkline : FrameworkElement
         nameof(Fill), typeof(Brush), typeof(Sparkline),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 
-    /// <summary>Quantidade de pontos que a largura representa (o gráfico "anda" da direita para a esquerda).</summary>
+    public static readonly DependencyProperty BaselineProperty = DependencyProperty.Register(
+        nameof(Baseline), typeof(Brush), typeof(Sparkline),
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>
+    /// Máximo de pontos exibidos (os mais recentes). O eixo X sempre cobre o período disponível — a legenda
+    /// da tela informa qual é ("Últimos 3 min"); poucos minutos numa escala fixa de 30 min virariam um traço ilegível.
+    /// </summary>
     public int Capacity { get; set; } = 60;
+
+    /// <summary>Linha de base sutil (0%) — deixa a área do gráfico visível mesmo com valores baixos.</summary>
+    public Brush? Baseline
+    {
+        get => (Brush?)GetValue(BaselineProperty);
+        set => SetValue(BaselineProperty, value);
+    }
 
     public IReadOnlyList<double>? Values
     {
@@ -42,14 +56,31 @@ public sealed class Sparkline : FrameworkElement
     protected override void OnRender(DrawingContext drawingContext)
     {
         ArgumentNullException.ThrowIfNull(drawingContext);
-        var values = Values;
-        if (values is null || values.Count < 2 || ActualWidth <= 0 || ActualHeight <= 0)
+        if (ActualWidth <= 0 || ActualHeight <= 0)
         {
             return;
         }
 
-        var step = ActualWidth / Math.Max(1, Capacity - 1);
-        var offset = ActualWidth - ((values.Count - 1) * step);
+        if (Baseline is not null)
+        {
+            var basePen = new Pen(Baseline, 1);
+            basePen.Freeze();
+            drawingContext.DrawLine(basePen, new Point(0, ActualHeight - 0.5), new Point(ActualWidth, ActualHeight - 0.5));
+        }
+
+        var values = Values;
+        if (values is null || values.Count < 2)
+        {
+            return;
+        }
+
+        if (values.Count > Capacity)
+        {
+            values = values.Skip(values.Count - Capacity).ToArray();
+        }
+
+        var step = ActualWidth / (values.Count - 1);
+        const double offset = 0;
         Point PointAt(int i) => new(offset + (i * step), ActualHeight - (Math.Clamp(values[i], 0, 100) / 100.0 * ActualHeight));
 
         var line = new StreamGeometry();

@@ -1,80 +1,46 @@
-using System.Runtime.InteropServices;
 using LeccorWindowsHealthCenter.Application.SystemInfo;
+using Microsoft.Extensions.Logging;
 
 namespace LeccorWindowsHealthCenter.Monitoring;
 
 /// <summary>
-/// Amostragem leve para o dashboard usando apenas chamadas Win32 baratas (GetSystemTimes,
-/// GlobalMemoryStatusEx) — sem WMI/PerformanceCounter no loop, para manter CPU ociosa &lt; 1% (seção 58).
-/// GPU fica "não disponível" até o scanner de GPU (MVP 1) fornecer uma fonte confiável.
+/// Amostragem leve para o dashboard: CPU por GetSystemTimes, memória por GlobalMemoryStatusEx, disco do sistema
+/// por DriveInfo e GPU pelos contadores "GPU Engine" (PDH, criados só na primeira leitura).
+/// Chamado apenas com o Dashboard visível — custo medido &lt; 1% de CPU (seção 58).
 /// </summary>
-public sealed class LiveMetricsProvider : ILiveMetricsProvider
+public sealed class LiveMetricsProvider : ILiveMetricsProvider, IDisposable
 {
-    private readonly object _gate = new();
-    private ulong _lastIdle;
-    private ulong _lastKernel;
-    private ulong _lastUser;
-    private bool _hasBaseline;
+    private readonly CpuUsageMeter _cpu = new();
+    private readonly Lazy<PdhPerformanceCounterSession> _gpu;
+
+    public LiveMetricsProvider(ILogger<PdhPerformanceCounterSession> logger)
+    {
+        _gpu = new Lazy<PdhPerformanceCounterSession>(() => new PdhPerformanceCounterSession(logger, includeCpuAndMemory: false, includeGpu: true));
+    }
 
     public LiveSystemMetrics Sample()
     {
         var systemDrive = Path.GetPathRoot(Environment.SystemDirectory)?.TrimEnd('\\') ?? "C:";
-        var (memPercent, total, available) = ReadMemory();
+        var memory = SystemMemory.Read();
 
         return new LiveSystemMetrics
         {
-            CpuPercent = ReadCpu(),
-            MemoryPercent = memPercent,
-            MemoryTotalBytes = total,
-            MemoryAvailableBytes = available,
+            CpuPercent = _cpu.Sample(),
+            MemoryPercent = memory?.UsedPercent,
+            MemoryTotalBytes = memory?.TotalPhysical,
+            MemoryAvailableBytes = memory?.AvailablePhysical,
             SystemDrive = systemDrive,
             SystemDrivePercent = ReadDrive(systemDrive),
-            GpuPercent = null,
+            GpuPercent = _gpu.Value.Read().GpuPercent,
         };
     }
 
-    private double? ReadCpu()
+    public void Dispose()
     {
-        if (!NativeMethods.GetSystemTimes(out var idleTime, out var kernelTime, out var userTime))
+        if (_gpu.IsValueCreated)
         {
-            return null;
+            _gpu.Value.Dispose();
         }
-
-        var idle = idleTime.ToUInt64();
-        var kernel = kernelTime.ToUInt64();
-        var user = userTime.ToUInt64();
-
-        lock (_gate)
-        {
-            if (!_hasBaseline)
-            {
-                (_lastIdle, _lastKernel, _lastUser, _hasBaseline) = (idle, kernel, user, true);
-                return null; // primeira leitura não tem delta: "não disponível" é mais honesto que 0%.
-            }
-
-            var idleDelta = idle - _lastIdle;
-            var totalDelta = (kernel - _lastKernel) + (user - _lastUser); // kernel inclui idle
-            (_lastIdle, _lastKernel, _lastUser) = (idle, kernel, user);
-
-            if (totalDelta == 0)
-            {
-                return null;
-            }
-
-            return Math.Clamp((1.0 - (idleDelta / (double)totalDelta)) * 100.0, 0, 100);
-        }
-    }
-
-    private static (double? Percent, long? Total, long? Available) ReadMemory()
-    {
-        var status = new MemoryStatusEx { Length = (uint)Marshal.SizeOf<MemoryStatusEx>() };
-        if (!NativeMethods.GlobalMemoryStatusEx(ref status) || status.TotalPhys == 0)
-        {
-            return (null, null, null);
-        }
-
-        var used = status.TotalPhys - status.AvailPhys;
-        return (used * 100.0 / status.TotalPhys, (long)status.TotalPhys, (long)status.AvailPhys);
     }
 
     private static double? ReadDrive(string drive)
@@ -93,39 +59,5 @@ public sealed class LiveMetricsProvider : ILiveMetricsProvider
         {
             return null;
         }
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct FileTime
-    {
-        public uint Low;
-        public uint High;
-
-        public readonly ulong ToUInt64() => ((ulong)High << 32) | Low;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MemoryStatusEx
-    {
-        public uint Length;
-        public uint MemoryLoad;
-        public ulong TotalPhys;
-        public ulong AvailPhys;
-        public ulong TotalPageFile;
-        public ulong AvailPageFile;
-        public ulong TotalVirtual;
-        public ulong AvailVirtual;
-        public ulong AvailExtendedVirtual;
-    }
-
-    private static class NativeMethods
-    {
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool GetSystemTimes(out FileTime idleTime, out FileTime kernelTime, out FileTime userTime);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool GlobalMemoryStatusEx(ref MemoryStatusEx buffer);
     }
 }

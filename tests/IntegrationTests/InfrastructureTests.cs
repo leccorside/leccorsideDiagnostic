@@ -63,7 +63,7 @@ public sealed class InfrastructureTests : IDisposable
     [Fact]
     public async Task Live_metrics_are_in_valid_ranges()
     {
-        var provider = new LiveMetricsProvider();
+        using var provider = new LiveMetricsProvider(NullLogger<PdhPerformanceCounterSession>.Instance);
 
         var first = provider.Sample();
         await Task.Delay(250);
@@ -75,7 +75,12 @@ public sealed class InfrastructureTests : IDisposable
         Assert.InRange(second.MemoryPercent!.Value, 0, 100);
         Assert.True(second.MemoryTotalBytes > 0);
         Assert.InRange(second.SystemDrivePercent!.Value, 0, 100);
-        Assert.Null(second.GpuPercent);
+
+        // GPU: "não disponível" (null) em máquinas sem contadores GPU Engine; senão, um percentual válido.
+        if (second.GpuPercent is { } gpu)
+        {
+            Assert.InRange(gpu, 0, 100);
+        }
     }
 
     [Fact]

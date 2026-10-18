@@ -68,7 +68,11 @@ public class DomainTests
     [InlineData(1536, "1.5 KB")]
     [InlineData(1_300_000_000_000, "1.2 TB")]
     public void Byte_size_formatting(long bytes, string expected) =>
-        Assert.Equal(expected, ByteSize.Format(bytes));
+        Assert.Equal(expected, ByteSize.Format(bytes, System.Globalization.CultureInfo.InvariantCulture));
+
+    [Fact]
+    public void Byte_size_uses_brazilian_decimal_comma_in_pt_br() =>
+        Assert.Equal("1,5 KB", ByteSize.Format(1536, System.Globalization.CultureInfo.GetCultureInfo("pt-BR")));
 
     [Fact]
     public async Task Json_report_contains_findings_and_evidence()

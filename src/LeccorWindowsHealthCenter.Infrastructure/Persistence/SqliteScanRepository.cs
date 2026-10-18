@@ -1,4 +1,5 @@
 using LeccorWindowsHealthCenter.Application.Persistence;
+using LeccorWindowsHealthCenter.Application.SystemInfo;
 using LeccorWindowsHealthCenter.Domain;
 using Microsoft.Data.Sqlite;
 
@@ -44,6 +45,11 @@ public sealed class SqliteScanRepository : IScanRepository
         {
             await InsertScannerRunAsync(connection, transaction, report.Id, result, cancellationToken).ConfigureAwait(false);
             await InsertMetricsAsync(connection, transaction, report.Id, result.Metrics, cancellationToken).ConfigureAwait(false);
+            foreach (var inventory in result.Observations.Where(o => o.Kind == HardwareInventory.ObservationKind))
+            {
+                await InsertHardwareSnapshotAsync(connection, transaction, report.Id, inventory, cancellationToken).ConfigureAwait(false);
+            }
+
             foreach (var finding in result.Findings)
             {
                 await InsertFindingAsync(connection, transaction, report.Id, finding, cancellationToken).ConfigureAwait(false);
@@ -60,7 +66,8 @@ public sealed class SqliteScanRepository : IScanRepository
         command.CommandText = """
             SELECT s.Id, s.Mode, s.StartedAt, s.CompletedAt, s.Score, s.Rating, s.WasCancelled,
                    (SELECT COUNT(*) FROM Finding f WHERE f.ScanId = s.Id AND f.Severity > 0),
-                   (SELECT COUNT(*) FROM Finding f WHERE f.ScanId = s.Id AND f.Severity = 0)
+                   (SELECT COUNT(*) FROM Finding f WHERE f.ScanId = s.Id AND f.Severity = 0),
+                   s.CategoryScoresJson
             FROM Scan s
             ORDER BY s.StartedAt DESC
             LIMIT $limit;
@@ -80,7 +87,10 @@ public sealed class SqliteScanRepository : IScanRepository
                 Enum.Parse<HealthRating>(reader.GetString(5)),
                 reader.GetInt32(7),
                 reader.GetInt32(8),
-                reader.GetBoolean(6)));
+                reader.GetBoolean(6))
+            {
+                MeasuredAreas = DbConvert.FromJson<Dictionary<ScoreCategory, int>>(reader.GetNullableString(9))?.Keys.ToList() ?? [],
+            });
         }
 
         return list;
@@ -160,6 +170,23 @@ public sealed class SqliteScanRepository : IScanRepository
         }
 
         return findings;
+    }
+
+    private static async Task InsertHardwareSnapshotAsync(SqliteConnection connection, SqliteTransaction transaction, Guid scanId, Observation inventory, CancellationToken cancellationToken)
+    {
+        var json = inventory.GetAttribute("json");
+        if (string.IsNullOrEmpty(json))
+        {
+            return;
+        }
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "INSERT INTO HardwareSnapshot (ScanId, CapturedAt, DataJson) VALUES ($scan, $at, $json);";
+        command.Add("$scan", scanId.ToString());
+        command.Add("$at", DbConvert.Date(inventory.Timestamp));
+        command.Add("$json", json);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task InsertScannerRunAsync(SqliteConnection connection, SqliteTransaction transaction, Guid scanId, DiagnosticResult result, CancellationToken cancellationToken)

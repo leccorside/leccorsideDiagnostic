@@ -11,7 +11,7 @@ Legenda: ✅ concluído · ⏳ aguardando autorização · ⬜ não iniciado
 
 ---
 
-## Passo 1 — Fundação da arquitetura ✅ (aguardando autorização para o Passo 2)
+## Passo 1 — Fundação da arquitetura ✅
 
 Corresponde à "primeira execução" (seção 75) e à ordem de implementação (seção 74).
 
@@ -27,15 +27,21 @@ Corresponde à "primeira execução" (seção 75) e à ordem de implementação 
 - [x] Testes: 115 unitários, 16 integração, 5 sistema — todos passando
 - [x] GitHub Actions (restore, build com analisadores como erro, test, publish win-x64)
 
-## Passo 2 — MVP 1 (a): Hardware, CPU, Memória e GPU ⬜
+## Passo 2 — MVP 1 (a): Hardware, CPU, Memória e GPU ✅ (aguardando autorização para o Passo 3)
 
-- Scanner de hardware (WMI/CIM: sistema, placa-mãe, BIOS, CPU, RAM instalada, GPUs) + `HardwareSnapshot` no banco
-- Scanner de CPU com amostragem temporal (utilização, frequência, núcleos/threads, top processos, throttling quando detectável)
-- Scanner de memória (instalada/em uso/committed/cached/paged/non-paged/page file/hard faults; top processos)
-- Scanner de GPU (fabricante, VRAM, driver e versão; utilização via contadores "GPU Engine" quando disponíveis) + dashboard passa a exibir GPU
-- Regras com thresholds justificados (CPU sustentada, paginação excessiva, memória comprometida alta, possível leak por crescimento contínuo)
-- Telas Performance e Hardware com gráficos históricos
-- Documentar cada scanner em `docs/DIAGNOSTICS.md`
+- [x] Scanner de hardware (WMI: sistema, SO, BIOS, placa-mãe, CPU, módulos de RAM, GPUs; VRAM real pelo registro) + `HardwareSnapshot` no banco
+- [x] Scanner de CPU com amostragem temporal (utilização, frequência efetiva e % da nominal, fila, top processos)
+- [x] Scanner de memória (em uso, commit, cache, pools paginado/não paginado, arquivo de paginação, hard faults; top processos)
+- [x] Scanner de GPU (fabricante, VRAM, driver e data; utilização por motor e VRAM em uso via "GPU Engine") + dashboard exibe GPU
+- [x] Histórico de fundo de 30 min (CPU/memória a cada 5 s, memória por processo a cada 60 s) — base de duração e recorrência das regras
+- [x] Regras com thresholds justificados: CPU sustentada, possível limitação de frequência, pressão de memória (com paginação), commit alto, possível vazamento
+- [x] Telas Performance e Hardware; cobertura do score ("Avaliou X de 6 áreas") no dashboard e no resultado
+- [x] Estado pressionado nos botões (lacuna do DESIGN.md) e revisão de UI com impeccable nos dois temas
+- [x] Cada scanner e regra documentados em `docs/DIAGNOSTICS.md` e `docs/RULE_ENGINE.md`
+- [x] Testes: 137 unitários, 22 integração (fontes reais), 6 sistema (varredura completa real)
+
+Fica para passos seguintes: eventos de driver de GPU (TDR/LiveKernelEvent — Passo 5, Event Viewer); temperatura de
+CPU (não há fonte confiável sem driver de kernel; não será estimada).
 
 ## Passo 3 — MVP 1 (b): Discos e Armazenamento ⬜
 

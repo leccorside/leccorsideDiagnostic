@@ -4,9 +4,11 @@ description: Diagnóstico técnico do Windows lido como um laudo — superfície
 colors:
   brasa-leccor: "#C2520A"
   brasa-leccor-hover: "#A9440A"
+  brasa-leccor-pressed: "#8F3A08"
   on-brasa: "#FFFFFF"
   brasa-leccor-dark: "#F58A2A"
   brasa-leccor-hover-dark: "#FF9B40"
+  brasa-leccor-pressed-dark: "#D9761F"
   on-brasa-dark: "#1B1B1B"
   brand-gradient-start: "#FF4B00"
   brand-gradient-mid: "#FF9A00"
@@ -27,6 +29,7 @@ colors:
   track: "#E6E6E6"
   button-secondary: "#FBFBFB"
   button-secondary-hover: "#F0F0F0"
+  button-secondary-pressed: "#E3E3E3"
   surface-app-dark: "#1F1F1F"
   surface-sidebar-dark: "#191919"
   surface-card-dark: "#2B2B2B"
@@ -40,6 +43,7 @@ colors:
   track-dark: "#3A3A3A"
   button-secondary-dark: "#333333"
   button-secondary-hover-dark: "#3C3C3C"
+  button-secondary-pressed-dark: "#2A2A2A"
   severity-critical: "#C42B1C"
   severity-high: "#B3470C"
   severity-medium: "#9D5D00"
@@ -115,6 +119,9 @@ components:
   button-primary-hover:
     backgroundColor: "{colors.brasa-leccor-hover}"
     textColor: "{colors.on-brasa}"
+  button-primary-pressed:
+    backgroundColor: "{colors.brasa-leccor-pressed}"
+    textColor: "{colors.on-brasa}"
   button-secondary:
     backgroundColor: "{colors.button-secondary}"
     textColor: "{colors.text-primary}"
@@ -123,6 +130,8 @@ components:
     padding: "8px 16px"
   button-secondary-hover:
     backgroundColor: "{colors.button-secondary-hover}"
+  button-secondary-pressed:
+    backgroundColor: "{colors.button-secondary-pressed}"
   card:
     backgroundColor: "{colors.surface-card}"
     rounded: "{rounded.lg}"
@@ -307,9 +316,10 @@ Táteis e confiantes: o botão diz o que faz e reage visivelmente.
 
 - **Shape:** cantos de 6px.
 - **Primary:** fundo Brasa Leccor, texto claro (escuro no tema escuro), semibold, padding 8×16px. Um por tela.
-- **Hover / Focus:** hover escurece para Brasa Leccor Profunda; foco de teclado desenha borda na cor do texto.
-  Desabilitado: 45% de opacidade.
-- **Secondary:** fundo neutro quase do tom do cartão, borda de 1px, texto principal; hover um tom abaixo.
+- **Hover / Pressed / Focus:** hover escurece para Brasa Leccor Profunda e pressionado escurece mais um passo
+  (Brasa Pressionada); foco de teclado desenha borda na cor do texto. Desabilitado: 45% de opacidade.
+- **Secondary:** fundo neutro quase do tom do cartão, borda de 1px, texto principal; hover um tom abaixo,
+  pressionado mais um tom.
 - **Rótulos:** verbo + objeto ("Executar varredura completa"); quebram linha centralizados quando falta espaço, nunca são cortados.
 
 ### Cards / Containers
@@ -337,7 +347,27 @@ Táteis e confiantes: o botão diz o que faz e reage visivelmente.
 ### Score Ring (signature)
 
 Anel de 140px (110px no resultado da varredura) com trilho neutro e arco na cor do rating. Sem dados, mostra só o
-trilho e um travessão — nunca 100. O número em Display fica no centro, com "/ 100" em Label abaixo.
+trilho e um travessão — nunca 100. O número em Display fica no centro, com "/ 100" em Label abaixo. Abaixo do veredito,
+uma linha em Label diz **quais áreas o score avaliou** ("Avaliou 2 de 6 áreas: Hardware e Performance. Ainda não
+medidas: …") — um 100 sobre parte das áreas não pode parecer "computador perfeito".
+
+### Info Card
+
+Cartão de inventário/detalhe: **um único título com a informação real** (o nome do processador, "32 GB instalados"),
+legenda opcional abaixo e linhas rótulo → valor (rótulo em Label secundário, valor em Body). A categoria ("Processador",
+"Placa de vídeo") é o título da seção, fora do cartão. Valor ausente é "não disponível" em tinta secundária.
+Em cartões estreitos (três colunas), as linhas são **empilhadas** (rótulo acima do valor) para valores longos não
+quebrarem em várias linhas.
+
+### Process Bar Row
+
+Linha de "maiores consumidores": nome, PID em Label secundário, valor em Body semibold à direita e barra de 4px na cor
+da série (Traço CPU ou Traço RAM) — nunca na Brasa.
+
+### Named Rules
+
+**The Sem Sobretítulo Rule.** Nenhum rótulo pequeno acima de um título. A categoria vira título de seção; o cartão
+leva só a informação real.
 
 ### Severity Dot & Verdict
 
@@ -347,8 +377,9 @@ O veredito do score usa Verdict na cor do rating.
 ### Live Reading Card
 
 Cartão com rótulo em Body secundário à esquerda e leitura em Metric à direita, seguido de um gráfico de linha de
-48px (Traço CPU ou Traço RAM, preenchimento translúcido) ou de uma barra de progresso de 6px. Valor indisponível é
-escrito "não disponível", nunca estimado.
+48–64px (Traço CPU ou Traço RAM, preenchimento translúcido, linha de base no Trilho) ou de uma barra de progresso de 6px.
+O eixo X do gráfico cobre o período disponível e a legenda diz qual é ("Últimos 10 s", "Últimos 12 min"). Valor
+indisponível é escrito "não disponível", nunca estimado.
 
 ### Scrollbar
 

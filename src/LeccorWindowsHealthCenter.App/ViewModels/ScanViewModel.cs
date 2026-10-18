@@ -66,6 +66,9 @@ public sealed partial class ScanViewModel : ObservableObject
     private string _countsText = string.Empty;
 
     [ObservableProperty]
+    private string _coverageText = string.Empty;
+
+    [ObservableProperty]
     private string _resultNote = string.Empty;
 
     [ObservableProperty]
@@ -152,6 +155,7 @@ public sealed partial class ScanViewModel : ObservableObject
         Rating = report.Score.Rating;
         ScoreText = report.Score.Overall?.ToString(CultureInfo.CurrentCulture) ?? "—";
         RatingText = Display.Rating(report.Score.Rating);
+        CoverageText = Display.Coverage(report.Score.Categories.Keys) ?? string.Empty;
 
         var findings = report.Findings.ToList();
         CountsText = string.Create(CultureInfo.CurrentCulture,

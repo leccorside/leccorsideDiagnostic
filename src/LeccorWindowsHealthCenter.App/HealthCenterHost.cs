@@ -42,9 +42,9 @@ public static class HealthCenterHost
         builder.Services
             .AddHealthCenterApplication(builder.Configuration)
             .AddHealthCenterInfrastructure(builder.Configuration, paths)
-            .AddHealthCenterDiagnostics()
+            .AddHealthCenterDiagnostics(builder.Configuration)
             .AddHealthCenterRepair()
-            .AddHealthCenterMonitoring()
+            .AddHealthCenterMonitoring(builder.Configuration)
             .AddHealthCenterReporting();
 
         // UI
@@ -53,6 +53,8 @@ public static class HealthCenterHost
         builder.Services.AddSingleton<UiPreferences>();
         builder.Services.AddSingleton<DashboardViewModel>();
         builder.Services.AddSingleton<ScanViewModel>();
+        builder.Services.AddSingleton<PerformanceViewModel>();
+        builder.Services.AddSingleton<HardwareViewModel>();
         builder.Services.AddSingleton<SettingsViewModel>();
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();

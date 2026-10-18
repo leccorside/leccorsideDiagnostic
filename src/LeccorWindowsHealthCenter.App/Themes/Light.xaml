@@ -15,9 +15,11 @@
     <!-- #C2520A: 4,66:1 com texto branco e como texto sobre cartão branco (o #E8650F da logo dá só 3,33:1). -->
     <SolidColorBrush x:Key="AccentBrush" Color="#C2520A" />
     <SolidColorBrush x:Key="AccentHoverBrush" Color="#A9440A" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#8F3A08" />
     <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="SecondaryButtonBrush" Color="#FBFBFB" />
     <SolidColorBrush x:Key="SecondaryButtonHoverBrush" Color="#F0F0F0" />
+    <SolidColorBrush x:Key="SecondaryButtonPressedBrush" Color="#E3E3E3" />
     <SolidColorBrush x:Key="ChartStrokeBrush" Color="#E8650F" />
     <SolidColorBrush x:Key="ChartFillBrush" Color="#1FE8650F" />
     <SolidColorBrush x:Key="ChartStroke2Brush" Color="#0F6CBD" />

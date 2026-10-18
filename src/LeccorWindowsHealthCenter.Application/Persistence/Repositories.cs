@@ -3,7 +3,11 @@ using LeccorWindowsHealthCenter.Domain.Repairs;
 
 namespace LeccorWindowsHealthCenter.Application.Persistence;
 
-public sealed record ScanSummary(Guid Id, ScanMode Mode, DateTimeOffset StartedAt, DateTimeOffset CompletedAt, int? Score, HealthRating Rating, int ProblemCount, int RecommendationCount, bool WasCancelled);
+public sealed record ScanSummary(Guid Id, ScanMode Mode, DateTimeOffset StartedAt, DateTimeOffset CompletedAt, int? Score, HealthRating Rating, int ProblemCount, int RecommendationCount, bool WasCancelled)
+{
+    /// <summary>Áreas do score efetivamente medidas nessa varredura.</summary>
+    public IReadOnlyList<ScoreCategory> MeasuredAreas { get; init; } = [];
+}
 
 public interface IScanRepository
 {

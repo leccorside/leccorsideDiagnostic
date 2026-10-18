@@ -78,6 +78,20 @@ if (series.Count < ctx.Parameter("MinimumSamples") ||
 
 ## Catálogo de regras
 
-| Regra | Scanners | Parâmetros | Status |
-| --- | --- | --- | --- |
-| — | — | — | Nenhuma regra de produção no Passo 1 (as regras chegam junto com os scanners). |
+Todas as séries combinam o histórico de fundo (5 s) com a janela da varredura (1 s). Sequências contínuas são
+interrompidas quando duas amostras estão a mais de 30 s de distância (computador suspenso: sem medição, sem afirmação).
+
+| Regra | Scanner | Dispara quando | Severidade | Confiança |
+| --- | --- | --- | --- | --- |
+| `cpu.sustained-high` | cpu | CPU ≥ `Threshold` (90%) sem interrupção por ≥ `MinimumSustainedSeconds` (300 s), com ≥ `MinimumSamples` (30) | Médio; Alto a partir de `HighSeveritySeconds` (900 s) | 95% (confirmado) |
+| `cpu.throttling` | cpu | Com CPU ≥ `LoadThreshold` (50%), desempenho médio < `PerformanceThreshold` (60% da nominal) em ≥ `MinimumLoadedSamples` (5) | Baixo | 55% (possível) |
+| `memory.pressure` | memory | RAM em uso ≥ `UsedThreshold` (90%) em ≥ `MinimumFraction` (80%) de ≥ `MinimumSamples` (10) amostras | Médio; Alto se leituras de página ≥ `PagingThreshold` (100/s) | 90% |
+| `memory.commit-high` | memory | Commit ≥ `Threshold` (90% do limite) em ≥ 80% de ≥ 10 amostras | Alto | 90% |
+| `memory.possible-leak` | memory | Memória privada de um processo (mesmo PID e início) cresce ≥ `MinimumGrowthMB` (500 MB) em ≥ `MinimumSamples` (10 min) e cresce em ≥ `MonotonicFraction` (90%) dos intervalos | Baixo; Médio a partir de `HighGrowthMB` (2 GB) | 60% (provável) |
+
+A justificativa técnica de cada parâmetro está no próprio código (`RuleParameter.Justification`) e é verificada por
+teste (`Every_performance_rule_declares_justified_parameters`). Cada regra tem testes com uma série que **não** deve
+disparar e outra que deve (`PerformanceRulesTests`).
+
+**Deliberadamente não implementado:** alerta de virtualização desativada no firmware (o WMI informa "desativada" com o
+Hyper-V ativo — falso positivo em máquinas de desenvolvimento); qualquer regra de "CPU alta" sem duração.

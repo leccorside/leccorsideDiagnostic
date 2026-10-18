@@ -3,7 +3,7 @@
 Documento central de referência. Detalhes por assunto em `docs/` (links ao final de cada seção).
 **Atualizar ao final de cada ação** (regra do projeto).
 
-Versão documentada: **0.1.0 (Passo 1 — fundação)**.
+Versão documentada: **0.2.0 (Passo 2 — Hardware, CPU, Memória e GPU)**.
 
 ---
 
@@ -30,21 +30,34 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `FileBackupStore` | Infrastructure/Backup | Backups JSON com ACL restrita e escrita atômica |
 | `LoggingSetup` / `RedactionEnricher` | Infrastructure/Logging | Logs JSON estruturados, rotação, retenção, redação de segredos |
 | `PrivilegeService` | Infrastructure/Security | Elevação atual e usuário |
-| `LiveMetricsProvider` | Monitoring | CPU/RAM/disco do dashboard via Win32 |
+| `LiveMetricsProvider` | Monitoring | CPU/RAM/disco/GPU do dashboard (Win32 + PDH) |
+| `PdhPerformanceCounterSession` / `PdhQuery` / `GpuCounterParser` | Monitoring | Contadores PDH por nome em inglês (CPU, frequência, fila, hard faults, paginação, GPU Engine, VRAM) |
+| `SystemMemory` / `CpuUsageMeter` | Monitoring | Memória do sistema (commit, cache, pools) e CPU por `GetSystemTimes` |
+| `ProcessSnapshotProvider` | Monitoring | Fotografia de processos (CPU, memória, início, caminho; protegidos = null) |
+| `MetricsHistoryService` | Monitoring | Histórico de fundo de 30 min (sistema a cada 5 s, processos a cada 60 s) para duração/recorrência |
+| `WmiHardwareInventoryProvider` | Infrastructure/SystemInfo | Inventário WMI + VRAM pelo registro, cache de 60 s |
+| `HardwareScanner`, `CpuScanner`, `MemoryScanner`, `GpuScanner` | Diagnostics | Scanners do Passo 2 (ver docs/DIAGNOSTICS.md) |
+| `CpuSustainedHighRule`, `CpuThrottlingRule`, `MemoryPressureRule`, `CommitChargeHighRule`, `PossibleMemoryLeakRule` | Diagnostics/Rules | Regras do Passo 2 (ver docs/RULE_ENGINE.md) |
 | `JsonReportExporter` | Reporting | Exportação do `ScanReport` em JSON |
 | `HealthCenterHost` | App | Composition root (Generic Host + DI validada) |
 | `StartupTrace` | App | Tempo de cada fase da inicialização (processo → primeiro quadro) e watchdog de inicialização lenta (> 10 s) |
-| Telas | App/Views | Dashboard, Varredura, Configurações e páginas "em construção" para os demais módulos |
+| Telas | App/Views | Dashboard, Varredura, Performance, Hardware, Configurações e páginas "em construção" para os demais módulos |
 
 ## 3. Interface
 
 - Sidebar com o menu completo da seção 8. Módulos ainda não implementados mostram uma página honesta
   "Módulo em construção" com o MVP previsto — nunca dados não medidos.
-- **Dashboard**: anel de score (ou "SEM DADOS"), resultado da última varredura (críticos, importantes, menores,
-  recomendações, problema mais importante), uso atual de CPU/RAM com histórico de 2 min, disco do sistema e GPU
-  ("não disponível" até o Passo 2). Logo de boas-vindas antes da primeira varredura.
+- **Dashboard**: anel de score (ou "SEM DADOS") com a **cobertura** ("Avaliou 2 de 6 áreas…"), resultado da última
+  varredura (críticos, importantes, menores, recomendações, problema mais importante), uso atual de CPU/RAM com
+  histórico de até 2 min, disco do sistema e GPU (motor mais ocupado; "não disponível" sem contadores).
+  Logo de boas-vindas antes da primeira varredura.
 - **Varredura**: rápida, completa, personalizada (16 módulos selecionáveis), progresso por scanner com
-  "Cancelar varredura", resultado com score e lista de findings expansíveis respondendo às 6 perguntas da seção 72.
+  "Cancelar varredura", resultado com score, cobertura e lista de findings expansíveis respondendo às 6 perguntas da seção 72.
+- **Performance**: CPU (uso, frequência efetiva, % da nominal, fila, processadores lógicos), Memória (uso, commit, cache,
+  pools, arquivo de paginação, leituras de página do disco), GPU (motores, VRAM em uso), gráficos com o histórico de fundo
+  (até 30 min) e maiores consumidores de CPU e memória. Amostra a cada 2 s só com a tela aberta.
+- **Hardware**: sistema, SO, BIOS e placa-mãe; processadores; memória e módulos; placas de vídeo (VRAM real, driver e data).
+  Botão "Ler novamente"; fontes WMI que falharam aparecem no modo avançado.
 - **Configurações**: tema (Windows/Claro/Escuro, inclusive barra de título), modo avançado, estado de privilégio,
   Dry Run, caminhos de dados, versão.
 - Logos: `logo2.png` (tema claro) e `logo1.jpg` (tema escuro, como selo); `logo-mark.png` e `app.ico` são
@@ -68,6 +81,13 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `HealthCenter:DashboardRefreshInterval` | `00:00:02` | Intervalo de amostragem do dashboard (mín. 1 s) |
 | `Scan:MaxConcurrency` | `2` | Scanners em paralelo |
 | `Scan:ScannerTimeout` | `00:05:00` | Tempo máximo por scanner |
+| `Sampling:Window` / `Sampling:Interval` | `00:00:15` / `00:00:01` | Janela e intervalo de amostragem de CPU/memória na varredura |
+| `Sampling:GpuWindow` | `00:00:05` | Janela de amostragem da GPU |
+| `Sampling:TopProcesses` | `10` | Quantos maiores consumidores entram como evidência |
+| `MetricsHistory:Enabled` | `true` | Liga o histórico de fundo (sem ele, regras de duração não concluem) |
+| `MetricsHistory:SystemInterval` / `ProcessInterval` | `00:00:05` / `00:01:00` | Intervalos do histórico de sistema e de processos |
+| `MetricsHistory:Retention` | `00:30:00` | Quanto histórico fica em memória |
+| `MetricsHistory:ProcessMinimumPrivateBytes` | `52428800` | Só processos com ≥ 50 MB privados entram no histórico |
 | `Repair:DryRun` | `false` | Força simulação em todas as correções |
 | `FileLogging:MinimumLevel` | `Information` | Nível mínimo de log |
 | `FileLogging:FileSizeLimitBytes` | `10485760` | Tamanho máximo por arquivo antes de rolar |
@@ -101,7 +121,7 @@ sempre adicionar nova versão). Controle em `SchemaMigrations`.
 | `Metric` | amostras numéricas da varredura (com tags JSON) |
 | `Repair` | histórico de correções (risco, resultado, usuário, motivo, backup, alterações, antes/depois) |
 | `Rollback` | rollbacks executados |
-| `HardwareSnapshot` | fotografia do hardware (Passo 2) |
+| `HardwareSnapshot` | inventário de hardware em JSON, gravado a cada varredura que inclui o scanner `hardware` |
 | `EventSummary` | grupos de eventos (Passo 5) |
 | `Application` | inventário de software (Passo 7) |
 | `Configuration` | preferências persistidas (Passo 10) |
@@ -124,11 +144,11 @@ logs e saídas, backups com ACL. Detalhes: [docs/SECURITY.md](docs/SECURITY.md).
 - [docs/BUILD.md](docs/BUILD.md) — build local, publicação, portable, CI
 - [docs/RELEASE.md](docs/RELEASE.md) — versionamento e checklist
 
-## 10. Testes (Passo 1)
+## 10. Testes (Passo 2)
 
 | Projeto | Testes |
 | --- | --- |
-| UnitTests | 115 |
-| IntegrationTests | 16 |
-| SystemTests | 5 |
-| **Total** | **136 — todos passando** (Debug e Release com `-warnaserror`) |
+| UnitTests | 137 |
+| IntegrationTests | 22 (inclui leitura real de WMI, PDH, memória, processos e histórico desta máquina) |
+| SystemTests | 6 (inclui varredura completa real com os 4 scanners) |
+| **Total** | **165 — todos passando** (Debug e Release com `-warnaserror`) |

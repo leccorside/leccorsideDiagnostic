@@ -17,12 +17,60 @@
             <conv:ScoreToValueConverter x:Key="ScoreToValue" />
             <conv:EnumEqualsConverter x:Key="EnumEquals" />
 
+            <!-- Linha rótulo → valor. "não disponível" fica em tinta secundária (contraste ≥ 4,5:1), nunca escondido. -->
+            <DataTemplate x:Key="InfoRowTemplate" DataType="{x:Type vm:InfoRow}">
+                <Grid Margin="0,3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" MinWidth="120" />
+                        <ColumnDefinition Width="3*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource Caption}" FontSize="13" VerticalAlignment="Top" Margin="0,1,12,0" Text="{Binding Label}" />
+                    <TextBlock x:Name="Value" Grid.Column="1" Style="{StaticResource Body}" Text="{Binding Value}" />
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsUnavailable}" Value="True">
+                        <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- Variante empilhada (rótulo acima do valor) para cartões estreitos: valores longos não quebram em várias linhas. -->
+            <DataTemplate x:Key="StackedInfoRowTemplate" DataType="{x:Type vm:InfoRow}">
+                <StackPanel Margin="0,0,0,10">
+                    <TextBlock Style="{StaticResource Caption}" Text="{Binding Label}" />
+                    <TextBlock x:Name="Value" Style="{StaticResource Body}" Margin="0,1,0,0" Text="{Binding Value}" />
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsUnavailable}" Value="True">
+                        <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- Cartão de informação: um título (a informação real), legenda opcional abaixo, linhas. -->
+            <DataTemplate x:Key="InfoCardTemplate" DataType="{x:Type vm:InfoCard}">
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Margin="0" TextWrapping="Wrap" Text="{Binding Title}" />
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,0" Text="{Binding Caption}"
+                                   Visibility="{Binding Caption, Converter={StaticResource VisibleWhen}}" />
+                        <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource InfoRowTemplate}" Focusable="False" />
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
             <!-- Cada ViewModel de página é exibido pela sua View correspondente. -->
             <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
                 <views:DashboardView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:ScanViewModel}">
                 <views:ScanView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PerformanceViewModel}">
+                <views:PerformanceView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:HardwareViewModel}">
+                <views:HardwareView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
                 <views:SettingsView />

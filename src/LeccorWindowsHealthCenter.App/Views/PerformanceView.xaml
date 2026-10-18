@@ -1,0 +1,107 @@
+﻿<UserControl x:Class="LeccorWindowsHealthCenter.App.Views.PerformanceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:LeccorWindowsHealthCenter.App.ViewModels"
+             xmlns:controls="clr-namespace:LeccorWindowsHealthCenter.App.Controls"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="900"
+             d:DataContext="{d:DesignInstance Type=vm:PerformanceViewModel}">
+    <UserControl.Resources>
+        <!-- Linha de processo: nome, PID, valor e barra proporcional na cor da série (nunca na Brasa). -->
+        <DataTemplate x:Key="CpuProcessRow" DataType="{x:Type vm:ProcessRow}">
+            <StackPanel Margin="0,4">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Body}" FontWeight="SemiBold" Text="{Binding Value}" />
+                    <TextBlock Style="{StaticResource Body}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap">
+                        <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" />
+                    </TextBlock>
+                </DockPanel>
+                <ProgressBar Style="{StaticResource ThinProgress}" Height="4" Margin="0,4,0,0" Value="{Binding Percent, Mode=OneWay}"
+                             Foreground="{DynamicResource ChartStrokeBrush}" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="MemoryProcessRow" DataType="{x:Type vm:ProcessRow}">
+            <StackPanel Margin="0,4">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Body}" FontWeight="SemiBold" Text="{Binding Value}" />
+                    <TextBlock Style="{StaticResource Body}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap">
+                        <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" />
+                    </TextBlock>
+                </DockPanel>
+                <ProgressBar Style="{StaticResource ThinProgress}" Height="4" Margin="0,4,0,0" Value="{Binding Percent, Mode=OneWay}"
+                             Foreground="{DynamicResource ChartStroke2Brush}" />
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="32,28,32,32" MaxWidth="1200">
+            <TextBlock Style="{StaticResource PageTitle}" Text="Performance" />
+            <TextBlock Style="{StaticResource PageSubtitle}" Margin="0,0,0,20"
+                       Text="Leituras ao vivo a cada 2 s. O histórico cobre os últimos 30 minutos enquanto o aplicativo está aberto — é ele que permite distinguir um pico de uma carga sustentada." />
+
+            <UniformGrid Columns="3" Margin="0,0,0,16">
+                <!-- CPU -->
+                <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding CpuText}" />
+                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" Text="CPU" />
+                        </DockPanel>
+                        <controls:Sparkline Baseline="{DynamicResource TrackBrush}" Height="64" Margin="0,14,0,0" Capacity="360" Values="{Binding CpuHistory}"
+                                            Stroke="{DynamicResource ChartStrokeBrush}" Fill="{DynamicResource ChartFillBrush}"
+                                            AutomationProperties.Name="Histórico de uso de CPU" />
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,10" Text="{Binding HistoryCaption}" />
+                        <ItemsControl ItemsSource="{Binding CpuRows}" ItemTemplate="{StaticResource StackedInfoRowTemplate}" Focusable="False" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Memória -->
+                <Border Style="{StaticResource Card}" Margin="4,0,4,0">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding MemoryText}" />
+                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" Text="Memória" />
+                        </DockPanel>
+                        <controls:Sparkline Baseline="{DynamicResource TrackBrush}" Height="64" Margin="0,14,0,0" Capacity="360" Values="{Binding MemoryHistory}"
+                                            Stroke="{DynamicResource ChartStroke2Brush}" Fill="{DynamicResource ChartFill2Brush}"
+                                            AutomationProperties.Name="Histórico de uso de memória" />
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,10" Text="{Binding MemoryDetail}" />
+                        <ItemsControl ItemsSource="{Binding MemoryRows}" ItemTemplate="{StaticResource StackedInfoRowTemplate}" Focusable="False" />
+                    </StackPanel>
+                </Border>
+
+                <!-- GPU -->
+                <Border Style="{StaticResource Card}" Margin="8,0,0,0">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding GpuText}" />
+                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" Text="GPU" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,14,0,10" Text="{Binding GpuDetail}" />
+                        <ItemsControl ItemsSource="{Binding GpuRows}" ItemTemplate="{StaticResource StackedInfoRowTemplate}" Focusable="False" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <UniformGrid Columns="2">
+                <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Maiores consumidores de CPU" />
+                        <TextBlock Style="{StaticResource Caption}" Text="Ainda medindo — o uso de CPU é calculado entre duas leituras."
+                                   Visibility="{Binding TopCpu, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+                        <ItemsControl ItemsSource="{Binding TopCpu}" ItemTemplate="{StaticResource CpuProcessRow}" Focusable="False" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="8,0,0,0">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Maiores consumidores de memória" />
+                        <ItemsControl ItemsSource="{Binding TopMemory}" ItemTemplate="{StaticResource MemoryProcessRow}" Focusable="False" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+            <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0" Text="{Binding ProcessNote}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

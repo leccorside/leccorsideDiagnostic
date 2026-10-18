@@ -1,6 +1,6 @@
 {
     "schemaVersion":  2,
-    "generatedAt":  "2026-10-17T21:05:49.1930558Z",
+    "generatedAt":  "2026-10-18T02:27:39.0848659Z",
     "title":  "Design System: Leccor Windows Health Center",
     "extensions":  {
                        "colorMeta":  {
@@ -34,6 +34,36 @@
                                                                                       "#FFE9E1"
                                                                                   ]
                                                                 },
+                                         "brasa-leccor-pressed":  {
+                                                                      "role":  "primary",
+                                                                      "displayName":  "Brasa Pressionada",
+                                                                      "canonical":  "oklch(45.9% 0.128 44.4)",
+                                                                      "tonalRamp":  [
+                                                                                        "#190500",
+                                                                                        "#411500",
+                                                                                        "#6F2900",
+                                                                                        "#9A4417",
+                                                                                        "#C0663D",
+                                                                                        "#E6895F",
+                                                                                        "#FFB696",
+                                                                                        "#FEEAE1"
+                                                                                    ]
+                                                                  },
+                                         "brasa-leccor-pressed-dark":  {
+                                                                           "role":  "primary",
+                                                                           "displayName":  "Brasa Pressionada (escuro)",
+                                                                           "canonical":  "oklch(66.5% 0.153 55.3)",
+                                                                           "tonalRamp":  [
+                                                                                             "#170600",
+                                                                                             "#3C1B00",
+                                                                                             "#663200",
+                                                                                             "#944B01",
+                                                                                             "#C46502",
+                                                                                             "#EC8837",
+                                                                                             "#FFB786",
+                                                                                             "#FFEADC"
+                                                                                         ]
+                                                                       },
                                          "on-brasa":  {
                                                           "role":  "primary",
                                                           "displayName":  "Sobre a Brasa",
@@ -379,6 +409,36 @@
                                                                                           "#EEEEEE"
                                                                                       ]
                                                                     },
+                                         "button-secondary-pressed":  {
+                                                                          "role":  "neutral",
+                                                                          "displayName":  "Botão Secundário Pressionado",
+                                                                          "canonical":  "oklch(91.6% 0.000 89.9)",
+                                                                          "tonalRamp":  [
+                                                                                            "#0B0B0B",
+                                                                                            "#252525",
+                                                                                            "#424242",
+                                                                                            "#616161",
+                                                                                            "#828282",
+                                                                                            "#A5A5A5",
+                                                                                            "#C9C9C9",
+                                                                                            "#EEEEEE"
+                                                                                        ]
+                                                                      },
+                                         "button-secondary-pressed-dark":  {
+                                                                               "role":  "neutral",
+                                                                               "displayName":  "Botão Secundário Pressionado (escuro)",
+                                                                               "canonical":  "oklch(28.5% 0.000 89.9)",
+                                                                               "tonalRamp":  [
+                                                                                                 "#0B0B0B",
+                                                                                                 "#252525",
+                                                                                                 "#424242",
+                                                                                                 "#616161",
+                                                                                                 "#828282",
+                                                                                                 "#A5A5A5",
+                                                                                                 "#C9C9C9",
+                                                                                                 "#EEEEEE"
+                                                                                             ]
+                                                                           },
                                          "surface-app-dark":  {
                                                                   "role":  "neutral",
                                                                   "displayName":  "Névoa de Laudo (escuro)",
@@ -952,6 +1012,11 @@
                                         "name":  "The Sombra Só Flutua Rule",
                                         "body":  "Sombra significa \"isto está acima do conteúdo e vai sumir\". Usá-la em outro lugar mente sobre a hierarquia.",
                                         "section":  "elevation"
+                                    },
+                                    {
+                                        "name":  "The Sem Sobretítulo Rule",
+                                        "body":  "Nenhum rótulo pequeno acima de um título. A categoria vira título de seção; o cartão leva só a informação real.",
+                                        "section":  "components"
                                     }
                                 ],
                       "dos":  [

@@ -10,6 +10,7 @@
     <ProjectReference Include="..\..\src\LeccorWindowsHealthCenter.Infrastructure\LeccorWindowsHealthCenter.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\LeccorWindowsHealthCenter.Diagnostics\LeccorWindowsHealthCenter.Diagnostics.csproj" />
     <ProjectReference Include="..\..\src\LeccorWindowsHealthCenter.Reporting\LeccorWindowsHealthCenter.Reporting.csproj" />
+    <ProjectReference Include="..\..\src\LeccorWindowsHealthCenter.Monitoring\LeccorWindowsHealthCenter.Monitoring.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
