@@ -3,6 +3,7 @@ using LeccorWindowsHealthCenter.Application.Scanning;
 using LeccorWindowsHealthCenter.Diagnostics.Hardware;
 using LeccorWindowsHealthCenter.Diagnostics.Performance;
 using LeccorWindowsHealthCenter.Diagnostics.Rules;
+using LeccorWindowsHealthCenter.Diagnostics.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,6 +30,16 @@ public static class DependencyInjection
         services.AddSingleton<IRule, MemoryPressureRule>();
         services.AddSingleton<IRule, CommitChargeHighRule>();
         services.AddSingleton<IRule, PossibleMemoryLeakRule>();
+
+        // Passo 3 — MVP 1 (b): Discos e Armazenamento
+        services.AddSingleton<IDiagnosticScanner, DiskScanner>();
+        services.AddSingleton<IDiagnosticScanner, StorageScanner>();
+
+        services.AddSingleton<IRule, LowFreeSpaceRule>();
+        services.AddSingleton<IRule, DiskHealthRule>();
+        services.AddSingleton<IRule, DiskTemperatureRule>();
+        services.AddSingleton<IRule, TrimDisabledRule>();
+        services.AddSingleton<IRule, TempCacheLargeRule>();
         return services;
     }
 }

@@ -16,6 +16,9 @@ internal static class RuleText
 
     public static string Percent(double value) => value.ToString("0", PtBr) + "%";
 
+    /// <summary>Uma casa decimal: "7,2%" (espaço livre perto do limite não pode virar "7%" e "7%").</summary>
+    public static string PercentPrecise(double value) => value.ToString("0.#", PtBr) + "%";
+
     public static string Duration(TimeSpan duration) =>
         duration.TotalMinutes >= 1
             ? string.Create(PtBr, $"{duration.TotalMinutes:0.#} min")

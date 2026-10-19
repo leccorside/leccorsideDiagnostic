@@ -27,8 +27,8 @@ public static class ByteSize
         }
 
         return unit == 0
-            ? string.Create(provider, $"{bytes} B")
-            : string.Create(provider, $"{value:0.#} {Units[unit]}");
+            ? string.Create(provider, $"{bytes:#,##0} B")
+            : string.Create(provider, $"{value:#,##0.#} {Units[unit]}");
     }
 
     /// <summary>

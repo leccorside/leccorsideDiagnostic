@@ -1,8 +1,8 @@
-using System.Globalization;
 using System.Management;
 using LeccorWindowsHealthCenter.Application.SystemInfo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
+using static LeccorWindowsHealthCenter.Infrastructure.SystemInfo.WmiQuery;
 
 namespace LeccorWindowsHealthCenter.Infrastructure.SystemInfo;
 
@@ -17,10 +17,6 @@ public sealed class WmiHardwareInventoryProvider : IHardwareInventoryProvider, I
 
     /// <summary>AdapterRAM é uint32: valores próximos de 4 GB indicam truncamento.</summary>
     private const long AdapterRamTruncationThreshold = 4L * 1024 * 1024 * 1024 - (64L * 1024 * 1024);
-
-    // Só o timeout é alterado. No System.Management do .NET 10, Rewindable = false + ReturnImmediately devolve
-    // coleções vazias em silêncio (verificado neste projeto; no .NET Framework funciona) — não "otimizar" de novo.
-    private static readonly System.Management.EnumerationOptions QueryOptions = new() { Timeout = TimeSpan.FromSeconds(20) };
 
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(60);
 
@@ -148,24 +144,11 @@ public sealed class WmiHardwareInventoryProvider : IHardwareInventoryProvider, I
         };
     }
 
-    private static List<ManagementBaseObject> Query(string wql, List<string> warnings, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        try
-        {
-            using var searcher = new ManagementObjectSearcher(new ManagementScope(@"\\.\root\cimv2"), new ObjectQuery(wql), QueryOptions);
-            using var results = searcher.Get();
-            return results.Cast<ManagementBaseObject>().ToList();
-        }
-        catch (Exception ex) when (ex is ManagementException or UnauthorizedAccessException or System.Runtime.InteropServices.COMException)
-        {
-            warnings.Add($"{ClassOf(wql)}: {ex.Message}");
-            return [];
-        }
-    }
+    private static List<ManagementBaseObject> Query(string wql, List<string> warnings, CancellationToken cancellationToken) =>
+        WmiQuery.Query(WmiQuery.Cimv2, wql, warnings, cancellationToken);
 
     private static ManagementBaseObject? QueryFirst(string wql, List<string> warnings, CancellationToken cancellationToken) =>
-        Query(wql, warnings, cancellationToken).FirstOrDefault();
+        WmiQuery.QueryFirst(WmiQuery.Cimv2, wql, warnings, cancellationToken);
 
     /// <summary>VRAM real em HardwareInformation.qwMemorySize (QWORD) ou MemorySize (DWORD/binário), por nome do driver.</summary>
     private static Dictionary<string, long> ReadVramFromRegistry(List<string> warnings)
@@ -218,42 +201,6 @@ public sealed class WmiHardwareInventoryProvider : IHardwareInventoryProvider, I
         }
 
         return result;
-    }
-
-    private static string ClassOf(string wql)
-    {
-        var index = wql.IndexOf(" FROM ", StringComparison.OrdinalIgnoreCase);
-        return index < 0 ? wql : wql[(index + 6)..].Trim();
-    }
-
-    private static string? Text(ManagementBaseObject? obj, string property)
-    {
-        var value = obj?[property]?.ToString()?.Trim();
-        return string.IsNullOrWhiteSpace(value) ? null : value;
-    }
-
-    private static int? Int(ManagementBaseObject? obj, string property) =>
-        obj?[property] is { } value && int.TryParse(value.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? number : null;
-
-    private static long? Long(ManagementBaseObject? obj, string property) =>
-        obj?[property] is { } value && long.TryParse(value.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? number : null;
-
-    private static DateTimeOffset? Date(ManagementBaseObject? obj, string property)
-    {
-        var raw = Text(obj, property);
-        if (raw is null)
-        {
-            return null;
-        }
-
-        try
-        {
-            return new DateTimeOffset(ManagementDateTimeConverter.ToDateTime(raw).ToUniversalTime(), TimeSpan.Zero);
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            return null;
-        }
     }
 
     private static string? Join(string? first, string? second) =>

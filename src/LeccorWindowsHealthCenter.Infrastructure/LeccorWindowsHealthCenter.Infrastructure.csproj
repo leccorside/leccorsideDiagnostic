@@ -1,9 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="LeccorWindowsHealthCenter.UnitTests" />
+    <InternalsVisibleTo Include="LeccorWindowsHealthCenter.IntegrationTests" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LeccorWindowsHealthCenter.Application\LeccorWindowsHealthCenter.Application.csproj" />

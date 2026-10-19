@@ -89,9 +89,27 @@ interrompidas quando duas amostras estão a mais de 30 s de distância (computad
 | `memory.commit-high` | memory | Commit ≥ `Threshold` (90% do limite) em ≥ 80% de ≥ 10 amostras | Alto | 90% |
 | `memory.possible-leak` | memory | Memória privada de um processo (mesmo PID e início) cresce ≥ `MinimumGrowthMB` (500 MB) em ≥ `MinimumSamples` (10 min) e cresce em ≥ `MonotonicFraction` (90%) dos intervalos | Baixo; Médio a partir de `HighGrowthMB` (2 GB) | 60% (provável) |
 
+### Discos e armazenamento (Passo 3)
+
+Leituras únicas (não séries): cada regra conclui a partir do estado informado pelo Windows/dispositivo. Sem o dado
+(ex.: temperatura em SATA/USB sem admin), a regra não conclui nada.
+
+| Regra | Scanner | Dispara quando | Severidade | Confiança |
+| --- | --- | --- | --- | --- |
+| `storage.low-free-space` | disks | Volume do Windows com < `SystemMinimumFreeGb` (15 GB); volume de dados com < `DataMinimumFreePercent` (5%) **e** < `DataMinimumFreeGb` (20 GB). Removíveis e volumes < 1 GB ignorados | Sistema: Médio; Alto < `SystemCriticalFreeGb` (5 GB); Crítico < `AlwaysCriticalFreeGb` (1 GB). Dados: Baixo; Médio < 1 GB | 100% (medição direta) |
+| `disk.health-warning` | disks | `HealthStatus` Warning/Unhealthy ou `OperationalStatus` com falha prevista/erro | Alto (Warning); Crítico (Unhealthy ou falha prevista) | 85% / 95% |
+| `disk.temperature-high` | disks | Temperatura ≥ limite de aviso declarado pelo disco; sem declaração, `SolidStateWarningCelsius` (70 °C) ou `HddWarningCelsius` (55 °C) | Médio; Alto ≥ limite crítico (declarado ou aviso + `CriticalMarginCelsius`, 10 °C) | 85% (leitura única) |
+| `disk.trim-disabled` | disks | SSD/NVMe com TRIM desativado no NTFS (registro) ou informado desativado pelo dispositivo. TRIM desconhecido não é problema | Baixo | 90% |
+| `storage.temp-cache-large` | storage | Temporários + caches (sem Lixeira) ≥ `MinimumGb` (5 GB) | Informação (recomendação) | 100% |
+
+Testes: `StorageRulesTests` (um caso que não dispara e outro que dispara por regra, incluindo o C: real desta máquina —
+7% livre, mas 65 GB — que **não** deve gerar alerta).
+
 A justificativa técnica de cada parâmetro está no próprio código (`RuleParameter.Justification`) e é verificada por
 teste (`Every_performance_rule_declares_justified_parameters`). Cada regra tem testes com uma série que **não** deve
 disparar e outra que deve (`PerformanceRulesTests`).
 
 **Deliberadamente não implementado:** alerta de virtualização desativada no firmware (o WMI informa "desativada" com o
-Hyper-V ativo — falso positivo em máquinas de desenvolvimento); qualquer regra de "CPU alta" sem duração.
+Hyper-V ativo — falso positivo em máquinas de desenvolvimento); qualquer regra de "CPU alta" sem duração; percentual de
+saúde de disco estimado (sem desgaste informado pelo dispositivo, a UI mostra "não disponível"); alerta de espaço por
+percentual em volumes grandes (5% de 2 TB ainda são ~100 GB).

@@ -22,9 +22,10 @@ Não é um "PC Cleaner". Cada problema exibido responde:
 
 ## Estado atual
 
-**Passo 2 de 10 concluído** (versão 0.2.0) — além da fundação (orquestrador, regras, risco, score, reparo com
-backup/rollback, histórico SQLite e logs), o app já diagnostica **Hardware, CPU, Memória e GPU** com histórico de
-fundo de 30 minutos, cinco regras com thresholds justificados e as telas de Performance e Hardware.
+**Passo 3 de 10 concluído** (versão 0.3.0) — além da fundação (orquestrador, regras, risco, score, reparo com
+backup/rollback, histórico SQLite e logs), o app já diagnostica **Hardware, CPU, Memória, GPU, Discos e Armazenamento**:
+histórico de fundo de 30 minutos, dez regras com thresholds justificados e as telas de Performance, Hardware e
+Armazenamento (discos físicos, volumes, temporários/caches medidos e análise de espaço navegável — nada é apagado).
 Veja [PASSOS.md](PASSOS.md) e [CONTEXTO.md](CONTEXTO.md).
 
 ## Executar

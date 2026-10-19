@@ -27,7 +27,7 @@ Corresponde à "primeira execução" (seção 75) e à ordem de implementação 
 - [x] Testes: 115 unitários, 16 integração, 5 sistema — todos passando
 - [x] GitHub Actions (restore, build com analisadores como erro, test, publish win-x64)
 
-## Passo 2 — MVP 1 (a): Hardware, CPU, Memória e GPU ✅ (aguardando autorização para o Passo 3)
+## Passo 2 — MVP 1 (a): Hardware, CPU, Memória e GPU ✅
 
 - [x] Scanner de hardware (WMI: sistema, SO, BIOS, placa-mãe, CPU, módulos de RAM, GPUs; VRAM real pelo registro) + `HardwareSnapshot` no banco
 - [x] Scanner de CPU com amostragem temporal (utilização, frequência efetiva e % da nominal, fila, top processos)
@@ -43,12 +43,18 @@ Corresponde à "primeira execução" (seção 75) e à ordem de implementação 
 Fica para passos seguintes: eventos de driver de GPU (TDR/LiveKernelEvent — Passo 5, Event Viewer); temperatura de
 CPU (não há fonte confiável sem driver de kernel; não será estimada).
 
-## Passo 3 — MVP 1 (b): Discos e Armazenamento ⬜
+## Passo 3 — MVP 1 (b): Discos e Armazenamento ✅ (aguardando autorização para o Passo 4)
 
-- Discos físicos (modelo, tipo NVMe/SSD/HDD, capacidade, partições, TRIM) e saúde SMART/NVMe **somente quando o dispositivo fornecer** ("Saúde: não disponível" caso contrário)
-- Análise de espaço (árvore navegável das maiores pastas, maiores arquivos, temporários, caches) com concorrência limitada e cancelamento
-- Regras: pouco espaço livre, SMART com atributos críticos, temperatura alta (quando disponível)
-- Tela Armazenamento
+- [x] Discos físicos (modelo, tipo NVMe/SSD/HDD, capacidade, partições, TRIM, firmware) via WMI de armazenamento + IOCTLs sem administrador; saúde **somente quando o dispositivo fornece** (estado SMART resumido pelo Windows; vida útil "não disponível" sem admin; temperatura só quando o disco informa)
+- [x] Volumes com espaço livre e vínculo com o disco físico pelo próprio volume (`IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS`), independente do WMI
+- [x] Análise de espaço sob demanda: árvore navegável e podada das maiores pastas, maiores arquivos, arquivos grandes antigos; paralelismo por tipo de disco (4 em SSD, 1 em HDD), progresso e cancelamento; sem seguir junções; arquivos só na nuvem fora da soma
+- [x] Temporários e caches medidos (temp do usuário/Windows, Windows Update, despejos/WER, miniaturas, Edge, Chrome, Lixeira) — nada é apagado
+- [x] Regras: pouco espaço livre, disco sinaliza problema (SMART/HealthStatus), temperatura alta (quando disponível), TRIM desativado em SSD, temporários/caches grandes (recomendação)
+- [x] Tela Armazenamento revisada com impeccable nos temas claro e escuro, em 1280 e 980 px
+- [x] Testes: 212 unitários, 29 integração (fontes reais + árvore temporária), 11 sistema (varredura completa com 6 scanners)
+
+Fica para passos seguintes: SMART/NVMe detalhado, desgaste e horas ligadas (exigem o processo elevado — Passo 5);
+eventos de disco (Disk 7/153, NTFS — Passo 5, Event Viewer); limpeza dos temporários/caches (Passo 7).
 
 ## Passo 4 — MVP 1 (c): Processos e Inicialização ⬜
 

@@ -38,6 +38,13 @@ public static class Fmt
     public static string Count(double? value, string singular, string plural) =>
         value is { } v ? string.Create(Culture, $"{v:#,##0} {(Math.Abs(v - 1) < 0.5 ? singular : plural)}") : NotAvailable;
 
+    /// <summary>"8 s", "3 min 12 s", "1 h 05 min".</summary>
+    public static string Duration(TimeSpan value) => value.TotalHours >= 1
+        ? string.Create(Culture, $"{(int)value.TotalHours} h {value.Minutes:00} min")
+        : value.TotalMinutes >= 1
+            ? string.Create(Culture, $"{(int)value.TotalMinutes} min {value.Seconds} s")
+            : string.Create(Culture, $"{Math.Max(1, (int)Math.Round(value.TotalSeconds))} s");
+
     /// <summary>"x de y" na mesma unidade (ver <see cref="ByteSize.FormatPair"/>).</summary>
     public static string BytesOf(long? part, long? total)
     {

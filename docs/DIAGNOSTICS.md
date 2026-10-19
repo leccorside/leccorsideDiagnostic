@@ -56,6 +56,8 @@ Implementar `CollectAsync(ScanCollector collector, CancellationToken ct)`. A bas
 | CPU | `cpu` | Performance | sim | 20 | 2 |
 | Memória | `memory` | Performance | sim | 30 | 2 |
 | GPU | `gpu` | Hardware | sim | 40 | 2 |
+| Discos | `disks` | Disks | sim | 50 | 3 |
+| Armazenamento | `storage` | Storage | sim | 60 | 3 |
 
 Cada scanner novo deve ser documentado aqui com: fonte de dados (WMI/contador/API/EventLog/comando),
 métricas e observações produzidas (nome, unidade, tags), custo estimado (tempo/CPU), necessidade de
@@ -69,6 +71,8 @@ elevação e comportamento quando a fonte não está disponível ("não disponí
 | Memória do sistema | `Monitoring/SystemMemory` | `GlobalMemoryStatusEx` + `K32GetPerformanceInfo` (commit, cache, pools — em páginas × PageSize). |
 | Processos | `Monitoring/ProcessSnapshotProvider` (`IProcessSnapshotProvider`) | Memória e contagens vêm da lista do sistema; tempo de CPU, horário de início e caminho exigem abrir o processo e ficam **null** (nunca 0) em processos protegidos. |
 | Inventário | `Infrastructure/SystemInfo/WmiHardwareInventoryProvider` (`IHardwareInventoryProvider`) | WMI `root\cimv2`, uma classe por consulta (falha vira aviso), cache de 60 s, `forceRefresh` para a tela de Hardware. **Não** usar `Rewindable=false`: no .NET 10 isso devolve coleções vazias sem erro. VRAM vem do registro (`HardwareInformation.qwMemorySize`) porque `Win32_VideoController.AdapterRAM` é uint32 e trava em 4 GB. |
+| Armazenamento | `Infrastructure/SystemInfo/WmiStorageInventoryProvider` (`IStorageInventoryProvider`) | WMI `root\Microsoft\Windows\Storage` (`MSFT_PhysicalDisk`, `MSFT_Disk`, `MSFT_Partition`, `MSFT_Volume`), cache de 30 s. IOCTLs com o disco aberto **com acesso 0** (sem admin, sem ler dados): TRIM e penalidade de busca (`IOCTL_STORAGE_QUERY_PROPERTY`), temperatura quando o dispositivo informa, e o disco de cada volume (`IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS` — o `MSFT_Partition` já estourou o timeout de 20 s sob carga). TRIM do NTFS no registro (`FileSystem\DisableDeleteNotification`). `MSFT_StorageReliabilityCounter` (temperatura, desgaste, horas) e SMART via `root\wmi` dão **acesso negado** sem admin: só são consultados elevado; sem elevação ficam null. |
+| Análise de espaço | `Infrastructure/Storage/FileSystemSpaceAnalyzer` (`ISpaceAnalyzer`) | Enumeração com `FileSystemEnumerable` (sem `FileInfo` por arquivo). Não segue junções/links de pasta; arquivos só na nuvem (OneDrive: `Offline`/`RecallOnDataAccess`) não contam; pasta sem permissão é contada. Árvore podada (`MaxChildrenPerFolder`, `MinFolderBytes`). Paralelismo por tipo de disco: `MaxConcurrency` (4) em SSD/NVMe, `RotationalMaxConcurrency` (1) em HDD ou tipo desconhecido. Medido: C: com 2,6 mi de arquivos em 73–113 s com cache parcial (um leitor por vez levava ~9 min). Tamanhos lógicos: links físicos (WinSxS) contam em cada pasta. |
 | Histórico de fundo | `Monitoring/MetricsHistoryService` (`IMetricsHistory`, `BackgroundService`) | CPU, memória e commit a cada 5 s; memória privada por processo (≥ 50 MB) a cada 60 s; retenção de 30 min; só em memória. Configurável em `MetricsHistory`. |
 
 ### Hardware (`hardware`)
@@ -110,6 +114,29 @@ elevação e comportamento quando a fonte não está disponível ("não disponí
 - **Agregação:** soma os processos por tipo de motor (3D, Copy, VideoDecode…) e usa o motor mais ocupado — mesmo
   critério do Gerenciador de Tarefas. Máquinas/VMs sem esses contadores mostram "não disponível".
 - **Findings:** nenhum ainda. Eventos de driver (TDR, LiveKernelEvent, Display) dependem do Event Viewer Analyzer (Passo 5).
+
+### Discos (`disks`)
+
+- **Fonte:** inventário de armazenamento (sempre lido de novo na varredura: espaço livre de 30 s atrás não é evidência).
+- **Métricas:** `volume.free.percent` (%), `volume.free.bytes` (bytes) — tag `drive` (ex.: `C:\`); `disk.temperature` (°C, tag `disk`) só quando o dispositivo informa.
+- **Observações:** `disk.physical` (nome, tipo, barramento, mídia, `solidState`, saúde, `predictedFailure`, estado operacional,
+  TRIM do dispositivo e do NTFS, temperatura e limites declarados, desgaste/horas quando elevado) e `volume`
+  (raiz, rótulo, sistema de arquivos, tamanho, livre, `system`, `removable`, disco, saúde do volume).
+- **Custo:** ~0,15–0,8 s. **Elevação:** não (com elevação, acrescenta desgaste, horas ligadas e temperatura do contador de confiabilidade).
+- **Regras:** `storage.low-free-space`, `disk.health-warning`, `disk.temperature-high`, `disk.trim-disabled`.
+- **Nunca estimado:** "Saúde (vida útil)" sem desgaste informado é "não disponível"; o estado SMART é o `HealthStatus` que o
+  próprio Windows resume a partir do dispositivo, não um percentual.
+
+### Armazenamento (`storage`)
+
+- **Fonte:** `ISpaceAnalyzer.MeasureLocationsAsync` sobre o catálogo `StorageLocations` (temporários do usuário e do Windows,
+  downloads do Windows Update, despejos de memória e relatórios de erro, cache de miniaturas, caches do Edge e do Chrome
+  em todos os perfis, Lixeira via `SHQueryRecycleBin`).
+- **Métricas:** `storage.temp_cache.bytes` (soma, **sem** a Lixeira — esvaziar é decisão do usuário).
+- **Observações:** `storage.location` por local (`sizeBytes`, `files`, `inaccessible`, `found`, `paths`).
+- **Custo:** segundos (só os locais conhecidos; a árvore completa é sob demanda na tela). **Elevação:** não; pastas sem
+  permissão viram contagem e aviso "o total pode ser maior". **Nada é apagado** (limpeza segura: Passo 7).
+- **Regras:** `storage.temp-cache-large` (recomendação).
 
 ## Métricas do dashboard (Monitoring)
 

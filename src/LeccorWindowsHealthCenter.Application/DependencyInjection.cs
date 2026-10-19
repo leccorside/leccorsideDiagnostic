@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.Configure<RepairOptions>(configuration.GetSection(RepairOptions.SectionName));
         services.Configure<HealthCenterOptions>(configuration.GetSection(HealthCenterOptions.SectionName));
         services.Configure<LoggingFileOptions>(configuration.GetSection(LoggingFileOptions.SectionName));
+        services.Configure<Storage.SpaceAnalysisOptions>(configuration.GetSection(Storage.SpaceAnalysisOptions.SectionName));
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IRuleSettings>(_ => new ConfigurationRuleSettings(configuration));

@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace LeccorWindowsHealthCenter.App.ViewModels;
 
@@ -32,6 +32,7 @@ public sealed partial class MainViewModel : ObservableObject
         ScanViewModel scan,
         PerformanceViewModel performance,
         HardwareViewModel hardware,
+        StorageViewModel storage,
         SettingsViewModel settings)
     {
         _scan = scan;
@@ -43,7 +44,7 @@ public sealed partial class MainViewModel : ObservableObject
             new("Performance", "", performance),
             Planned("Processos", "", "Gerenciador avançado de processos com assinatura, árvore e proteção de processos críticos.", "MVP 1"),
             Planned("Windows Explorer", "", "Shell extensions, handlers, caches e detector de pastas lentas.", "MVP 2"),
-            Planned("Armazenamento", "", "Análise de espaço, maiores pastas e arquivos, temporários e caches.", "MVP 1"),
+            new("Armazenamento", "", storage),
             new("Hardware", "", hardware),
             Planned("Drivers", "", "Dispositivos com erro, drivers ausentes e eventos recorrentes.", "MVP 2"),
             Planned("Inicialização", "", "Registry Run/RunOnce, pastas de Startup e tarefas agendadas, com rollback.", "MVP 1"),

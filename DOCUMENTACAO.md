@@ -3,7 +3,7 @@
 Documento central de referência. Detalhes por assunto em `docs/` (links ao final de cada seção).
 **Atualizar ao final de cada ação** (regra do projeto).
 
-Versão documentada: **0.2.0 (Passo 2 — Hardware, CPU, Memória e GPU)**.
+Versão documentada: **0.3.0 (Passo 3 — Discos e Armazenamento)**.
 
 ---
 
@@ -36,12 +36,17 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `ProcessSnapshotProvider` | Monitoring | Fotografia de processos (CPU, memória, início, caminho; protegidos = null) |
 | `MetricsHistoryService` | Monitoring | Histórico de fundo de 30 min (sistema a cada 5 s, processos a cada 60 s) para duração/recorrência |
 | `WmiHardwareInventoryProvider` | Infrastructure/SystemInfo | Inventário WMI + VRAM pelo registro, cache de 60 s |
+| `WmiStorageInventoryProvider` / `StorageDeviceQuery` / `WmiQuery` | Infrastructure/SystemInfo | Discos, partições e volumes (WMI de armazenamento) + IOCTLs com acesso 0 (TRIM, SSD × HDD, temperatura, disco de cada volume), cache de 30 s |
+| `FileSystemSpaceAnalyzer` | Infrastructure/Storage | Análise de espaço (árvore podada, maiores/antigos, sem seguir junções, sem contar arquivos só na nuvem) e medição de temporários/caches |
+| `StorageText` / `StorageLocations` | Application | Tradução dos códigos do WMI de armazenamento; catálogo de temporários e caches medidos |
 | `HardwareScanner`, `CpuScanner`, `MemoryScanner`, `GpuScanner` | Diagnostics | Scanners do Passo 2 (ver docs/DIAGNOSTICS.md) |
+| `DiskScanner`, `StorageScanner` | Diagnostics/Storage | Scanners do Passo 3 |
+| `LowFreeSpaceRule`, `DiskHealthRule`, `DiskTemperatureRule`, `TrimDisabledRule`, `TempCacheLargeRule` | Diagnostics/Rules | Regras do Passo 3 (ver docs/RULE_ENGINE.md) |
 | `CpuSustainedHighRule`, `CpuThrottlingRule`, `MemoryPressureRule`, `CommitChargeHighRule`, `PossibleMemoryLeakRule` | Diagnostics/Rules | Regras do Passo 2 (ver docs/RULE_ENGINE.md) |
 | `JsonReportExporter` | Reporting | Exportação do `ScanReport` em JSON |
 | `HealthCenterHost` | App | Composition root (Generic Host + DI validada) |
 | `StartupTrace` | App | Tempo de cada fase da inicialização (processo → primeiro quadro) e watchdog de inicialização lenta (> 10 s) |
-| Telas | App/Views | Dashboard, Varredura, Performance, Hardware, Configurações e páginas "em construção" para os demais módulos |
+| Telas | App/Views | Dashboard, Varredura, Performance, Hardware, Armazenamento, Configurações e páginas "em construção" para os demais módulos |
 
 ## 3. Interface
 
@@ -58,6 +63,11 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   (até 30 min) e maiores consumidores de CPU e memória. Amostra a cada 2 s só com a tela aberta.
 - **Hardware**: sistema, SO, BIOS e placa-mãe; processadores; memória e módulos; placas de vídeo (VRAM real, driver e data).
   Botão "Ler novamente"; fontes WMI que falharam aparecem no modo avançado.
+- **Armazenamento**: volumes com espaço livre e barra de uso; **análise de espaço** sob demanda por volume (progresso ao
+  vivo, "Cancelar análise", navegação por pastas com trilha clicável, maiores arquivos e arquivos grandes sem alteração
+  há anos, com explicação de arquivos do sistema como `pagefile.sys`); temporários e caches medidos (a Lixeira fica fora
+  da soma); discos físicos (tipo, utilizado/livre, vida útil, estado SMART, temperatura, TRIM, partições, firmware).
+  Sem administrador, vida útil e horas ligadas aparecem como "não disponível" com a explicação. Nada é apagado.
 - **Configurações**: tema (Windows/Claro/Escuro, inclusive barra de título), modo avançado, estado de privilégio,
   Dry Run, caminhos de dados, versão.
 - Logos: `logo2.png` (tema claro) e `logo1.jpg` (tema escuro, como selo); `logo-mark.png` e `app.ico` são
@@ -88,6 +98,11 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `MetricsHistory:SystemInterval` / `ProcessInterval` | `00:00:05` / `00:01:00` | Intervalos do histórico de sistema e de processos |
 | `MetricsHistory:Retention` | `00:30:00` | Quanto histórico fica em memória |
 | `MetricsHistory:ProcessMinimumPrivateBytes` | `52428800` | Só processos com ≥ 50 MB privados entram no histórico |
+| `SpaceAnalysis:MaxConcurrency` | `4` | Pastas lidas em paralelo na análise de espaço em SSD/NVMe |
+| `SpaceAnalysis:RotationalMaxConcurrency` | `1` | O mesmo em HDD ou tipo de disco não identificado (leituras simultâneas pioram em disco mecânico) |
+| `SpaceAnalysis:MaxChildrenPerFolder` / `MinFolderBytes` | `50` / `1048576` | Subpastas listadas por pasta; menores são somadas ("N pastas menores") |
+| `SpaceAnalysis:TopFiles` | `50` | Tamanho das listas de maiores arquivos e de arquivos antigos (a tela mostra 20) |
+| `SpaceAnalysis:OldFileAge` / `OldFileMinimumBytes` | `730.00:00:00` / `10485760` | "Arquivo grande sem alteração": ≥ 10 MB e sem alteração há 2 anos |
 | `Repair:DryRun` | `false` | Força simulação em todas as correções |
 | `FileLogging:MinimumLevel` | `Information` | Nível mínimo de log |
 | `FileLogging:FileSizeLimitBytes` | `10485760` | Tamanho máximo por arquivo antes de rolar |
@@ -144,14 +159,14 @@ logs e saídas, backups com ACL. Detalhes: [docs/SECURITY.md](docs/SECURITY.md).
 - [docs/BUILD.md](docs/BUILD.md) — build local, publicação, portable, CI
 - [docs/RELEASE.md](docs/RELEASE.md) — versionamento e checklist
 
-## 10. Testes (Passo 2 + break-ui)
+## 10. Testes (Passo 3)
 
 | Projeto | Testes |
 | --- | --- |
-| UnitTests | 160 (inclui `InventoryTextTests`: placeholders de firmware, JEDEC, status WMI, `ByteSize.FormatPair`) |
-| IntegrationTests | 22 (inclui leitura real de WMI, PDH, memória, processos e histórico desta máquina) |
-| SystemTests | 11 (inclui varredura completa real com os 4 scanners e `FmtTests`: plural, milhar, "—") |
-| **Total** | **193 — todos passando** (Debug e Release com `-warnaserror`) |
+| UnitTests | 212 (inclui `InventoryTextTests`, `StorageTextTests` — códigos do WMI de armazenamento — e `StorageRulesTests`) |
+| IntegrationTests | 29 (inclui leitura real de WMI, PDH, memória, processos, histórico, discos/volumes desta máquina e o analisador de espaço sobre uma árvore temporária: soma, poda, maiores/antigos, junção não seguida, cancelamento) |
+| SystemTests | 11 (inclui varredura completa real com os 6 scanners e `FmtTests`: plural, milhar, "—") |
+| **Total** | **252 — todos passando** (Debug e Release com `-warnaserror`; 3 rodadas seguidas com as suítes em paralelo) |
 
 ## 11. Dados de desenvolvimento e textos de inventário
 
@@ -163,5 +178,6 @@ logs e saídas, backups com ACL. Detalhes: [docs/SECURITY.md](docs/SECURITY.md).
   "System Product Name"…); `MemoryVendor` traduz código JEDEC em fabricante; `DeviceStatus` traduz o status WMI com
   `StatusTone` (Normal/Warning/Critical), exibido em âmbar/vermelho pelos templates de `InfoRow`.
 - **Formatação (`Fmt`, `ByteSize`)**: `Fmt.Reading` → "—" quando não há leitura (a legenda explica); `Fmt.Count` com
-  plural e separador de milhar; `ByteSize.FormatPair`/`Fmt.BytesOf` mostram parte e total na mesma unidade.
+  plural e separador de milhar; `ByteSize.Format` também usa separador de milhar ("1.012,8 MB"); `ByteSize.FormatPair`/`Fmt.BytesOf`
+  mostram parte e total na mesma unidade; `Fmt.Duration` ("1 min 52 s").
 - **Estilo `MetricValue`**: números grandes dos cartões com algarismos tabulares, em `Grid(*,Auto)` ao lado do título.

@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using LeccorWindowsHealthCenter.App;
 using LeccorWindowsHealthCenter.Application.Commands;
 using LeccorWindowsHealthCenter.Application.Persistence;
@@ -64,9 +64,11 @@ public sealed class HostCompositionTests : IDisposable
         Assert.NotNull(services.GetRequiredService<ILiveMetricsProvider>());
         Assert.NotNull(services.GetRequiredService<IMetricsHistory>());
         Assert.NotNull(services.GetRequiredService<IHardwareInventoryProvider>());
+        Assert.NotNull(services.GetRequiredService<IStorageInventoryProvider>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Storage.ISpaceAnalyzer>());
         Assert.NotEmpty(services.GetServices<IReportExporter>());
-        Assert.Equal(["hardware", "cpu", "memory", "gpu"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
-        Assert.Equal(5, services.GetServices<IRule>().Count());
+        Assert.Equal(["hardware", "cpu", "memory", "gpu", "disks", "storage"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
+        Assert.Equal(10, services.GetServices<IRule>().Count());
     }
 
     [Fact]
@@ -93,9 +95,12 @@ public sealed class HostCompositionTests : IDisposable
         Assert.All(report.Results, r => Assert.True(r.Status == ScannerRunStatus.Completed, $"{r.ScannerId}: {r.Status} {r.Error}"));
         Assert.Contains(report.Results.Single(r => r.ScannerId == "cpu").Metrics, m => m.Name == "cpu.total");
         Assert.Contains(report.Results.Single(r => r.ScannerId == "memory").Metrics, m => m.Name == "memory.commit");
+        Assert.Contains(report.Results.Single(r => r.ScannerId == "disks").Metrics, m => m.Name == "volume.free.percent" && m.HasTag("drive", System.IO.Path.GetPathRoot(Environment.SystemDirectory)!));
+        Assert.Contains(report.Results.Single(r => r.ScannerId == "storage").Metrics, m => m.Name == "storage.temp_cache.bytes");
         Assert.NotNull(report.Score.Overall);
         Assert.Contains(ScoreCategory.Hardware, report.Score.Categories.Keys);
         Assert.Contains(ScoreCategory.Performance, report.Score.Categories.Keys);
+        Assert.Contains(ScoreCategory.Storage, report.Score.Categories.Keys);
 
         await using var connection = await host.Services.GetRequiredService<SqliteDatabase>().OpenAsync(CancellationToken.None);
         await using var command = connection.CreateCommand();

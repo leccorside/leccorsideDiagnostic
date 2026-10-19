@@ -364,6 +364,25 @@ quebrarem em várias linhas.
 Linha de "maiores consumidores": nome, PID em Label secundário, valor em Body semibold à direita e barra de 4px na cor
 da série (Traço CPU ou Traço RAM) — nunca na Brasa.
 
+### Row Button
+
+Linha inteira clicável dentro de um cartão (ex.: pasta na análise de espaço). Sem fundo em repouso; hover em Nav Hover,
+pressionado em Nav Selected, foco com borda secundária de 1px — os mesmos tons do menu. Cantos de 6px e margem
+negativa de 8px para o hover alinhar com o conteúdo do cartão. Linha não navegável fica desabilitada, sem chevron.
+
+### Volume Row
+
+Rótulo do volume em Body semibold, legenda em Label (sistema de arquivos · disco · tipo), "x livres de y" em Body
+com números tabulares à direita, ação secundária "Analisar" e barra de 6px com a fração **usada** em Traço RAM —
+nunca vermelha sem um achado de pouco espaço (The Significado Fixo Rule).
+
+### Folder Row
+
+Ícone Fluent (pasta ou documento) em tinta secundária, nome que corta no fim, "% · N arquivos" em Label, tamanho em
+Body semibold tabular, chevron só quando dá para entrar, barra de 4px em Traço RAM proporcional à pasta atual. Linhas
+de resumo ("Arquivos nesta pasta", "N pastas menores") usam a mesma forma sem navegação. A trilha acima usa Row Buttons
+compactos separados por chevrons, sem chevron após o último nível.
+
 ### Named Rules
 
 **The Sem Sobretítulo Rule.** Nenhum rótulo pequeno acima de um título. A categoria vira título de seção; o cartão

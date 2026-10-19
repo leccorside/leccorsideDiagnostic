@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **18/10/2026 — Passo 2 concluído (v0.2.0) + correções do break-ui; aguardando autorização para o Passo 3.**
+Última atualização: **18/10/2026 — Passo 3 concluído (v0.3.0); aguardando autorização para o Passo 4.**
 
 ---
 
@@ -17,9 +17,12 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   RepairEngine (sem ações concretas), executor de comandos seguro, SQLite com migrations, backups, logs.
 - **Scanners em produção (Passo 2):** Hardware, CPU, Memória e GPU, com histórico de fundo de 30 min e 5 regras
   (CPU sustentada, possível limitação de frequência, pressão de memória, commit alto, possível vazamento).
+- **Scanners em produção (Passo 3):** Discos e Armazenamento, com 5 regras (pouco espaço livre, disco sinaliza problema,
+  temperatura alta, TRIM desativado em SSD, temporários/caches grandes como recomendação).
 - App abre sem admin: Dashboard (score com cobertura "Avaliou X de 6 áreas", CPU/RAM/disco/GPU ao vivo), Varredura,
-  **Performance**, **Hardware** e Configurações. Demais menus: páginas "em construção" com o MVP previsto.
-- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 193/193 (160 unitários, 22 integração, 11 sistema).
+  **Performance**, **Hardware**, **Armazenamento** e Configurações. Demais menus: páginas "em construção" com o MVP previsto.
+- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 252/252 (212 unitários, 29 integração, 11 sistema),
+  estáveis em 3 rodadas seguidas com as suítes em paralelo.
 - Telas de Performance e Hardware passaram pelo teste de estresse break-ui (16 correções, ver Histórico).
 - Consumo medido (Release, histórico ativo): 0,17% CPU no Dashboard, 0,46% na Performance, 0,00% minimizado;
   101–120 MB privados (~160–180 MB working set).
@@ -205,15 +208,71 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 - Verificação: seletor em todos os estados, 980 e 1280 px, claro e escuro; dados reais sem regressão.
 - Teste instável endurecido: `Timeout_kills_the_process_tree` falhou uma vez sob carga pesada (suítes em paralelo)
   → margem de 20 s e espera ativa de até 5 s pelo fim do PING em vez de atraso fixo.
+- Capturas e o script de captura (`ui-break.ps1`) ficaram no scratchpad temporário da sessão, fora do repositório:
+  para reverificar, abrir o app em Debug e usar o seletor (ou `--DevData:Mode=...`).
+
+#### Erros e correções do break-ui
+
+| Problema | Causa | Correção |
+| --- | --- | --- |
+| "não disponível" em 22 px sobrepondo o título do cartão | `DockPanel` sem reserva de largura para o valor | `Grid(*,Auto)` + "—" no valor e legenda pequena abaixo |
+| "1 núcleos", "1 threads", "1 módulos" | Plural fixo no texto | `Fmt.Count(valor, singular, plural)` |
+| "1023,7 GB de 1 TB" / "2 TB de 2 TB (100%)" | Cada valor formatado na própria unidade; arredondamento igualava os dois | `ByteSize.FormatPair` (unidade do menor valor; desce uma unidade se os textos ficarem iguais) |
+| "00AD063200AD" como fabricante de RAM | WMI devolve código JEDEC | `InventoryText.MemoryVendor` |
+| "Degraded"/"Error" em inglês e sem destaque | Status WMI exibido cru | `InventoryText.DeviceStatus` + `StatusTone` nos templates de `InfoRow` |
+| Gráfico ligava pontos através de uma suspensão | Eixo X por índice da amostra | `Sparkline.Timestamps` + quebra em lacunas > 30 s |
+| Linha `_ = culture;` inserida por engano durante a edição | Erro de edição | Removida antes do build final |
+
+### Passo 3 — Discos e Armazenamento (18/10/2026)
+
+- **Sonda antes de desenhar (sem admin, nesta máquina):** `MSFT_PhysicalDisk`/`MSFT_Disk`/`MSFT_Partition`/`MSFT_Volume`
+  funcionam; `MSFT_StorageReliabilityCounter` (temperatura, desgaste, horas) e `MSStorageDriver_FailurePredictStatus`
+  dão **acesso negado**. IOCTL com o disco aberto em acesso 0 entrega TRIM e penalidade de busca (SSD × HDD); a
+  temperatura não é suportada pelo SSD SATA nem pelo disco USB desta máquina. Decisão: sem admin, vida útil e horas
+  ficam "não disponível" com a explicação; com admin (processo elevado, Passo 5), o contador de confiabilidade é lido.
+- **Application:** `StorageInventory` (discos, partições, volumes; null = não informado), `StorageText` (códigos do WMI →
+  tipos/textos), `ISpaceAnalyzer` + `FolderNode`/`SpaceAnalysis` + `SpaceAnalysisOptions`, catálogo `StorageLocations`.
+- **Infrastructure:** `WmiQuery` (utilitários WMI extraídos do provedor de hardware, que passou a usá-los),
+  `WmiStorageInventoryProvider` (cache de 30 s), `StorageDeviceQuery` (IOCTLs), `FileSystemSpaceAnalyzer`.
+- **Diagnostics:** `DiskScanner` (`disks`, ordem 50) e `StorageScanner` (`storage`, ordem 60, só locais conhecidos — a
+  árvore completa é sob demanda na tela) + 5 regras (ver `docs/RULE_ENGINE.md`).
+- **Decisões de regra:** volume de dados só alerta com percentual **e** valor absoluto baixos (5% de 2 TB ≈ 100 GB não
+  é problema); o C: desta máquina (7% livre, ~45–65 GB) **não** gera alerta, de propósito. TRIM desconhecido não é
+  problema. A Lixeira fica fora do total de temporários/caches (esvaziar é decisão do usuário).
+- **Tela Armazenamento:** volumes (barra de uso na cor da série, nunca vermelha sem achado), análise de espaço
+  (progresso ao vivo, cancelar, trilha clicável, linhas clicáveis com o novo estilo `RowButton`, maiores arquivos,
+  arquivos grandes antigos, explicação de `pagefile.sys`/`hiberfil.sys`), temporários e caches, discos físicos
+  (cartões de 2 colunas). Revisada com impeccable em claro/escuro, 1280 e 980 px.
+- **Performance da análise (medida):** C: com 2,6 mi de arquivos e 566 mil pastas. Primeira versão: 529 s (abria
+  leitores extras só até a profundidade 3 → na prática 1 leitor). Benchmark em `C:\Program Files`: 1 leitor 5,2 s,
+  2 leitores 5,2 s (não escalava). Correção: vaga livre vira tarefa em qualquer profundidade + 4 leitores em SSD e 1 em
+  HDD → 2,7 s no benchmark e 73–113 s no C: inteiro dentro do app. O custo do analisador sobre a enumeração crua é ~1,6×.
+- `ByteSize.Format` passou a usar separador de milhar ("1.012,8 MB"), igual a `FormatPair`.
+
+#### Erros e correções do Passo 3
+
+| Problema | Causa | Correção |
+| --- | --- | --- |
+| C: ficava sem disco físico (`DiskNumber` nulo) quando outra consulta WMI rodava junto | `MSFT_Partition` estourou o timeout de 20 s sob carga (visto com as 3 suítes de teste em paralelo) | Disco de cada volume via `IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS` (rápido, sem admin, sem WMI); partição do WMI virou reserva; teste de regressão |
+| Análise do C: em ~9 min | Paralelismo limitado à profundidade 3 | Paralelismo em qualquer profundidade, por tipo de disco (medido, ver acima) |
+| Disco USB de tipo desconhecido mostrava TRIM "Não se aplica (HDD)" | Afirmação feita sem o tipo ser HDD | "Não se aplica" só com HDD comprovado; senão "não disponível" |
+| "sem alteração desde 31/12/1969" na lista de arquivos antigos | Carimbo de data zerado no arquivo | Datas antes de 1980 ficam fora da lista (inválidas, não antigas); teste |
+| "899,3 GB em C:\" com 849 GB usados no volume, sem explicação | Links físicos (WinSxS) contados em cada pasta | Nota na raiz com os dois números |
+| "Analisar" não encontrado pelo script de captura | PowerShell 5.1 lê `.ps1` sem BOM como ANSI | Scripts com acentos gravados em UTF-8 com BOM |
+| Análise de 409 s durante a captura | O script de captura consultava a árvore de automação inteira a cada 3 s | Script passou a esperar pelo log; 73 s |
+| `EnumerationOptions` ambíguo; `Storage` namespace × constante | `System.IO` × `System.Management`; nome repetido | Nome qualificado; constante `StorageScope` |
 
 ## Pendências / próximos passos
 
 Na ordem combinada no `PASSOS.md`:
 
-1. **Passo 3** — Discos (SMART/NVMe quando disponível) e Armazenamento (análise de espaço).
-2. Passo 4 — Processos e Inicialização (somente leitura).
-3. Passo 5 — Event Viewer (inclui eventos de driver de GPU: TDR, LiveKernelEvent), Integridade do Windows e **processo elevado + IPC**.
-4. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
+1. **Passo 4** — Processos e Inicialização (somente leitura).
+2. Passo 5 — Event Viewer (inclui eventos de driver de GPU e de disco: Disk 7/153, NTFS), Integridade do Windows e
+   **processo elevado + IPC** (habilita SMART detalhado, desgaste e horas ligadas dos discos).
+3. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
+
+Itens anotados do Passo 3: fixtures do seletor de dados de desenvolvimento (break-ui) para a tela Armazenamento ainda
+não existem; "Abrir no Explorer" a partir da análise de espaço não foi feito (exige passar pela política de execução).
 
 Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); sombra "flutuante" nos tooltips.
 
@@ -224,6 +283,11 @@ Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um 
   (CPU sustentada, vazamento) ainda não têm amostras suficientes e simplesmente não concluem.
 - Uso de CPU por processo não é medido em processos protegidos do sistema sem administrador (a tela informa quantos).
 - GPU sem contadores "GPU Engine" (VMs, drivers antigos) aparece como "não disponível".
+- Discos sem administrador: vida útil, horas ligadas e SMART detalhado ficam "não disponível" (o Windows nega o acesso);
+  temperatura só quando o dispositivo informa via IOCTL. Chegam com o processo elevado (Passo 5).
+- Análise de espaço usa tamanho lógico: links físicos (WinSxS) contam em cada pasta, arquivos comprimidos/esparsos
+  contam pelo tamanho lógico. Pastas sem permissão (sem admin) são contadas e avisadas, não lidas.
+- A análise de espaço fica só em memória (não é salva no histórico); fechar o app perde o resultado.
 - Preferências alteradas na UI (tema, modo avançado) valem só na sessão; persistência na tabela `Configuration` no Passo 10.
 - Dry Run só é configurável via `appsettings.json` (UI de Dry Run chega com as correções no Passo 8).
 - Processo elevado (`*.Elevated.exe`) e IPC ainda não existem: comandos/ações que exigem admin são recusados.

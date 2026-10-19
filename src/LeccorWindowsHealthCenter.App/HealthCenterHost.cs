@@ -55,6 +55,7 @@ public static class HealthCenterHost
         builder.Services.AddSingleton<ScanViewModel>();
         builder.Services.AddSingleton<PerformanceViewModel>();
         builder.Services.AddSingleton<HardwareViewModel>();
+        builder.Services.AddSingleton<StorageViewModel>();
         builder.Services.AddSingleton<SettingsViewModel>();
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();
