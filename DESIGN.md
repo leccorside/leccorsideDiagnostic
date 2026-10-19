@@ -373,15 +373,23 @@ negativa de 8px para o hover alinhar com o conteúdo do cartão. Linha não nave
 ### Volume Row
 
 Rótulo do volume em Body semibold, legenda em Label (sistema de arquivos · disco · tipo), "x livres de y" em Body
-com números tabulares à direita, ação secundária "Analisar" e barra de 6px com a fração **usada** em Traço RAM —
-nunca vermelha sem um achado de pouco espaço (The Significado Fixo Rule).
+com números tabulares à direita, ação secundária "Analisar" e barra de 6px com a fração **usada** em Traço RAM.
+Âmbar (Medium) ou vermelho (Critical) — barra, valor em semibold e "pouco espaço livre" na legenda — só quando a regra
+de pouco espaço acusaria o mesmo volume (mesma função `LowFreeSpaceRule.Assess`; The Significado Fixo Rule).
+
+### Disk Summary Row
+
+Com mais de 4 discos, cartões completos viram uma lista compacta dentro de um único cartão: Expander por disco com
+nome em Body semibold e resumo em Label (tipo · tamanho · estado SMART, na cor do estado); abrir mostra as linhas do
+cartão completo.
 
 ### Folder Row
 
-Ícone Fluent (pasta ou documento) em tinta secundária, nome que corta no fim, "% · N arquivos" em Label, tamanho em
+Ícone Fluent (pasta ou documento) em tinta secundária, nome que corta no fim (dica com o caminho), "% · N arquivos" em Label, tamanho em
 Body semibold tabular, chevron só quando dá para entrar, barra de 4px em Traço RAM proporcional à pasta atual. Linhas
 de resumo ("Arquivos nesta pasta", "N pastas menores") usam a mesma forma sem navegação. A trilha acima usa Row Buttons
-compactos separados por chevrons, sem chevron após o último nível.
+compactos separados por chevrons, sem chevron após o último nível. Nas listas de arquivos, o nome quebra linha
+(nunca corta: o fim diferencia arquivos parecidos) e a pasta é encurtada no meio ("C:\Users\…\blobs").
 
 ### Named Rules
 

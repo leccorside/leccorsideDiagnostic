@@ -3,15 +3,34 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LeccorWindowsHealthCenter.App.Services;
+using LeccorWindowsHealthCenter.Application.Rules;
 using LeccorWindowsHealthCenter.Application.Storage;
 using LeccorWindowsHealthCenter.Application.SystemInfo;
+using LeccorWindowsHealthCenter.Diagnostics.Rules;
+using LeccorWindowsHealthCenter.Domain;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace LeccorWindowsHealthCenter.App.ViewModels;
 
-/// <summary>Volume com barra de uso. <see cref="UsedPercent"/> é a fração ocupada (0–100).</summary>
-public sealed record VolumeRow(string Root, string Title, string Caption, string Value, double UsedPercent, bool SolidState, long UsedBytes);
+/// <summary>
+/// Volume com barra de uso. <see cref="UsedPercent"/> é a fração ocupada (0–100). <see cref="Tone"/> vem da MESMA decisão
+/// da regra de pouco espaço (<see cref="LowFreeSpaceRule.Assess"/>): a barra só fica âmbar/vermelha quando a varredura acusaria.
+/// </summary>
+public sealed record VolumeRow(string Root, string Title, string Caption, string Value, double UsedPercent, bool SolidState, long UsedBytes, StatusTone Tone = StatusTone.Normal)
+{
+    public bool IsWarning => Tone == StatusTone.Warning;
+
+    public bool IsCritical => Tone == StatusTone.Critical;
+}
+
+/// <summary>Disco na lista compacta (muitos discos): uma linha que abre o cartão completo.</summary>
+public sealed record DiskSummaryRow(string Title, string Summary, StatusTone Tone, InfoCard Card)
+{
+    public bool IsWarning => Tone == StatusTone.Warning;
+
+    public bool IsCritical => Tone == StatusTone.Critical;
+}
 
 /// <summary>Local de temporários/cache medido. <see cref="ToolTip"/> lista os caminhos reais.</summary>
 public sealed record LocationRow(string Title, string Value, string Detail, string? ToolTip);
@@ -34,6 +53,9 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
 {
     private const int VisibleFiles = 20;
 
+    /// <summary>A partir daqui, cartões completos viram uma lista compacta (24 baias = 24 cartões de 9 linhas).</summary>
+    private const int MaxDiskCards = 4;
+
     /// <summary>Arquivos do sistema que aparecem entre os maiores e assustam quem não os conhece.</summary>
     private static readonly Dictionary<string, string> KnownSystemFiles = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -47,8 +69,12 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
     private readonly ISpaceAnalyzer _analyzer;
     private readonly UiPreferences _preferences;
     private readonly SpaceAnalysisOptions _options;
+    private readonly IRuleSettings _ruleSettings;
+    private readonly LowFreeSpaceRule _lowSpace = new();
     private readonly ILogger<StorageViewModel> _logger;
     private readonly List<FolderNode> _path = [];
+    private int _loadVersion;
+    private string? _analyzedRoot;
     private CancellationTokenSource? _analysisCts;
     private SpaceAnalysis? _analysis;
     private long? _analyzedVolumeUsed;
@@ -59,8 +85,10 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
         ISpaceAnalyzer analyzer,
         UiPreferences preferences,
         IOptions<SpaceAnalysisOptions> options,
+        IRuleSettings ruleSettings,
         ILogger<StorageViewModel> logger)
     {
+        _ruleSettings = ruleSettings;
         _options = options.Value;
         _inventory = inventory;
         _analyzer = analyzer;
@@ -78,6 +106,7 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
     [ObservableProperty] private string _capturedText = string.Empty;
     [ObservableProperty] private IReadOnlyList<VolumeRow> _volumes = [];
     [ObservableProperty] private IReadOnlyList<InfoCard> _disks = [];
+    [ObservableProperty] private IReadOnlyList<DiskSummaryRow> _diskRows = [];
     [ObservableProperty] private string _disksNote = string.Empty;
     [ObservableProperty] private string _disksEmptyText = string.Empty;
     [ObservableProperty] private IReadOnlyList<string> _warnings = [];
@@ -136,19 +165,19 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
         IsAnalyzing = true;
         HasAnalysis = false;
         AnalysisStatus = $"Lendo {volume.Root}…";
-        var progress = new Progress<SpaceProgress>(p => AnalysisStatus = string.Create(CultureInfo.CurrentCulture,
-            $"Lendo {volume.Root} — {p.FilesScanned:#,##0} arquivos · {Fmt.Bytes(p.BytesScanned)} · {p.CurrentFolder}"));
+        var progress = new Progress<SpaceProgress>(p => AnalysisStatus =
+            $"Lendo {volume.Root} — {Fmt.Count(p.FilesScanned, "arquivo", "arquivos")} · {Fmt.Bytes(p.BytesScanned)} · {ShortPath(p.CurrentFolder)}");
         try
         {
             _analysis = await _analyzer.AnalyzeAsync(volume.Root, volume.SolidState, progress, cts.Token);
             _analyzedVolumeUsed = volume.UsedBytes;
+            _analyzedRoot = volume.Root;
             _path.Clear();
             _path.Add(_analysis.Root);
             ShowCurrent();
             ApplyFiles(_analysis);
             HasAnalysis = true;
-            AnalysisStatus = string.Create(CultureInfo.CurrentCulture,
-                $"Analisado em {Fmt.Duration(_analysis.Duration)} · {_analysis.Root.FileCount:#,##0} arquivos · {Fmt.DateTime(_analysis.CapturedAt)}");
+            AnalysisStatus = $"Analisado em {Fmt.Duration(_analysis.Duration)} · {Fmt.Count(_analysis.Root.FileCount, "arquivo", "arquivos")} · {Fmt.DateTime(_analysis.CapturedAt)}";
         }
         catch (OperationCanceledException)
         {
@@ -199,12 +228,18 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
 
     private async Task LoadAsync(bool forceRefresh)
     {
+        // Só a leitura mais recente é aplicada: uma leitura anterior e mais lenta não pode sobrescrever a nova.
+        var version = ++_loadVersion;
         IsLoading = true;
         Error = null;
-        var measure = MeasureLocationsAsync();
+        var measure = MeasureLocationsAsync(version);
         try
         {
-            Apply(await _inventory.GetAsync(CancellationToken.None, forceRefresh));
+            var inventory = await _inventory.GetAsync(CancellationToken.None, forceRefresh);
+            if (version == _loadVersion)
+            {
+                Apply(inventory);
+            }
         }
         catch (Exception ex)
         {
@@ -219,14 +254,18 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
         await measure;
     }
 
-    private async Task MeasureLocationsAsync()
+    private async Task MeasureLocationsAsync(int version)
     {
         IsMeasuring = true;
         LocationsTitle = "Medindo temporários e caches…";
         LocationsCaption = string.Empty;
         try
         {
-            ApplyLocations(await _analyzer.MeasureLocationsAsync(StorageLocations.All, CancellationToken.None));
+            var measures = await _analyzer.MeasureLocationsAsync(StorageLocations.All, CancellationToken.None);
+            if (version == _loadVersion)
+            {
+                ApplyLocations(measures);
+            }
         }
         catch (Exception ex)
         {
@@ -250,22 +289,50 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
             var disk = inventory.Disks.FirstOrDefault(d => d.Number == v.DiskNumber);
             var drive = v.Root.TrimEnd('\\');
             var title = v.Label is { } label ? $"{drive}  {label}" : drive;
+            var severity = v.IsRemovable || !_ruleSettings.IsEnabled(_lowSpace.Id)
+                ? null
+                : LowFreeSpaceRule.Assess(v.IsSystem, v.SizeBytes, v.FreeBytes, key => _lowSpace.ParameterOf(_ruleSettings, key));
+            var tone = severity switch
+            {
+                Severity.High or Severity.Critical => StatusTone.Critical,
+                not null => StatusTone.Warning,
+                _ => StatusTone.Normal,
+            };
+
+            // Tipo antes do nome do disco: em janela estreita o corte leva o fim do nome, não "SSD NVMe".
             var caption = string.Join(" · ", new[]
             {
+                severity is null ? null : "pouco espaço livre",
                 v.IsSystem ? "Windows" : null,
                 v.FileSystem,
-                disk is null ? null : InventoryText.Clean(disk.Name),
                 disk is null ? null : StorageText.Kind(disk.Media, disk.Bus),
+                disk is null ? null : InventoryText.Clean(disk.Name),
                 v.IsRemovable ? "removível" : null,
             }.Where(s => !string.IsNullOrWhiteSpace(s)));
             var (free, size) = Shared.Formatting.ByteSize.FormatPair(v.FreeBytes, v.SizeBytes, CultureInfo.CurrentCulture);
-            return new VolumeRow(v.Root, title, caption, $"{free} livres de {size}", v.SizeBytes > 0 ? v.UsedBytes * 100.0 / v.SizeBytes : 0, disk?.IsSolidState ?? false, v.UsedBytes);
+            return new VolumeRow(v.Root, title, caption, $"{free} livres de {size}", v.SizeBytes > 0 ? v.UsedBytes * 100.0 / v.SizeBytes : 0, disk?.IsSolidState ?? false, v.UsedBytes, tone);
         }).ToList();
 
-        Disks = inventory.Disks.Select(d => DiskCard(d, inventory)).ToList();
-        DisksEmptyText = inventory.Disks.Count == 0
-            ? "O Windows não devolveu nenhum disco físico. Os volumes acima continuam corretos; use “Ler novamente” e, se persistir, veja o modo avançado nas Configurações."
-            : string.Empty;
+        // Volume analisado sumiu (USB removido): a análise antiga não pode continuar na tela como se valesse.
+        if (_analyzedRoot is { } analyzed && HasAnalysis && Volumes.All(v => !string.Equals(v.Root, analyzed, StringComparison.OrdinalIgnoreCase)))
+        {
+            HasAnalysis = false;
+            _analysis = null;
+            _path.Clear();
+            AnalysisStatus = $"A análise de {analyzed} foi descartada: o volume não está mais disponível.";
+            _analyzedRoot = null;
+        }
+
+        var cards = inventory.Disks.Select(d => DiskCard(d, inventory)).ToList();
+        var compact = cards.Count > MaxDiskCards;
+        Disks = compact ? [] : cards;
+        DiskRows = compact ? inventory.Disks.Zip(cards, DiskSummary).ToList() : [];
+        DisksEmptyText = (inventory.Disks.Count, inventory.Volumes.Count) switch
+        {
+            (> 0, _) => string.Empty,
+            (_, > 0) => "O Windows não devolveu nenhum disco físico. Os volumes acima continuam corretos; use “Ler novamente” e, se persistir, veja o modo avançado nas Configurações.",
+            _ => "O Windows não devolveu discos nem volumes. Isso costuma ser temporário (serviço de armazenamento ocupado); use “Ler novamente” e, se persistir, veja o modo avançado nas Configurações.",
+        };
         DisksNote = inventory.ReadWithElevation
             ? "Temperatura e vida útil aparecem só quando o próprio disco informa. Nada é estimado."
             : "Vida útil restante e horas ligadas exigem administrador: sem ele, o Windows nega o acesso a esses dados. Temperatura aparece só quando o próprio disco informa. Nada é estimado.";
@@ -274,6 +341,14 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
     private static InfoCard DiskCard(PhysicalDiskInfo disk, StorageInventory inventory)
     {
         var volumes = inventory.Volumes.Where(v => v.DiskNumber == disk.Number).ToList();
+        var title = Fmt.Text(InventoryText.Clean(disk.Name) ?? disk.Name);
+
+        // Leitor de cartão sem cartão: nada a medir; oito linhas de "não disponível" seriam só ruído.
+        if (disk.SizeBytes is null && disk.Partitions.Count == 0 && volumes.Count == 0)
+        {
+            return new InfoCard(title, $"{StorageText.Kind(disk.Media, disk.Bus)} · sem mídia inserida", []);
+        }
+
         var used = volumes.Count == 0 ? (long?)null : volumes.Sum(v => v.UsedBytes);
         var free = volumes.Count == 0 ? (long?)null : volumes.Sum(v => v.FreeBytes);
         var health = StorageText.HealthText(disk.Health, disk.PredictedFailure);
@@ -296,10 +371,13 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
                 _ => (Fmt.NotAvailable, StatusTone.Normal),
             };
 
-        return new InfoCard(Fmt.Text(InventoryText.Clean(disk.Name) ?? disk.Name), caption,
+        var space = volumes.Count == 0
+            ? new InfoRow[] { new("Volumes", "nenhum com letra de unidade") }
+            : [new("Utilizado", Fmt.Bytes(used)), new("Livre", Fmt.Bytes(free))];
+
+        return new InfoCard(title, caption,
         [
-            new("Utilizado", volumes.Count == 0 ? "sem volume com letra" : Fmt.Bytes(used)),
-            new("Livre", volumes.Count == 0 ? "sem volume com letra" : Fmt.Bytes(free)),
+            .. space,
             new("Saúde (vida útil)", disk.WearPercent is { } wear ? $"{100 - wear}% restante" : Fmt.NotAvailable),
             new("Estado SMART", health?.Text ?? Fmt.NotAvailable, health?.Tone ?? StatusTone.Normal),
             new("Temperatura", disk.TemperatureCelsius is { } celsius ? string.Create(CultureInfo.CurrentCulture, $"{celsius:0} °C") : Fmt.NotAvailable),
@@ -307,6 +385,51 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
             new("Partições", Partitions(disk)),
             new("Firmware", Fmt.Text(disk.Firmware)),
         ]);
+    }
+
+    private static DiskSummaryRow DiskSummary(PhysicalDiskInfo disk, InfoCard card)
+    {
+        var health = StorageText.HealthText(disk.Health, disk.PredictedFailure);
+        var summary = string.Join(" · ", new[]
+        {
+            StorageText.Kind(disk.Media, disk.Bus),
+            disk.SizeBytes is { } size ? Fmt.Bytes(size) : "sem mídia",
+            health?.Text,
+        }.Where(s => s is not null));
+        return new DiskSummaryRow(card.Title, summary, health?.Tone ?? StatusTone.Normal, card);
+    }
+
+    /// <summary>
+    /// Caminho encurtado no meio ("C:\Users\…\models\blobs"): as pontas identificam o lugar; cortar no fim perderia a
+    /// pasta final, que é o que diferencia dois caminhos. O caminho completo fica na dica.
+    /// </summary>
+    public static string ShortPath(string path, int maxLength = 64)
+    {
+        if (path.Length <= maxLength)
+        {
+            return path;
+        }
+
+        var parts = path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length <= 3)
+        {
+            return path;
+        }
+
+        var head = string.Join(Path.DirectorySeparatorChar, parts.Take(2));
+        var tail = parts[^1];
+        for (var i = parts.Length - 2; i >= 2; i--)
+        {
+            var longer = parts[i] + Path.DirectorySeparatorChar + tail;
+            if (head.Length + longer.Length + 3 > maxLength)
+            {
+                break;
+            }
+
+            tail = longer;
+        }
+
+        return $"{head}{Path.DirectorySeparatorChar}…{Path.DirectorySeparatorChar}{tail}";
     }
 
     private static string Partitions(PhysicalDiskInfo disk)
@@ -330,15 +453,21 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
         var counted = measures.Where(m => m.Location.Kind != StorageLocationKind.RecycleBin).ToList();
         var total = counted.Sum(m => m.SizeBytes);
         var recycle = measures.FirstOrDefault(m => m.Location.Kind == StorageLocationKind.RecycleBin);
-        LocationsTitle = $"{Fmt.Bytes(total)} em temporários e caches";
+        var missing = measures.Where(m => !m.Found).Select(m => m.Location.Title).ToList();
+        LocationsTitle = missing.Count == measures.Count
+            ? "Nenhum local conhecido de temporários ou caches encontrado"
+            : $"{Fmt.Bytes(total)} em temporários e caches";
         LocationsCaption = (recycle is { Found: true } ? $"A Lixeira ({Fmt.Bytes(recycle.SizeBytes)}) fica fora dessa conta. " : string.Empty)
-            + "Só medição: nada é apagado aqui. A limpeza segura por categorias chega na tela Limpeza.";
+            + "Só medição: nada é apagado aqui. A limpeza segura por categorias chega na tela Limpeza."
+            + (missing.Count > 0 && missing.Count < measures.Count ? $" Não encontrados nesta máquina: {string.Join(", ", missing)}." : string.Empty);
 
+        // Só o que existe vira linha; os ausentes ficam numa frase (oito "não encontrado" seguidos eram ruído).
         Locations = measures
+            .Where(m => m.Found)
             .OrderByDescending(m => m.SizeBytes)
             .Select(m => new LocationRow(
                 m.Location.Title,
-                m.Found ? Fmt.Bytes(m.SizeBytes) : "não encontrado",
+                m.SizeBytes == 0 && m.InaccessibleCount > 0 ? "sem permissão" : Fmt.Bytes(m.SizeBytes),
                 m.Location.Description + (m.InaccessibleCount > 0 ? " Parte das pastas não pôde ser lida sem administrador; o total pode ser maior." : string.Empty),
                 m.ResolvedPaths.Count > 0 ? string.Join(Environment.NewLine, m.ResolvedPaths) : null))
             .ToList();
@@ -350,10 +479,7 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
         Breadcrumb = _path.Select((n, i) => new BreadcrumbItem(i == 0 ? n.Path.TrimEnd('\\') : n.Name, n, i == _path.Count - 1)).ToList();
         CurrentTitle = $"{Fmt.Bytes(node.SizeBytes)} em {(node.Path.Length <= 3 ? node.Path : node.Name)}";
 
-        var notes = new List<string>
-        {
-            string.Create(CultureInfo.CurrentCulture, $"{node.FileCount:#,##0} arquivos"),
-        };
+        var notes = new List<string> { Fmt.Count(node.FileCount, "arquivo", "arquivos") };
         if (node.InaccessibleCount > 0)
         {
             notes.Add($"{Fmt.Count(node.InaccessibleCount, "pasta sem permissão de leitura", "pastas sem permissão de leitura")} (o total real pode ser maior)");
@@ -367,20 +493,21 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
         // Links físicos (WinSxS) aparecem em mais de uma pasta: a soma pode passar do espaço realmente usado.
         if (_path.Count == 1 && _analyzedVolumeUsed is { } volumeUsed && node.SizeBytes > volumeUsed)
         {
-            notes.Add($"a soma passa dos {Fmt.Bytes(volumeUsed)} usados no volume porque arquivos com links físicos (como os de Windows\\WinSxS) contam em cada pasta onde aparecem");
+            notes.Add($"A soma passa dos {Fmt.Bytes(volumeUsed)} usados no volume porque arquivos com links físicos (como os de Windows\\WinSxS) contam em cada pasta onde aparecem");
         }
         else if (node.Path.Contains(@"\Windows", StringComparison.OrdinalIgnoreCase))
         {
-            notes.Add("pastas do Windows com links físicos (como WinSxS) aparecem maiores do que ocupam");
+            notes.Add("Pastas do Windows com links físicos (como WinSxS) aparecem maiores do que ocupam");
         }
 
-        CurrentCaption = string.Join(" · ", notes);
+        // Uma nota por linha: três notas emendadas com "·" viravam um parágrafo difícil de ler.
+        CurrentCaption = string.Join(Environment.NewLine, notes);
 
         double Share(long bytes) => node.SizeBytes > 0 ? bytes * 100.0 / node.SizeBytes : 0;
         var rows = node.Children.Select(c => new FolderRow(
             c.Name,
             Fmt.Bytes(c.SizeBytes),
-            c.Inaccessible ? "sem permissão de leitura" : string.Create(CultureInfo.CurrentCulture, $"{Share(c.SizeBytes):0}% · {c.FileCount:#,##0} arquivos"),
+            c.Inaccessible ? "sem permissão de leitura" : string.Create(CultureInfo.CurrentCulture, $"{Share(c.SizeBytes):0}% · {Fmt.Count(c.FileCount, "arquivo", "arquivos")}"),
             Share(c.SizeBytes),
             c,
             c.Path)).ToList();
@@ -417,6 +544,6 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
     {
         var name = Path.GetFileName(file.Path);
         var known = KnownSystemFiles.TryGetValue(name, out var description) ? $"{description} · " : string.Empty;
-        return new FileRow(name, Path.GetDirectoryName(file.Path) ?? string.Empty, Fmt.Bytes(file.SizeBytes), known + detail, file.Path);
+        return new FileRow(name, ShortPath(Path.GetDirectoryName(file.Path) ?? string.Empty), Fmt.Bytes(file.SizeBytes), known + detail, file.Path);
     }
 }

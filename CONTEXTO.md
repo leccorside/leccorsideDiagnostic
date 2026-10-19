@@ -21,7 +21,7 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   temperatura alta, TRIM desativado em SSD, temporários/caches grandes como recomendação).
 - App abre sem admin: Dashboard (score com cobertura "Avaliou X de 6 áreas", CPU/RAM/disco/GPU ao vivo), Varredura,
   **Performance**, **Hardware**, **Armazenamento** e Configurações. Demais menus: páginas "em construção" com o MVP previsto.
-- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 252/252 (212 unitários, 29 integração, 11 sistema),
+- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 261/261 (214 unitários, 30 integração, 17 sistema),
   estáveis em 3 rodadas seguidas com as suítes em paralelo.
 - Telas de Performance e Hardware passaram pelo teste de estresse break-ui (16 correções, ver Histórico).
 - Consumo medido (Release, histórico ativo): 0,17% CPU no Dashboard, 0,46% na Performance, 0,00% minimizado;
@@ -262,6 +262,50 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 | Análise de 409 s durante a captura | O script de captura consultava a árvore de automação inteira a cada 3 s | Script passou a esperar pelo log; 73 s |
 | `EnumerationOptions` ambíguo; `Storage` namespace × constante | `System.IO` × `System.Management`; nome repetido | Nome qualificado; constante `StorageScope` |
 
+### Teste de estresse da tela Armazenamento com break-ui (19/10/2026)
+
+- Seletor de dados de desenvolvimento (só DEBUG) agora cobre a tela Armazenamento: `App/DevData/DevDataStorageFixtures.cs`
+  e os decoradores `SwitchingStorage` (`IStorageInventoryProvider`) e `SwitchingSpaceAnalyzer` (`ISpaceAnalyzer`); o
+  seletor também recarrega a tela Armazenamento ao trocar de modo.
+- Fixtures realistas: SSD NVMe de 4 TB quase cheio (2 GB livres), HDD de NAS com falha prevista e 61 mil horas, VHDX do
+  Docker/WSL sem letra, leitor de cartão sem mídia, SSD em RAID com TRIM desligado e 5 partições, rótulos no limite de
+  32 caracteres do NTFS, rótulo em japonês, volume removível de 2 GB com 512 B ocupados, volume sem disco (VeraCrypt);
+  24 discos/volumes ("Muitos"); análise com OneDrive corporativo, `node_modules` aninhado, pasta com emoji, 2,6 mi de
+  arquivos, pasta sem permissão; estados Vazio e Um.
+- 14 achados (2 quebras, 8 visuais, 4 frágeis) + 4 decisões, **todos corrigidos** ("fix all", 19/10/2026; decisões
+  conforme as recomendações):
+  - `ByteSize.FormatPair`: zero não escolhe a unidade ("0 GB livres de 380 GB"); desce no máximo uma unidade, e só se
+    isso mostrar a diferença ("2 GB livres de 2 GB", não "2.097.151,5 KB de 2.097.152 KB").
+  - Plural ("1 arquivo") no status, na legenda e nas linhas de pasta.
+  - Disco sem mídia (leitor de cartão vazio): cartão só com título e "sem mídia inserida". Disco sem volume com letra:
+    uma linha "Volumes: nenhum com letra de unidade".
+  - Temporários e caches: só os encontrados viram linha; ausentes numa frase; "sem permissão" no lugar de "0 B".
+  - Legenda da pasta atual com uma nota por linha; nomes de arquivo quebram linha; caminhos encurtados no meio
+    (`StorageViewModel.ShortPath`: "C:\Users\…\models\blobs", completo na dica).
+  - Legenda do volume com o tipo antes do nome do disco (o corte em 980 px não leva mais "SSD NVMe").
+  - Corrida de carregamento: só a leitura mais recente é aplicada (`_loadVersion`).
+  - Analisador mantém até 10 pastas sem permissão na lista mesmo com 0 B (antes sumiam em "N pastas menores").
+  - Análise descartada, com aviso, quando o volume analisado some na recarga.
+  - Decisão A: barra e texto do volume em âmbar/vermelho pela **mesma** decisão da regra (`LowFreeSpaceRule.Assess` +
+    `ParameterOf`, respeitando thresholds configurados e regra desabilitada) e "pouco espaço livre" na legenda.
+  - Decisão C: mais de 4 discos viram lista compacta (Expander por disco com o cartão completo dentro).
+  - Decisão D: ao iniciar a análise, a tela rola até o painel (título + linha de progresso).
+  - Texto do estado sem discos nem volumes não fala mais em "volumes acima".
+- Testes novos: `FormatPair` com zero e quase iguais, pasta sem permissão real (ACL de negação no diretório temporário),
+  `StorageScreenTests` (caminho encurtado, mesma decisão da regra para a barra). 261/261.
+- Verificação: todos os estados do seletor em 1280 px claro e 980 px escuro; dados reais sem regressão.
+- Capturas e scripts (`storage-break.ps1`) no scratchpad temporário da sessão.
+
+#### Erros e correções do break-ui da tela Armazenamento
+
+| Problema | Causa | Correção |
+| --- | --- | --- |
+| "0 B livres de 408.021.893.120 B" | Unidade escolhida pelo menor valor, que era zero | Zero não escolhe a unidade |
+| "2.097.151,5 KB livres de 2.097.152 KB" | Laço descia de unidade até aparecer diferença de 512 B | Desce no máximo uma unidade e só se mostrar a diferença |
+| Inventário real sobrescrevendo o pior caso do seletor | Leitura inicial mais lenta terminava depois da recarga | Versão de carregamento; só a última é aplicada |
+| Pasta sem permissão invisível | Poda por tamanho (0 B < 1 MB) | Pastas sem permissão sempre mantidas (até 10) |
+| Edições da View não aplicadas pelo script | `R` é alias de `Invoke-History` no PowerShell | Edições refeitas com a ferramenta de edição; não usar nomes curtos de função em scripts |
+
 ## Pendências / próximos passos
 
 Na ordem combinada no `PASSOS.md`:
@@ -271,8 +315,7 @@ Na ordem combinada no `PASSOS.md`:
    **processo elevado + IPC** (habilita SMART detalhado, desgaste e horas ligadas dos discos).
 3. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
 
-Itens anotados do Passo 3: fixtures do seletor de dados de desenvolvimento (break-ui) para a tela Armazenamento ainda
-não existem; "Abrir no Explorer" a partir da análise de espaço não foi feito (exige passar pela política de execução).
+Item anotado do Passo 3: "Abrir no Explorer" a partir da análise de espaço não foi feito (exige passar pela política de execução).
 
 Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); sombra "flutuante" nos tooltips.
 

@@ -21,7 +21,7 @@ public static class DevDataToolbar
         (DevDataMode.Many, "Muitos"),
     ];
 
-    public static void Attach(Window window, DevDataSwitch sw, HardwareViewModel hardware)
+    public static void Attach(Window window, DevDataSwitch sw, HardwareViewModel hardware, StorageViewModel storage)
     {
         if (window.Content is not Grid root)
         {
@@ -60,6 +60,7 @@ public static class DevDataToolbar
             {
                 sw.Set(mode);
                 _ = hardware.RefreshCommand.ExecuteAsync(null);
+                _ = storage.RefreshCommand.ExecuteAsync(null);
             };
             panel.Children.Add(button);
         }

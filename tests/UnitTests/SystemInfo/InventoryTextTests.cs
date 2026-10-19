@@ -57,6 +57,8 @@ public class InventoryTextTests
     [InlineData(1_063_256_064L, 1_073_741_824L, "1.014 MB", "1.024 MB")]
     [InlineData(17_394_536_448L, 34_252_783_616L, "16,2 GB", "31,9 GB")]
     [InlineData(2_198_915_544_064L, 2_199_023_255_552L, "2.047,9 GB", "2.048 GB")] // ambos em TB: "2 TB de 2 TB" esconderia a diferença
+    [InlineData(0L, 408_021_893_120L, "0 GB", "380 GB")] // break-ui: volume cheio virava "0 B livres de 408.021.893.120 B"
+    [InlineData(2_147_483_136L, 2_147_483_648L, "2 GB", "2 GB")] // break-ui: 512 B de diferença virava "2.097.151,5 KB de 2.097.152 KB"
     public void Byte_pairs_share_the_unit_of_the_smaller_value(long part, long total, string expectedPart, string expectedTotal)
     {
         var (partText, totalText) = ByteSize.FormatPair(part, total, PtBr);

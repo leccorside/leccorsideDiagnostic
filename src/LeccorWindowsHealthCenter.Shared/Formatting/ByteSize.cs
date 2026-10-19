@@ -39,7 +39,9 @@ public static class ByteSize
     {
         provider ??= CultureInfo.CurrentCulture;
         var unit = 0;
-        double reference = Math.Max(0, Math.Min(part, total));
+
+        // Zero não escolhe a unidade: "0 GB livres de 380 GB", nunca "0 B livres de 408.021.893.120 B".
+        double reference = part <= 0 || total <= 0 ? Math.Max(0, Math.Max(part, total)) : Math.Min(part, total);
         while (reference >= 1024 && unit < Units.Length - 1)
         {
             reference /= 1024;
@@ -50,8 +52,9 @@ public static class ByteSize
             ? string.Create(provider, $"{v:#,##0} B")
             : string.Create(provider, $"{v / Math.Pow(1024, u):#,##0.#} {Units[u]}");
 
-        // Valores diferentes que arredondam para o mesmo texto ("2 TB de 2 TB"): desce uma unidade até aparecer a diferença.
-        while (unit > 0 && part != total && Fmt(part, unit) == Fmt(total, unit))
+        // Valores diferentes que arredondam para o mesmo texto ("2 TB de 2 TB"): desce UMA unidade se isso mostrar a
+        // diferença. Mais que isso vira ruído ("2.097.151,5 KB de 2.097.152 KB" por 512 bytes) — fica "2 GB de 2 GB".
+        if (unit > 0 && part != total && Fmt(part, unit) == Fmt(total, unit) && Fmt(part, unit - 1) != Fmt(total, unit - 1))
         {
             unit--;
         }

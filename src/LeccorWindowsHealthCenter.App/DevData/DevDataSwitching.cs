@@ -1,5 +1,7 @@
 #if DEBUG
+using LeccorWindowsHealthCenter.Application.Storage;
 using LeccorWindowsHealthCenter.Application.SystemInfo;
+using LeccorWindowsHealthCenter.Infrastructure.Storage;
 using LeccorWindowsHealthCenter.Infrastructure.SystemInfo;
 using LeccorWindowsHealthCenter.Monitoring;
 using Microsoft.Extensions.Configuration;
@@ -74,6 +76,32 @@ internal sealed class SwitchingInventory(WmiHardwareInventoryProvider real, DevD
         sw.Mode == DevDataMode.Real ? real.GetAsync(cancellationToken, forceRefresh) : Task.FromResult(DevDataFixtures.Inventory(sw.Mode));
 }
 
+internal sealed class SwitchingStorage(WmiStorageInventoryProvider real, DevDataSwitch sw) : IStorageInventoryProvider
+{
+    public Task<StorageInventory> GetAsync(CancellationToken cancellationToken, bool forceRefresh = false) =>
+        sw.Mode == DevDataMode.Real ? real.GetAsync(cancellationToken, forceRefresh) : Task.FromResult(DevDataStorageFixtures.Inventory(sw.Mode));
+}
+
+internal sealed class SwitchingSpaceAnalyzer(FileSystemSpaceAnalyzer real, DevDataSwitch sw) : ISpaceAnalyzer
+{
+    public async Task<SpaceAnalysis> AnalyzeAsync(string root, bool solidState, IProgress<SpaceProgress>? progress, CancellationToken cancellationToken)
+    {
+        if (sw.Mode == DevDataMode.Real)
+        {
+            return await real.AnalyzeAsync(root, solidState, progress, cancellationToken);
+        }
+
+        // Um relatório de progresso com o caminho mais longo da fixture, depois o resultado.
+        progress?.Report(new SpaceProgress(1_284_337, 812L * 1024 * 1024 * 1024, 223_581,
+            $@"{root}Users\Aleksandra Wiśniewska-Kowalczyk\source\repos\northwind-industries-holdings-portal-do-cliente-frontend\node_modules\@northwind-industries-holdings\design-system-components-react\node_modules\@babel"));
+        await Task.Delay(1500, cancellationToken);
+        return DevDataStorageFixtures.Analysis(root, sw.Mode);
+    }
+
+    public Task<IReadOnlyList<LocationMeasure>> MeasureLocationsAsync(IReadOnlyList<StorageLocation> locations, CancellationToken cancellationToken) =>
+        sw.Mode == DevDataMode.Real ? real.MeasureLocationsAsync(locations, cancellationToken) : Task.FromResult(DevDataStorageFixtures.Locations(sw.Mode));
+}
+
 public static class DevDataRegistration
 {
     /// <summary>Registra os decoradores por cima das fontes reais (as últimas registrações vencem no DI).</summary>
@@ -87,6 +115,10 @@ public static class DevDataRegistration
         services.AddSingleton<IProcessSnapshotProvider>(sp => new SwitchingProcesses(sp.GetRequiredService<ProcessSnapshotProvider>(), sp.GetRequiredService<DevDataSwitch>()));
         services.AddSingleton<IMetricsHistory>(sp => new SwitchingHistory(sp.GetRequiredService<MetricsHistoryService>(), sp.GetRequiredService<DevDataSwitch>()));
         services.AddSingleton<IHardwareInventoryProvider>(sp => new SwitchingInventory(sp.GetRequiredService<WmiHardwareInventoryProvider>(), sp.GetRequiredService<DevDataSwitch>()));
+        services.AddSingleton<WmiStorageInventoryProvider>();
+        services.AddSingleton<FileSystemSpaceAnalyzer>();
+        services.AddSingleton<IStorageInventoryProvider>(sp => new SwitchingStorage(sp.GetRequiredService<WmiStorageInventoryProvider>(), sp.GetRequiredService<DevDataSwitch>()));
+        services.AddSingleton<ISpaceAnalyzer>(sp => new SwitchingSpaceAnalyzer(sp.GetRequiredService<FileSystemSpaceAnalyzer>(), sp.GetRequiredService<DevDataSwitch>()));
     }
 }
 #endif

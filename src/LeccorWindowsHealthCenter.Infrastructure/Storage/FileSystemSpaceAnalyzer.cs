@@ -198,6 +198,7 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
     /// <summary>Estado de uma análise: contadores, top-N de arquivos e vagas de paralelismo.</summary>
     private sealed class Walk : IDisposable
     {
+        private const int MaxInaccessibleShown = 10;
         private static readonly long ProgressIntervalTicks = Stopwatch.Frequency / 5;
 
         private readonly SpaceAnalysisOptions _options;
@@ -332,6 +333,9 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
         {
             children.Sort((a, b) => b.SizeBytes.CompareTo(a.SizeBytes));
             var kept = children.Where(c => c.SizeBytes >= _options.MinFolderBytes).Take(_options.MaxChildrenPerFolder).ToList();
+
+            // Pasta sem permissão tem 0 B e sumiria na poda: a legenda diria "N pastas sem permissão" sem mostrar quais.
+            kept.AddRange(children.Where(c => c.Inaccessible && !kept.Contains(c)).Take(MaxInaccessibleShown));
             var hidden = children.Count - kept.Count;
 
             return new FolderNode

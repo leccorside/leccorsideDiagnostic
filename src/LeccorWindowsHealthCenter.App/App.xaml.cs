@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Threading;
 using LeccorWindowsHealthCenter.App.Services;
 using LeccorWindowsHealthCenter.Application.Settings;
@@ -76,7 +76,8 @@ public partial class App : System.Windows.Application
 #if DEBUG
         DevData.DevDataToolbar.Attach(window,
             _host.Services.GetRequiredService<DevData.DevDataSwitch>(),
-            _host.Services.GetRequiredService<ViewModels.HardwareViewModel>());
+            _host.Services.GetRequiredService<ViewModels.HardwareViewModel>(),
+            _host.Services.GetRequiredService<ViewModels.StorageViewModel>());
 #endif
         window.Show();
     }

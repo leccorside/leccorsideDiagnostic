@@ -105,6 +105,33 @@ public class StorageSourcesTests
     }
 
     [Fact]
+    public async Task Inaccessible_folders_stay_listed_even_with_zero_bytes()
+    {
+        // break-ui: com 0 B, a pasta sem permissão sumia em "N pastas menores" e ninguém sabia qual era.
+        using var temp = new TempDirectory();
+        WriteFile(Path.Combine(temp.Path, "aberta", "f.bin"), 3 * Mb);
+        var locked = Directory.CreateDirectory(Path.Combine(temp.Path, "trancada"));
+        var user = System.Security.Principal.WindowsIdentity.GetCurrent().User!;
+        var deny = new System.Security.AccessControl.FileSystemAccessRule(user, System.Security.AccessControl.FileSystemRights.ListDirectory, System.Security.AccessControl.AccessControlType.Deny);
+        var security = locked.GetAccessControl();
+        security.AddAccessRule(deny);
+        locked.SetAccessControl(security);
+        try
+        {
+            var analysis = await Analyzer().AnalyzeAsync(temp.Path, solidState: true, null, CancellationToken.None);
+
+            var node = Assert.Single(analysis.Root.Children, c => c.Name == "trancada");
+            Assert.True(node.Inaccessible);
+            Assert.Equal(1, analysis.Root.InaccessibleCount);
+        }
+        finally
+        {
+            security.RemoveAccessRule(deny);
+            locked.SetAccessControl(security);
+        }
+    }
+
+    [Fact]
     public async Task Analysis_can_be_cancelled()
     {
         using var temp = new TempDirectory();

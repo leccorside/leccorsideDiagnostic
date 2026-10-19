@@ -39,9 +39,8 @@ public sealed class LowFreeSpaceRule : IRule
             }
 
             var isSystem = volume.Flag("system") == true;
-            var freeGb = free / Gb;
             var freePercent = free * 100 / size;
-            var severity = Classify(context, isSystem, freeGb, freePercent);
+            var severity = Assess(isSystem, size, free, context.Parameter);
             if (severity is null)
             {
                 continue;
@@ -88,22 +87,41 @@ public sealed class LowFreeSpaceRule : IRule
         }
     }
 
-    private static Severity? Classify(RuleContext context, bool isSystem, double freeGb, double freePercent)
+    /// <summary>
+    /// A decisão da regra, reutilizada pela tela Armazenamento: a barra do volume nunca pode discordar da varredura.
+    /// <paramref name="parameter"/> devolve o valor configurado (ou padrão) de cada parâmetro. Volumes &lt; 1 GB: null.
+    /// </summary>
+    public static Severity? Assess(bool isSystem, double sizeBytes, double freeBytes, Func<string, double> parameter)
     {
-        if (freeGb < context.Parameter("AlwaysCriticalFreeGb"))
+        ArgumentNullException.ThrowIfNull(parameter);
+        if (sizeBytes < Gb)
+        {
+            return null;
+        }
+
+        var freeGb = freeBytes / Gb;
+        var freePercent = freeBytes * 100 / sizeBytes;
+        if (freeGb < parameter("AlwaysCriticalFreeGb"))
         {
             return isSystem ? Severity.Critical : Severity.Medium;
         }
 
         if (isSystem)
         {
-            return freeGb < context.Parameter("SystemCriticalFreeGb") ? Severity.High
-                : freeGb < context.Parameter("SystemMinimumFreeGb") ? Severity.Medium
+            return freeGb < parameter("SystemCriticalFreeGb") ? Severity.High
+                : freeGb < parameter("SystemMinimumFreeGb") ? Severity.Medium
                 : null;
         }
 
-        return freePercent < context.Parameter("DataMinimumFreePercent") && freeGb < context.Parameter("DataMinimumFreeGb")
+        return freePercent < parameter("DataMinimumFreePercent") && freeGb < parameter("DataMinimumFreeGb")
             ? Severity.Low
             : null;
+    }
+
+    /// <summary>Valor efetivo de um parâmetro fora do RuleEngine (configuração do usuário ou padrão da regra).</summary>
+    public double ParameterOf(IRuleSettings settings, string key)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        return settings.GetParameter(Id, key) ?? Parameters.First(p => p.Key == key).DefaultValue;
     }
 }

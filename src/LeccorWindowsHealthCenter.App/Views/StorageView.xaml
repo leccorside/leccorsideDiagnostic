@@ -23,8 +23,9 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock Style="{StaticResource Body}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Name}" />
-                <TextBlock Grid.Column="1" Style="{StaticResource Body}" FontWeight="SemiBold" Margin="12,0,0,0"
+                <!-- Nome quebra linha em vez de cortar: o fim ("(2) - Cópia.pdf") é o que diferencia arquivos parecidos. -->
+                <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding Name}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource Body}" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Top"
                            Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
                 <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Folder}" />
                 <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource Caption}" Text="{Binding Detail}" />
@@ -73,7 +74,7 @@
                                 <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Title}" />
                                 <TextBlock Grid.Row="1" Style="{StaticResource Caption}" Margin="0,1,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
                                            Text="{Binding Caption}" ToolTip="{Binding Caption}" />
-                                <TextBlock Grid.Column="1" Grid.RowSpan="2" Style="{StaticResource Body}" Margin="16,0" VerticalAlignment="Center"
+                                <TextBlock x:Name="FreeText" Grid.Column="1" Grid.RowSpan="2" Style="{StaticResource Body}" Margin="16,0" VerticalAlignment="Center"
                                            Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
                                 <Button Grid.Column="2" Grid.RowSpan="2" Style="{StaticResource SecondaryButton}" Padding="14,6" VerticalAlignment="Center"
                                         Command="{Binding DataContext.AnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -84,17 +85,30 @@
                                         <TextBlock Text="Analisar" />
                                     </StackPanel>
                                 </Button>
-                                <ProgressBar Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource ThinProgress}" Margin="0,8,0,0"
+                                <ProgressBar x:Name="UsageBar" Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource ThinProgress}" Margin="0,8,0,0"
                                              Foreground="{DynamicResource ChartStroke2Brush}" Value="{Binding UsedPercent, Mode=OneWay}"
                                              AutomationProperties.Name="{Binding Value}" />
                             </Grid>
+                            <!-- Âmbar/vermelho só quando a regra de pouco espaço acusaria o mesmo volume (The Significado Fixo Rule). -->
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                    <Setter TargetName="FreeText" Property="Foreground" Value="{DynamicResource MediumBrush}" />
+                                    <Setter TargetName="FreeText" Property="FontWeight" Value="SemiBold" />
+                                    <Setter TargetName="UsageBar" Property="Foreground" Value="{DynamicResource MediumBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                                    <Setter TargetName="FreeText" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
+                                    <Setter TargetName="FreeText" Property="FontWeight" Value="SemiBold" />
+                                    <Setter TargetName="UsageBar" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Border>
 
             <!-- Análise de espaço (seção 15): sob demanda, navegável, cancelável. -->
-            <TextBlock Style="{StaticResource GroupTitle}" Text="Análise de espaço" />
+            <TextBlock x:Name="AnalysisTitle" Style="{StaticResource GroupTitle}" Text="Análise de espaço" />
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <DockPanel>
@@ -134,7 +148,7 @@
                         </ItemsControl>
 
                         <TextBlock Style="{StaticResource SectionTitle}" Margin="0,10,0,0" Text="{Binding CurrentTitle}" />
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,8" Text="{Binding CurrentCaption}" />
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,8" TextWrapping="Wrap" LineHeight="18" Text="{Binding CurrentCaption}" />
 
                         <!-- Subpastas da maior para a menor; clicar entra na pasta. -->
                         <ItemsControl ItemsSource="{Binding Folders}" Focusable="False">
@@ -232,10 +246,42 @@
             <!-- Discos físicos (seção 14). -->
             <TextBlock Style="{StaticResource GroupTitle}" Text="Discos físicos" />
             <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,10" Text="{Binding DisksNote}"
-                       Visibility="{Binding Disks, Converter={StaticResource VisibleWhen}}" />
+                       Visibility="{Binding DisksEmptyText, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
             <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource MediumBrush}"
                     Visibility="{Binding DisksEmptyText, Converter={StaticResource VisibleWhen}}">
                 <TextBlock Style="{StaticResource Body}" Text="{Binding DisksEmptyText}" />
+            </Border>
+            <!-- Muitos discos: uma linha por disco; abrir mostra o cartão completo. -->
+            <Border Style="{StaticResource Card}" Padding="8" Visibility="{Binding DiskRows, Converter={StaticResource VisibleWhen}}">
+                <ItemsControl ItemsSource="{Binding DiskRows}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:DiskSummaryRow}">
+                            <Expander Padding="12,0,12,12">
+                                <Expander.Header>
+                                    <Grid Margin="4,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                                   Text="{Binding Title}" ToolTip="{Binding Title}" />
+                                        <TextBlock x:Name="Summary" Grid.Column="1" Style="{StaticResource Caption}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                                   Text="{Binding Summary}" />
+                                    </Grid>
+                                </Expander.Header>
+                                <ItemsControl ItemsSource="{Binding Card.Rows}" ItemTemplate="{StaticResource InfoRowTemplate}" Focusable="False" />
+                            </Expander>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                    <Setter TargetName="Summary" Property="Foreground" Value="{DynamicResource MediumBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                                    <Setter TargetName="Summary" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </Border>
             <ItemsControl ItemsSource="{Binding Disks}" ItemTemplate="{StaticResource InfoCardTemplate}" Margin="0,0,-16,0" Focusable="False">
                 <ItemsControl.ItemsPanel>
