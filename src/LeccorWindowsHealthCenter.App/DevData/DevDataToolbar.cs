@@ -21,7 +21,7 @@ public static class DevDataToolbar
         (DevDataMode.Many, "Muitos"),
     ];
 
-    public static void Attach(Window window, DevDataSwitch sw, HardwareViewModel hardware, StorageViewModel storage)
+    public static void Attach(Window window, DevDataSwitch sw, HardwareViewModel hardware, StorageViewModel storage, StartupViewModel startup)
     {
         if (window.Content is not Grid root)
         {
@@ -62,6 +62,8 @@ public static class DevDataToolbar
                 _ = hardware.RefreshCommand.ExecuteAsync(null);
                 storage.ResetAnalyses();
                 _ = storage.RefreshCommand.ExecuteAsync(null);
+                _ = startup.RefreshCommand.ExecuteAsync(null);
+                // Processos: a próxima leitura (a cada 2 s) já vem da fonte escolhida.
             };
             panel.Children.Add(button);
         }

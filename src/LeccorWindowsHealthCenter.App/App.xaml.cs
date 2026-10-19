@@ -77,7 +77,8 @@ public partial class App : System.Windows.Application
         DevData.DevDataToolbar.Attach(window,
             _host.Services.GetRequiredService<DevData.DevDataSwitch>(),
             _host.Services.GetRequiredService<ViewModels.HardwareViewModel>(),
-            _host.Services.GetRequiredService<ViewModels.StorageViewModel>());
+            _host.Services.GetRequiredService<ViewModels.StorageViewModel>(),
+            _host.Services.GetRequiredService<ViewModels.StartupViewModel>());
 #endif
         window.Show();
     }

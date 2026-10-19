@@ -1,6 +1,8 @@
 #if DEBUG
+using LeccorWindowsHealthCenter.Application.Startup;
 using LeccorWindowsHealthCenter.Application.Storage;
 using LeccorWindowsHealthCenter.Application.SystemInfo;
+using LeccorWindowsHealthCenter.Infrastructure.Startup;
 using LeccorWindowsHealthCenter.Infrastructure.Storage;
 using LeccorWindowsHealthCenter.Infrastructure.SystemInfo;
 using LeccorWindowsHealthCenter.Monitoring;
@@ -102,6 +104,71 @@ internal sealed class SwitchingSpaceAnalyzer(FileSystemSpaceAnalyzer real, DevDa
         sw.Mode == DevDataMode.Real ? real.MeasureLocationsAsync(locations, cancellationToken) : Task.FromResult(DevDataStorageFixtures.Locations(sw.Mode));
 }
 
+/// <summary>
+/// Fora de "Dados reais", <see cref="Terminate"/> NUNCA chega ao Windows: os PIDs da fixture podem ser de processos
+/// reais. O encerramento é simulado (some da fixture), com os mesmos resultados que o provedor real devolveria.
+/// </summary>
+internal sealed class SwitchingProcessInventory(ProcessInventoryProvider real, DevDataSwitch sw) : IProcessInventoryProvider
+{
+    private readonly HashSet<int> _ended = [];
+
+    public ProcessInventorySnapshot Capture()
+    {
+        if (sw.Mode == DevDataMode.Real)
+        {
+            return real.Capture();
+        }
+
+        lock (_ended)
+        {
+            return DevDataProcessFixtures.Processes(sw.Mode, Environment.ProcessorCount, _ended.ToHashSet());
+        }
+    }
+
+    public TerminateOutcome Terminate(int pid, string name, DateTimeOffset? expectedStart)
+    {
+        if (sw.Mode == DevDataMode.Real)
+        {
+            return real.Terminate(pid, name, expectedStart);
+        }
+
+        if (CriticalProcesses.IsCritical(pid, name))
+        {
+            return TerminateOutcome.Protected;
+        }
+
+        var target = DevDataProcessFixtures.Processes(sw.Mode, Environment.ProcessorCount, new HashSet<int>()).Processes.FirstOrDefault(p => p.Pid == pid);
+        if (target is null)
+        {
+            return TerminateOutcome.NotFound;
+        }
+
+        if (target.User?.StartsWith(@"NT AUTHORITY\", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return TerminateOutcome.AccessDenied;
+        }
+
+        lock (_ended)
+        {
+            _ended.Add(pid);
+        }
+
+        return TerminateOutcome.Ended;
+    }
+}
+
+internal sealed class SwitchingFileIdentity(FileIdentityProvider real, DevDataSwitch sw) : IFileIdentityProvider
+{
+    public Task<FileIdentity> GetAsync(string path, CancellationToken cancellationToken) =>
+        sw.Mode == DevDataMode.Real ? real.GetAsync(path, cancellationToken) : Task.FromResult(DevDataProcessFixtures.Identity(path));
+}
+
+internal sealed class SwitchingStartup(StartupInventoryProvider real, DevDataSwitch sw) : IStartupInventoryProvider
+{
+    public Task<StartupInventory> GetAsync(CancellationToken cancellationToken, bool forceRefresh = false) =>
+        sw.Mode == DevDataMode.Real ? real.GetAsync(cancellationToken, forceRefresh) : Task.FromResult(DevDataProcessFixtures.Startup(sw.Mode));
+}
+
 public static class DevDataRegistration
 {
     /// <summary>Registra os decoradores por cima das fontes reais (as últimas registrações vencem no DI).</summary>
@@ -119,6 +186,12 @@ public static class DevDataRegistration
         services.AddSingleton<FileSystemSpaceAnalyzer>();
         services.AddSingleton<IStorageInventoryProvider>(sp => new SwitchingStorage(sp.GetRequiredService<WmiStorageInventoryProvider>(), sp.GetRequiredService<DevDataSwitch>()));
         services.AddSingleton<ISpaceAnalyzer>(sp => new SwitchingSpaceAnalyzer(sp.GetRequiredService<FileSystemSpaceAnalyzer>(), sp.GetRequiredService<DevDataSwitch>()));
+        services.AddSingleton<ProcessInventoryProvider>();
+        services.AddSingleton<FileIdentityProvider>();
+        services.AddSingleton<StartupInventoryProvider>();
+        services.AddSingleton<IProcessInventoryProvider>(sp => new SwitchingProcessInventory(sp.GetRequiredService<ProcessInventoryProvider>(), sp.GetRequiredService<DevDataSwitch>()));
+        services.AddSingleton<IFileIdentityProvider>(sp => new SwitchingFileIdentity(sp.GetRequiredService<FileIdentityProvider>(), sp.GetRequiredService<DevDataSwitch>()));
+        services.AddSingleton<IStartupInventoryProvider>(sp => new SwitchingStartup(sp.GetRequiredService<StartupInventoryProvider>(), sp.GetRequiredService<DevDataSwitch>()));
     }
 }
 #endif

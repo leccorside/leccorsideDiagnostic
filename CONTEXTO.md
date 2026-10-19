@@ -437,6 +437,20 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 | `Reports_progress_until_100_percent` falhou 1 vez na suíte inteira (0 em 40 isolado) | **Defeito real:** `ScanOrchestrator` tirava a fotografia do progresso dentro do `lock` e publicava fora; com scanners em paralelo, a de 50% podia sair depois da de 100% e a barra da Varredura voltava | `Report` dentro do `lock`; teste `Progress_never_goes_backwards_with_parallel_scanners` (8 scanners, 20 rodadas) como guarda — a corrida não reproduz de forma determinística, então o teste não prova a correção sozinho |
 | `Timeout_kills_the_process_tree` ainda falhou 1 vez em Release (em aberto) | Só na 1ª rodada logo após um build `--no-incremental`, com a máquina ~25× mais lenta (unitários em 21 s); a saída silenciosa não trouxe qual asserção falhou | Não reproduziu em 4 rodadas Release seguidas com saída detalhada. Margens não alteradas sem saber a causa; se voltar, rodar com `--logger "console;verbosity=normal"` para ver a asserção |
 
+### Teste de estresse das telas Processos e Inicialização com break-ui (19/10/2026)
+
+- Seletor de dados de desenvolvimento (só DEBUG) cobre as duas telas: `App/DevData/DevDataProcessFixtures.cs` e os
+  decoradores `SwitchingProcessInventory`, `SwitchingFileIdentity` e `SwitchingStartup`; o seletor recarrega a
+  Inicialização ao trocar de modo (Processos se atualiza sozinha em 2 s). **Fora de "Dados reais", `Terminate` nunca
+  chega ao Windows** (os PIDs da fixture podem existir de verdade): o encerramento é simulado.
+- Fixtures realistas: Intune Management Extension (nome de 48 caracteres, SYSTEM), ERP com nome acentuado e travessão,
+  caminho Electron de 230 caracteres e assinatura inválida, `sh` do Git sem fabricante, Razer com vazamento de 1,28 mi
+  de handles, MsMpEng a 100% protegido, vmmem de 32 GB, fabricante "TODO: <公司名称>" (ASUS real), assinante chinês do QQ,
+  cadeia `npm run dev` de 14 níveis, pai já encerrado; Run do Teams clássico desinstalado, updater NSIS em `%TEMP%`,
+  RunOnce com PowerShell `-EncodedCommand` (~1.600 caracteres), tarefa do OneDrive com SID, NVIDIA no DriverStore,
+  comando sem aspas de fechamento, estado não lido, serviço órfão; Vazio, Um e Muitos (1.529 processos, ~620 entradas).
+- Achados relatados ao usuário (correção só quando pedida). Capturas e `p4-break.ps1` no scratchpad da sessão.
+
 ## Pendências / próximos passos
 
 Na ordem combinada no `PASSOS.md`:
