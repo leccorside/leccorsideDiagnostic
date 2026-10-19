@@ -102,6 +102,10 @@ Leituras únicas (não séries): cada regra conclui a partir do estado informado
 | `disk.trim-disabled` | disks | SSD/NVMe com TRIM desativado no NTFS (registro) ou informado desativado pelo dispositivo. TRIM desconhecido não é problema | Baixo | 90% |
 | `storage.temp-cache-large` | storage | Temporários + caches (sem Lixeira) ≥ `MinimumGb` (5 GB) | Informação (recomendação) | 100% |
 
+A decisão de `storage.low-free-space` é exposta em `LowFreeSpaceRule.Assess` (+ `ParameterOf` para thresholds
+configurados): a tela Armazenamento usa a mesma função para colorir a barra do volume, então tela e varredura nunca
+discordam. `StorageScreenTests` cobre isso.
+
 Testes: `StorageRulesTests` (um caso que não dispara e outro que dispara por regra, incluindo o C: real desta máquina —
 7% livre, mas 65 GB — que **não** deve gerar alerta).
 

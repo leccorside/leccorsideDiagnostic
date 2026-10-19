@@ -51,7 +51,8 @@ CPU (não há fonte confiável sem driver de kernel; não será estimada).
 - [x] Temporários e caches medidos (temp do usuário/Windows, Windows Update, despejos/WER, miniaturas, Edge, Chrome, Lixeira) — nada é apagado
 - [x] Regras: pouco espaço livre, disco sinaliza problema (SMART/HealthStatus), temperatura alta (quando disponível), TRIM desativado em SSD, temporários/caches grandes (recomendação)
 - [x] Tela Armazenamento revisada com impeccable nos temas claro e escuro, em 1280 e 980 px
-- [x] Testes: 212 unitários, 29 integração (fontes reais + árvore temporária), 11 sistema (varredura completa com 6 scanners)
+- [x] Teste de estresse break-ui da tela Armazenamento: seletor de dados de desenvolvimento com fixtures de pior caso, 14 achados + 4 decisões corrigidos (formatação de espaço com zero e valores quase iguais, plural, corrida de carregamento, pastas sem permissão, barra do volume pela mesma decisão da regra, lista compacta de discos, rolagem até a análise)
+- [x] Testes: 214 unitários, 30 integração (fontes reais + árvore temporária + pasta sem permissão), 17 sistema (varredura completa com 6 scanners + tela Armazenamento)
 
 Fica para passos seguintes: SMART/NVMe detalhado, desgaste e horas ligadas (exigem o processo elevado — Passo 5);
 eventos de disco (Disk 7/153, NTFS — Passo 5, Event Viewer); limpeza dos temporários/caches (Passo 7).

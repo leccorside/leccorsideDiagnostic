@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **18/10/2026 — Passo 3 concluído (v0.3.0); aguardando autorização para o Passo 4.**
+Última atualização: **19/10/2026 — Passo 3 concluído (v0.3.0) + break-ui da tela Armazenamento corrigido; aguardando autorização para o Passo 4.**
 
 ---
 
@@ -23,7 +23,8 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   **Performance**, **Hardware**, **Armazenamento** e Configurações. Demais menus: páginas "em construção" com o MVP previsto.
 - Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 261/261 (214 unitários, 30 integração, 17 sistema),
   estáveis em 3 rodadas seguidas com as suítes em paralelo.
-- Telas de Performance e Hardware passaram pelo teste de estresse break-ui (16 correções, ver Histórico).
+- Telas de Performance e Hardware (16 correções) e Armazenamento (14 correções + 4 decisões) passaram pelo teste de
+  estresse break-ui; o seletor de dados de desenvolvimento (só DEBUG) cobre as três telas.
 - Consumo medido (Release, histórico ativo): 0,17% CPU no Dashboard, 0,46% na Performance, 0,00% minimizado;
   101–120 MB privados (~160–180 MB working set).
 
@@ -305,6 +306,7 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 | Inventário real sobrescrevendo o pior caso do seletor | Leitura inicial mais lenta terminava depois da recarga | Versão de carregamento; só a última é aplicada |
 | Pasta sem permissão invisível | Poda por tamanho (0 B < 1 MB) | Pastas sem permissão sempre mantidas (até 10) |
 | Edições da View não aplicadas pelo script | `R` é alias de `Invoke-History` no PowerShell | Edições refeitas com a ferramenta de edição; não usar nomes curtos de função em scripts |
+| `PASSOS.md` e dois docs corrompidos (caracteres isolados trocados no arquivo inteiro) ao atualizar a documentação | No PowerShell, `@(@('a','b'))` com um único par é achatado: o laço recebeu strings e `$p[0]`/`$p[1]` viraram caracteres | Arquivos restaurados do último commit com `git checkout --` (sem trabalho pendente neles) e edições refeitas com a ferramenta de edição. Para um só par, usar `@(,@('a','b'))` — ou, melhor, a ferramenta de edição |
 
 ## Pendências / próximos passos
 
