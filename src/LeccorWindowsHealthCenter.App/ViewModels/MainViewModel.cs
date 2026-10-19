@@ -19,7 +19,11 @@ public sealed class PlaceholderViewModel
     public string PlannedFor { get; }
 }
 
-public sealed record NavigationItem(string Title, string Glyph, object Page, bool IsFooter = false);
+public sealed record NavigationItem(string Title, string Glyph, object Page, bool IsFooter = false)
+{
+    /// <summary>O ListBoxItem usa o ToString como nome acessível: o leitor de tela lê só o título.</summary>
+    public override string ToString() => Title;
+}
 
 /// <summary>Shell: sidebar com o menu principal (seção 8) e a página atual.</summary>
 public sealed partial class MainViewModel : ObservableObject
@@ -33,6 +37,8 @@ public sealed partial class MainViewModel : ObservableObject
         PerformanceViewModel performance,
         HardwareViewModel hardware,
         StorageViewModel storage,
+        ProcessesViewModel processes,
+        StartupViewModel startup,
         SettingsViewModel settings)
     {
         _scan = scan;
@@ -42,12 +48,12 @@ public sealed partial class MainViewModel : ObservableObject
             new("Dashboard", "", dashboard),
             new("Varredura", "", scan),
             new("Performance", "", performance),
-            Planned("Processos", "", "Gerenciador avançado de processos com assinatura, árvore e proteção de processos críticos.", "MVP 1"),
+            new("Processos", "", processes),
             Planned("Windows Explorer", "", "Shell extensions, handlers, caches e detector de pastas lentas.", "MVP 2"),
             new("Armazenamento", "", storage),
             new("Hardware", "", hardware),
             Planned("Drivers", "", "Dispositivos com erro, drivers ausentes e eventos recorrentes.", "MVP 2"),
-            Planned("Inicialização", "", "Registry Run/RunOnce, pastas de Startup e tarefas agendadas, com rollback.", "MVP 1"),
+            new("Inicialização", "", startup),
             Planned("Serviços", "", "Serviços falhando, órfãos ou de aplicações inexistentes.", "MVP 2"),
             Planned("Aplicativos", "", "Inventário de software, crashes recorrentes e versões duplicadas.", "MVP 2"),
             Planned("Windows", "", "Integridade do Windows (DISM, SFC, CHKDSK) e Windows Update.", "MVP 1"),

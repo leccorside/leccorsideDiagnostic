@@ -3,7 +3,7 @@
 Documento central de referência. Detalhes por assunto em `docs/` (links ao final de cada seção).
 **Atualizar ao final de cada ação** (regra do projeto).
 
-Versão documentada: **0.3.0 (Passo 3 — Discos e Armazenamento)**.
+Versão documentada: **0.4.0 (Passo 4 — Processos e Inicialização)**.
 
 ---
 
@@ -39,6 +39,12 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `WmiStorageInventoryProvider` / `StorageDeviceQuery` / `WmiQuery` | Infrastructure/SystemInfo | Discos, partições e volumes (WMI de armazenamento) + IOCTLs com acesso 0 (TRIM, SSD × HDD, temperatura, disco de cada volume), cache de 30 s |
 | `FileSystemSpaceAnalyzer` | Infrastructure/Storage | Análise de espaço (árvore podada, maiores/antigos, sem seguir junções, sem contar arquivos só na nuvem) e medição de temporários/caches |
 | `StorageText` / `StorageLocations` | Application | Tradução dos códigos do WMI de armazenamento; catálogo de temporários e caches medidos |
+| `ProcessInventoryProvider` / `ProcessNativeMethods` | Infrastructure/SystemInfo | Lista completa de processos (pai via Toolhelp32; caminho, início, CPU, E/S e dono com acesso limitado) e encerramento seguro (recusa críticos, confere o horário de início) |
+| `FileIdentityProvider` | Infrastructure/SystemInfo | Fabricante, descrição, versão e assinatura (Authenticode ou catálogo, sem revogação online), com cache |
+| `StartupInventoryProvider` | Infrastructure/Startup | Run/RunOnce (com `StartupApproved`), pastas Inicializar, tarefas de logon/boot e serviços automáticos; cache de 30 s, cada fonte falha sozinha |
+| `CriticalProcesses` / `ProcessRates` / `StartupCommand` / `StartupImpact` | Application | Processos protegidos, taxas entre fotografias, interpretação de linha de comando e impacto estimado (lógica pura, testada) |
+| `StartupScanner` | Diagnostics/Startup | Scanner do Passo 4 |
+| `StartupMissingExecutableRule`, `StartupTempLocationRule` | Diagnostics/Rules | Regras do Passo 4 (ver docs/RULE_ENGINE.md) |
 | `HardwareScanner`, `CpuScanner`, `MemoryScanner`, `GpuScanner` | Diagnostics | Scanners do Passo 2 (ver docs/DIAGNOSTICS.md) |
 | `DiskScanner`, `StorageScanner` | Diagnostics/Storage | Scanners do Passo 3 |
 | `LowFreeSpaceRule`, `DiskHealthRule`, `DiskTemperatureRule`, `TrimDisabledRule`, `TempCacheLargeRule` | Diagnostics/Rules | Regras do Passo 3 (ver docs/RULE_ENGINE.md) |
@@ -46,7 +52,7 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `JsonReportExporter` | Reporting | Exportação do `ScanReport` em JSON |
 | `HealthCenterHost` | App | Composition root (Generic Host + DI validada) |
 | `StartupTrace` | App | Tempo de cada fase da inicialização (processo → primeiro quadro) e watchdog de inicialização lenta (> 10 s) |
-| Telas | App/Views | Dashboard, Varredura, Performance, Hardware, Armazenamento, Configurações e páginas "em construção" para os demais módulos |
+| Telas | App/Views | Dashboard, Varredura, Performance, Processos, Armazenamento, Hardware, Inicialização, Configurações e páginas "em construção" para os demais módulos |
 
 ## 3. Interface
 
@@ -80,6 +86,16 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   Sem administrador, vida útil e horas ligadas aparecem como "não disponível" com a explicação. Leitor de tela: status
   da análise anunciado no início/fim, nomes acessíveis completos e foco que acompanha a ação.
   "Mostrar no Explorer" usa a API do shell (`ShellLauncher`, `SHOpenFolderAndSelectItems`): seleciona, nunca executa.
+- **Processos**: lista virtualizada atualizada a cada 2 s só com a tela visível (CPU em % da máquina, memória privada,
+  E/S por segundo, threads, handles, fabricante), ordenação pelo cabeçalho, pesquisa (nome, PID, caminho, fabricante),
+  modo árvore, escudo nos processos protegidos. Detalhes do selecionado: caminho, fabricante, assinatura, usuário,
+  quem iniciou, início, tempo de CPU; ações Abrir local do arquivo, Propriedades, Copiar caminho (Ctrl+C) e
+  Finalizar processo com confirmação no lugar (Delete pede a confirmação; processos críticos nunca). Abaixo de 860 px
+  de lista, a coluna Fabricante sai e as ações vão para baixo.
+- **Inicialização** (somente leitura): entradas com problema no topo (arquivo inexistente, pasta temporária; tarefa
+  do próprio Windows como informação), filtros (pesquisa, desativados, itens do Windows), grupos Aplicativos, Tarefas
+  agendadas e Serviços automáticos com status, origem, fabricante e impacto estimado; menu Mostrar no Explorer,
+  Copiar caminho, Copiar linha de comando; indica onde desativar conforme a origem. F5 lê de novo.
 - **Configurações**: tema (Windows/Claro/Escuro, inclusive barra de título), modo avançado, estado de privilégio,
   Dry Run, caminhos de dados, versão.
 - Logos: `logo2.png` (tema claro) e `logo1.jpg` (tema escuro, como selo); `logo-mark.png` e `app.ico` são
@@ -171,14 +187,14 @@ logs e saídas, backups com ACL. Detalhes: [docs/SECURITY.md](docs/SECURITY.md).
 - [docs/BUILD.md](docs/BUILD.md) — build local, publicação, portable, CI
 - [docs/RELEASE.md](docs/RELEASE.md) — versionamento e checklist
 
-## 10. Testes (Passo 3)
+## 10. Testes (Passo 4)
 
 | Projeto | Testes |
 | --- | --- |
-| UnitTests | 230 (inclui `InventoryTextTests`, `StorageTextTests`, `StorageRulesTests` e `StorageHintsTests`) |
-| IntegrationTests | 32 (inclui lista ampliada com pastas dominantes, `ShellLauncher` com caminho inexistente, leitura real de WMI, PDH, memória, processos, histórico, discos/volumes desta máquina e o analisador de espaço sobre uma árvore temporária: soma, poda, maiores/antigos, junção não seguida, cancelamento) |
-| SystemTests | 20 (inclui varredura completa real com os 6 scanners, `FmtTests` e `StorageScreenTests`) |
-| **Total** | **282 — todos passando** (Debug e Release com `-warnaserror`; 3 rodadas seguidas com as suítes em paralelo) |
+| UnitTests | 268 (inclui `InventoryTextTests`, `StorageTextTests`, `StorageRulesTests`, `StorageHintsTests`, `StartupTests` e `ProcessRatesTests`) |
+| IntegrationTests | 37 (inclui inventário de processos real, recusa de processo crítico, encerrar um processo iniciado pelo teste, assinatura por catálogo, inventário de inicialização, lista ampliada com pastas dominantes, `ShellLauncher` com caminho inexistente, leitura real de WMI, PDH, memória, histórico, discos/volumes e o analisador de espaço sobre uma árvore temporária) |
+| SystemTests | 20 (inclui varredura completa real com os 7 scanners, `FmtTests` e `StorageScreenTests`) |
+| **Total** | **325 — todos passando** (Debug e Release com `--no-incremental -warnaserror`) |
 
 ## 11. Dados de desenvolvimento e textos de inventário
 

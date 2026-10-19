@@ -70,14 +70,14 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
     {
         ArgumentNullException.ThrowIfNull(locations);
         var results = new LocationMeasure[locations.Count];
+
+        // Dois locais por vez + vagas extras compartilhadas para as subpastas dos grandes (Gradle, NuGet, Maven):
+        // o total de leituras simultâneas fica limitado a 2 + (MaxConcurrency − 1).
+        using var slots = new SemaphoreSlim(Math.Max(0, _options.MaxConcurrency - 1));
         await Parallel.ForEachAsync(
             Enumerable.Range(0, locations.Count),
-            new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, _options.MaxConcurrency), CancellationToken = cancellationToken },
-            (index, ct) =>
-            {
-                results[index] = Measure(locations[index], ct);
-                return ValueTask.CompletedTask;
-            }).ConfigureAwait(false);
+            new ParallelOptions { MaxDegreeOfParallelism = 2, CancellationToken = cancellationToken },
+            async (index, ct) => results[index] = await MeasureAsync(locations[index], slots, ct).ConfigureAwait(false)).ConfigureAwait(false);
         return results;
     }
 
@@ -104,7 +104,7 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
             .ToList();
     }
 
-    private static LocationMeasure Measure(StorageLocation location, CancellationToken cancellationToken)
+    private static async Task<LocationMeasure> MeasureAsync(StorageLocation location, SemaphoreSlim slots, CancellationToken cancellationToken)
     {
         if (location.Id == StorageLocations.RecycleBinId)
         {
@@ -125,7 +125,7 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
                 continue;
             }
 
-            var (b, f, i) = Sum(path, cancellationToken);
+            var (b, f, i) = await SumAsync(path, slots, cancellationToken).ConfigureAwait(false);
             bytes += b;
             files += f;
             inaccessible += i;
@@ -134,7 +134,11 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
         return new LocationMeasure { Location = location, Found = paths.Count > 0, SizeBytes = bytes, FileCount = files, InaccessibleCount = inaccessible, ResolvedPaths = paths };
     }
 
-    private static (long Bytes, long Files, int Inaccessible) Sum(string path, CancellationToken cancellationToken)
+    /// <summary>
+    /// Soma recursiva com vagas de leitura paralela em qualquer profundidade (mesma estratégia do analisador): caches de
+    /// desenvolvimento como Gradle e NuGet têm centenas de milhares de arquivos pequenos — numa thread só, 70 s.
+    /// </summary>
+    private static async Task<(long Bytes, long Files, int Inaccessible)> SumAsync(string path, SemaphoreSlim slots, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         long bytes = 0, files = 0;
@@ -167,9 +171,33 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
             return (0, 0, 1);
         }
 
+        var spawned = new List<Task<(long Bytes, long Files, int Inaccessible)>>();
         foreach (var sub in subdirectories)
         {
-            var (b, f, i) = Sum(sub, cancellationToken);
+            if (slots.Wait(0, cancellationToken))
+            {
+                spawned.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        return await SumAsync(sub, slots, cancellationToken).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        slots.Release();
+                    }
+                }, cancellationToken));
+                continue;
+            }
+
+            var (b, f, i) = await SumAsync(sub, slots, cancellationToken).ConfigureAwait(false);
+            bytes += b;
+            files += f;
+            inaccessible += i;
+        }
+
+        foreach (var (b, f, i) in await Task.WhenAll(spawned).ConfigureAwait(false))
+        {
             bytes += b;
             files += f;
             inaccessible += i;

@@ -43,7 +43,7 @@ Corresponde à "primeira execução" (seção 75) e à ordem de implementação 
 Fica para passos seguintes: eventos de driver de GPU (TDR/LiveKernelEvent — Passo 5, Event Viewer); temperatura de
 CPU (não há fonte confiável sem driver de kernel; não será estimada).
 
-## Passo 3 — MVP 1 (b): Discos e Armazenamento ✅ (aguardando autorização para o Passo 4)
+## Passo 3 — MVP 1 (b): Discos e Armazenamento ✅
 
 - [x] Discos físicos (modelo, tipo NVMe/SSD/HDD, capacidade, partições, TRIM, firmware) via WMI de armazenamento + IOCTLs sem administrador; saúde **somente quando o dispositivo fornece** (estado SMART resumido pelo Windows; vida útil "não disponível" sem admin; temperatura só quando o disco informa)
 - [x] Volumes com espaço livre e vínculo com o disco físico pelo próprio volume (`IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS`), independente do WMI
@@ -58,12 +58,16 @@ CPU (não há fonte confiável sem driver de kernel; não será estimada).
 Fica para passos seguintes: SMART/NVMe detalhado, desgaste e horas ligadas (exigem o processo elevado — Passo 5);
 eventos de disco (Disk 7/153, NTFS — Passo 5, Event Viewer); limpeza dos temporários/caches (Passo 7).
 
-## Passo 4 — MVP 1 (c): Processos e Inicialização ⬜
+## Passo 4 — MVP 1 (c): Processos e Inicialização ✅ (aguardando autorização para o Passo 5)
 
-- Process Manager (PID, CPU, RAM, disco, threads, handles, usuário, executável, fabricante, assinatura; árvore; pesquisa; proteção de processos críticos)
-- Startup Manager **somente leitura** (Run/RunOnce HKCU/HKLM, pastas de Startup, Scheduled Tasks de logon, serviços automáticos) com impacto estimado
-- Regras: entradas apontando para executáveis inexistentes, executáveis em diretórios temporários
-- Telas Processos e Inicialização
+- [x] Process Manager (PID, CPU, RAM, E/S, threads, handles, usuário, executável, fabricante, assinatura com catálogo; árvore; pesquisa; ordenação; proteção de processos críticos; abrir local, propriedades, copiar caminho e finalizar com confirmação e conferência do horário de início)
+- [x] Startup Manager **somente leitura** (Run/RunOnce HKCU/HKLM/WOW6432Node com o estado do Gerenciador de Tarefas, pastas Inicializar, tarefas agendadas de logon/boot, serviços automáticos) com impacto estimado pelo consumo atual
+- [x] Regras: entradas apontando para executáveis inexistentes (tarefa do próprio Windows = informativo), executáveis em diretórios temporários
+- [x] Telas Processos e Inicialização revisadas com impeccable nos temas claro e escuro, em 1280 e 980 px
+- [x] Testes: 268 unitários, 37 integração (inventário real, recusa de processo crítico, encerrar processo do teste, assinatura por catálogo), 20 sistema (varredura completa com 7 scanners)
+
+Fica para passos seguintes: desativar entradas de inicialização com backup e desfazer (Passo 8, Correções); finalizar
+processos de administrador (processo elevado, Passo 5); break-ui das duas telas novas.
 
 ## Passo 5 — MVP 1 (d): Event Viewer e Integridade do Windows ⬜
 

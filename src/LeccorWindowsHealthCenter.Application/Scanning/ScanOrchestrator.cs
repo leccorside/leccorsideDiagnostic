@@ -58,16 +58,15 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         var states = selected.Select(s => new ScannerProgress(s.Id, s.Name, ScannerRunStatus.Pending)).ToArray();
         var gate = new object();
 
+        // Report dentro do lock: fora dele, com scanners em paralelo, a fotografia de 50% de um podia ser publicada
+        // depois da de 100% do outro e a barra voltava. Progress<T>.Report só enfileira (sem risco de deadlock).
         void SetState(int index, ScannerRunStatus status)
         {
-            ScanProgress snapshot;
             lock (gate)
             {
                 states[index] = states[index] with { Status = status };
-                snapshot = new ScanProgress(states.ToArray());
+                progress?.Report(new ScanProgress(states.ToArray()));
             }
-
-            progress?.Report(snapshot);
         }
 
         _logger.LogInformation("Varredura {Mode} iniciada com {Count} scanners (concorrência máx. {MaxConcurrency})",

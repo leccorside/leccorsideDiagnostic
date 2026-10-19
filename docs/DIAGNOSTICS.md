@@ -58,6 +58,7 @@ Implementar `CollectAsync(ScanCollector collector, CancellationToken ct)`. A bas
 | GPU | `gpu` | Hardware | sim | 40 | 2 |
 | Discos | `disks` | Disks | sim | 50 | 3 |
 | Armazenamento | `storage` | Storage | sim | 60 | 3 |
+| Inicialização | `startup` | Startup | sim | 70 | 4 |
 
 Cada scanner novo deve ser documentado aqui com: fonte de dados (WMI/contador/API/EventLog/comando),
 métricas e observações produzidas (nome, unidade, tags), custo estimado (tempo/CPU), necessidade de
@@ -73,6 +74,9 @@ elevação e comportamento quando a fonte não está disponível ("não disponí
 | Inventário | `Infrastructure/SystemInfo/WmiHardwareInventoryProvider` (`IHardwareInventoryProvider`) | WMI `root\cimv2`, uma classe por consulta (falha vira aviso), cache de 60 s, `forceRefresh` para a tela de Hardware. **Não** usar `Rewindable=false`: no .NET 10 isso devolve coleções vazias sem erro. VRAM vem do registro (`HardwareInformation.qwMemorySize`) porque `Win32_VideoController.AdapterRAM` é uint32 e trava em 4 GB. |
 | Armazenamento | `Infrastructure/SystemInfo/WmiStorageInventoryProvider` (`IStorageInventoryProvider`) | WMI `root\Microsoft\Windows\Storage` (`MSFT_PhysicalDisk`, `MSFT_Disk`, `MSFT_Partition`, `MSFT_Volume`), cache de 30 s. IOCTLs com o disco aberto **com acesso 0** (sem admin, sem ler dados): TRIM e penalidade de busca (`IOCTL_STORAGE_QUERY_PROPERTY`), temperatura quando o dispositivo informa, e o disco de cada volume (`IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS` — o `MSFT_Partition` já estourou o timeout de 20 s sob carga). TRIM do NTFS no registro (`FileSystem\DisableDeleteNotification`). `MSFT_StorageReliabilityCounter` (temperatura, desgaste, horas) e SMART via `root\wmi` dão **acesso negado** sem admin: só são consultados elevado; sem elevação ficam null. |
 | Análise de espaço | `Infrastructure/Storage/FileSystemSpaceAnalyzer` (`ISpaceAnalyzer`) | Enumeração com `FileSystemEnumerable` (sem `FileInfo` por arquivo). Não segue junções/links de pasta; arquivos só na nuvem (OneDrive: `Offline`/`RecallOnDataAccess`) não contam; pasta sem permissão é contada. Árvore podada (`MaxChildrenPerFolder`, `MinFolderBytes`); pastas sem permissão ficam na lista mesmo com 0 B (até 10 por pasta), para o aviso "N pastas sem permissão" apontar quais são. Paralelismo por tipo de disco: `MaxConcurrency` (4) em SSD/NVMe, `RotationalMaxConcurrency` (1) em HDD ou tipo desconhecido. Medido: C: com 2,6 mi de arquivos em 73–113 s com cache parcial (um leitor por vez levava ~9 min). Tamanhos lógicos: links físicos (WinSxS) contam em cada pasta. |
+| Lista completa de processos | `Infrastructure/SystemInfo/ProcessInventoryProvider` (`IProcessInventoryProvider`) | Usada pela tela Processos e pelo impacto de inicialização. Pai via Toolhelp32 (`CreateToolhelp32Snapshot`); `OpenProcess` com `PROCESS_QUERY_LIMITED_INFORMATION` para caminho (`QueryFullProcessImageName`), início e CPU (`GetProcessTimes`), E/S (`GetProcessIoCounters`, soma disco + rede + dispositivos) e dono (token → SID → conta). Protegidos ficam null. Taxas por `ProcessRates.Compute` (mesmo PID **e** mesmo início). `Terminate` recusa `CriticalProcesses` e PID reaproveitado. |
+| Identidade de arquivo | `Infrastructure/SystemInfo/FileIdentityProvider` (`IFileIdentityProvider`) | `FileVersionInfo` (fabricante, descrição, versão) + `WinVerifyTrust` sem consulta de revogação (só cache local, rápido e offline) + catálogo do sistema (`CryptCATAdminCalcHash2`/`EnumCatalogFromHash`: binários do Windows são assinados por catálogo, não no arquivo). Cache por caminho + data de modificação; no máximo 2 verificações simultâneas. |
+| Inicialização | `Infrastructure/Startup/StartupInventoryProvider` (`IStartupInventoryProvider`) | Run/RunOnce em HKCU, HKLM (64 bits) e WOW6432Node, com o estado do Gerenciador de Tarefas em `Explorer\StartupApproved\Run`/`Run32` (primeiro byte ímpar = desativado); pastas Inicializar do usuário e comum (destino do `.lnk` via `WScript.Shell`); tarefas agendadas via `Schedule.Service` (gatilho de logon ou boot, ação executável; `\Microsoft\Windows\…` = componente do Windows); serviços com `StartMode='Auto'` via WMI. Cache de 30 s; cada fonte falha sozinha e vira aviso. Linhas de comando interpretadas por `StartupCommand.ExecutablePath`. |
 | Histórico de fundo | `Monitoring/MetricsHistoryService` (`IMetricsHistory`, `BackgroundService`) | CPU, memória e commit a cada 5 s; memória privada por processo (≥ 50 MB) a cada 60 s; retenção de 30 min; só em memória. Configurável em `MetricsHistory`. |
 
 ### Hardware (`hardware`)
@@ -137,6 +141,18 @@ elevação e comportamento quando a fonte não está disponível ("não disponí
 - **Custo:** segundos (só os locais conhecidos; a árvore completa é sob demanda na tela). **Elevação:** não; pastas sem
   permissão viram contagem e aviso "o total pode ser maior". **Nada é apagado** (limpeza segura: Passo 7).
 - **Regras:** `storage.temp-cache-large` (recomendação).
+
+### Inicialização (`startup`)
+
+- **Fonte:** inventário de inicialização (sempre lido de novo na varredura, `forceRefresh`).
+- **Métricas:** `startup.entries` e `startup.entries.enabled` (count).
+- **Observações:** `startup.entry` por entrada (`id`, `name`, `source` — `RegistryRun`, `RegistryRunOnce`, `StartupFolder`,
+  `ScheduledTask`, `Service` —, `location`, `command`, `executable`, `exists`, `enabled`, `windows`, `user`). Valores
+  booleanos em `True`/`False` invariantes; vazio = não determinado (ex.: comando que não pôde ser interpretado).
+- **Custo:** ~1–2 s (tarefas agendadas e WMI de serviços). **Elevação:** não; tarefas de outros usuários não aparecem.
+- **Regras:** `startup.missing-executable`, `startup.temp-location`. **Somente leitura:** nada é desativado (Passo 8).
+- **Impacto** (só na tela, não é finding): `StartupImpact.Estimate` soma memória privada e tempo de CPU dos processos
+  em execução com o mesmo executável — ≥ 100 MB ou 5 s = Médio; ≥ 300 MB ou 30 s = Alto; fora de execução = "não medido".
 
 ## Métricas do dashboard (Monitoring)
 

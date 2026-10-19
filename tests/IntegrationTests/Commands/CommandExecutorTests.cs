@@ -10,6 +10,7 @@ namespace LeccorWindowsHealthCenter.IntegrationTests.Commands;
 /// Executa apenas ferramentas inofensivas e somente-leitura (hostname, ping no loopback).
 /// Nenhum comando que altere o sistema é executado em testes (seção 50).
 /// </summary>
+[Collection(PingProcessesCollection.Name)]
 public sealed class CommandExecutorTests : IDisposable
 {
     private static readonly string System32 = Environment.GetFolderPath(Environment.SpecialFolder.System);

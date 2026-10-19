@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **19/10/2026 — Passo 3 concluído (v0.3.0) + break-ui da tela Armazenamento corrigido; aguardando autorização para o Passo 4.**
+Última atualização: **19/10/2026 — Passo 4 concluído (v0.4.0): Processos e Inicialização; aguardando autorização para o Passo 5.**
 
 ---
 
@@ -19,10 +19,13 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   (CPU sustentada, possível limitação de frequência, pressão de memória, commit alto, possível vazamento).
 - **Scanners em produção (Passo 3):** Discos e Armazenamento, com 5 regras (pouco espaço livre, disco sinaliza problema,
   temperatura alta, TRIM desativado em SSD, temporários/caches grandes como recomendação).
+- **Scanner em produção (Passo 4):** Inicialização (somente leitura), com 2 regras (entrada ativa apontando para arquivo
+  inexistente; executável em pasta temporária). 7 scanners e 12 regras no total.
 - App abre sem admin: Dashboard (score com cobertura "Avaliou X de 6 áreas", CPU/RAM/disco/GPU ao vivo), Varredura,
-  **Performance**, **Hardware**, **Armazenamento** e Configurações. Demais menus: páginas "em construção" com o MVP previsto.
-- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 282/282 (230 unitários, 32 integração, 20 sistema),
-  estáveis em 3 rodadas seguidas com as suítes em paralelo.
+  **Performance**, **Processos**, **Armazenamento**, **Hardware**, **Inicialização** e Configurações. Demais menus:
+  páginas "em construção" com o MVP previsto.
+- Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros. Testes: 325/325 (268 unitários,
+  37 integração, 20 sistema).
 - Telas de Performance e Hardware (16 correções) e Armazenamento (14 correções + 4 decisões) passaram pelo teste de
   estresse break-ui; o seletor de dados de desenvolvimento (só DEBUG) cobre as três telas.
 - Consumo medido (Release, histórico ativo): 0,17% CPU no Dashboard, 0,46% na Performance, 0,00% minimizado;
@@ -371,14 +374,81 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   Ainda abertos (P3, anotados): unidade escolhida por linha ("994 GB de 16.763,8 GB" ao lado de "1,1 TB de 16,4 TB"), volume a 0 B âmbar com
     texto "falham", "C:" x "C:\", duas colunas de arquivos apertadas em 980 px, "1 GB livres", `.dump` não reconhecido.
 
+### Passo 4 — Processos e Inicialização (19/10/2026)
+
+- **Sonda antes de desenhar (sem admin, nesta máquina):** 9 entradas Run (HKCU/HKLM/WOW6432Node), `Ollama.lnk` na pasta
+  Inicializar, 201 tarefas agendadas (49 de logon/boot), 84 serviços automáticos. ~130 de ~330 processos são protegidos:
+  sem caminho, CPU e dono sem administrador (a tela diz quantos).
+- **Application:** `ProcessInventory` (`ProcessDetails`, `ProcessInventorySnapshot`, `TerminateOutcome`,
+  `IProcessInventoryProvider`), `CriticalProcesses` (PID 0/4 + System, Registry, smss, csrss, wininit, winlogon,
+  services, lsass, LsaIso, svchost, fontdrvhost, dwm, MsMpEng, NisSrv, SecurityHealthService, sihost, LogonUI…; o
+  explorer **não** é crítico), `ProcessRates.Compute` (cálculo puro: mesmo PID **e** mesmo horário de início; CPU em %
+  da máquina como o Gerenciador de Tarefas, limitada a 0–100), `FileIdentity`/`SignatureStatus`/`IFileIdentityProvider`,
+  `StartupInventory`/`StartupEntry`/`IStartupInventoryProvider`, `StartupCommand` (interpreta a linha de comando:
+  aspas, caminho sem aspas até a extensão, `\SystemRoot\`, nome simples → System32, alvo DLL do `rundll32`; pasta
+  temporária) e `StartupImpact` (estimativa pelo consumo atual dos processos do mesmo executável).
+- **Infrastructure:** `ProcessInventoryProvider` (Toolhelp32 para o pai; `OpenProcess` com `QUERY_LIMITED_INFORMATION`
+  para caminho, início, CPU, E/S e dono via token → SID → conta, com cache de SID); `Terminate` recusa processo crítico,
+  confere o horário de início (PID reaproveitado ⇒ `NotFound`) e registra no log. `FileIdentityProvider`
+  (`FileVersionInfo` + `WinVerifyTrust` sem revogação/online + catálogo via `CryptCATAdmin*`; cache por caminho e data;
+  no máximo 2 verificações simultâneas). `StartupInventoryProvider` (registro com `StartupApproved` — primeiro byte
+  ímpar = desativado; atalhos via `WScript.Shell`; tarefas via `Schedule.Service` com gatilho de logon/boot e ação
+  executável; serviços via WMI `StartMode='Auto'`; cache de 30 s; cada fonte falha sozinha e vira aviso).
+  `ShellLauncher.ShowProperties` (`SHObjectProperties`, sem executar nada).
+- **Diagnostics:** `StartupScanner` (`startup`, ordem 70, observação `startup.entry`) + `startup.missing-executable`
+  e `startup.temp-location`. Tarefa do próprio Windows (`\Microsoft\Windows\…`) com arquivo removido vira **Info**
+  ("não é preciso fazer nada"): nesta máquina, `\Microsoft\Windows\Autochk\Proxy` chama `acproxy.dll`, removida pelo
+  Windows 11.
+- **Tela Processos:** lista virtualizada atualizada no lugar a cada 2 s (só com a tela visível), colunas ordenáveis
+  (cabeçalho clicável com seta, `SortGlyphConverter`), pesquisa, modo árvore, escudo nos protegidos, fabricante (em
+  vermelho só com assinatura inválida), painel de detalhes (caminho em linha inteira, fabricante, assinatura, usuário,
+  pai, início, tempo de CPU), Abrir local do arquivo, Propriedades, Copiar caminho (menu e Ctrl+C) e **Finalizar com
+  confirmação no lugar** (foco vai para "Encerrar"; Delete pede a confirmação, nunca encerra direto). Abaixo de 860 px
+  de lista, a coluna Fabricante sai e as ações vão para baixo dos detalhes.
+- **Tela Inicialização (somente leitura):** "laudo primeiro" (cartões das entradas com problema; o de componente do
+  Windows em tinta neutra), filtros (pesquisa, desativados, itens do Windows — 85 ocultos por padrão), grupos
+  Aplicativos/Tarefas agendadas/Serviços automáticos com status, origem, fabricante e impacto; onde desativar
+  conforme a origem (Gerenciador de Tarefas, `taskschd.msc`, `services.msc`). Desativar com backup fica para Correções.
+- **Regressão corrigida no caminho:** medir os caches de desenvolvimento levava 72 s; `MeasureLocationsAsync` passou a
+  somar em paralelo (2 locais por vez, vagas compartilhadas) → 2 s.
+- **Acessibilidade:** o menu lateral era lido como `NavigationItem { Title = … }` (o `ListBoxItem` usa o `ToString` do
+  record) → `ToString` devolve o título. Botões com ícone + texto ganharam `AutomationProperties.Name`.
+- Revisado com impeccable (rodada visual em 1280 claro e 980 escuro + uma de confirmação). Testes novos:
+  `ProcessRatesTests`, `StartupTests` (comandos reais desta máquina, pasta temporária, impacto, críticos, regras,
+  tarefa do Windows informativa) e integração (inventário do próprio processo, recusa do lsass, encerrar um `ping`
+  iniciado pelo teste, assinatura por catálogo do notepad, inventário de inicialização sem avisos), progresso da varredura que nunca volta. 325/325.
+- Script de captura `p4-check.ps1` e imagens no scratchpad temporário da sessão. Versão 0.4.0.
+
+#### Erros e correções do Passo 4
+
+| Problema | Causa | Correção |
+| --- | --- | --- |
+| Build "com êxito" escondendo erros de analisador (CA1720 `Signed`/`Unsigned`, CA1806 no `WinVerifyTrust` de fechamento) | Build incremental não reanalisou | Sempre validar com `--no-incremental -warnaserror` (saída em arquivo); nomes `Valid`/`NoSignature`, `_ =` no retorno |
+| CA2201 ao lançar `COMException` para "Agendador indisponível" | Tipo reservado | `InvalidOperationException`, capturada junto com a `COMException` da fonte |
+| Teste com `lsass.HasExited` dava acesso negado | `Process.HasExited` abre o processo | Teste confere pela lista de processos |
+| Medição dos caches de desenvolvimento em 72 s | Locais somados em série | `SumAsync` paralelo com vagas compartilhadas: 2 s |
+| "Desativado · desativado no Gerenciador de Tarefas" e impacto "Desativado" repetido | Status montado com o detalhe sem olhar o conteúdo | Detalhe usado como status quando já diz "desativado"; impacto vazio para desativados; "não medido" curto, explicado na legenda |
+| Tarefa do Windows com arquivo removido recomendava desativar "pelo programa que a criou" | Regra tratava componente do sistema como resto de programa | Info + "não é preciso fazer nada"; cartão neutro |
+| Coluna Fabricante cortada e caminho quebrando em 9 linhas em 980 px | Larguras fixas somavam mais que a área útil; caminho numa coluna estreita | Modo compacto (coluna sai, ações abaixo) e caminho em linha inteira |
+| Script de captura não achava botões nem "Configurações" | Botões com `StackPanel` não têm nome no UIA; `.ps1` sem BOM lido como ANSI | `AutomationProperties.Name`; script em UTF-8 com BOM |
+| App levou 78 s para abrir uma vez (testes de sistema em 1 min 26 s na mesma rodada) | "processo→app 42 s" antes de qualquer código do app: binários recém-compilados sendo examinados pelo sistema (mesma família da investigação de 17/10) | Não é regressão; o script de captura espera até 150 s |
+| `dotnet test --no-incremental` recusado | Opção só do `build` | `build --no-incremental` e depois `test --no-build` |
+| `Timeout_kills_the_process_tree` falhando com a suíte inteira | O teste confere que nenhum `PING` novo sobrou, e o teste de encerramento do Passo 4 inicia um `PING` em paralelo | As duas classes na mesma coleção xUnit (`PingProcessesCollection`), sem paralelismo entre elas |
+| `Reports_progress_until_100_percent` falhou 1 vez na suíte inteira (0 em 40 isolado) | **Defeito real:** `ScanOrchestrator` tirava a fotografia do progresso dentro do `lock` e publicava fora; com scanners em paralelo, a de 50% podia sair depois da de 100% e a barra da Varredura voltava | `Report` dentro do `lock`; teste `Progress_never_goes_backwards_with_parallel_scanners` (8 scanners, 20 rodadas) como guarda — a corrida não reproduz de forma determinística, então o teste não prova a correção sozinho |
+| `Timeout_kills_the_process_tree` ainda falhou 1 vez em Release (em aberto) | Só na 1ª rodada logo após um build `--no-incremental`, com a máquina ~25× mais lenta (unitários em 21 s); a saída silenciosa não trouxe qual asserção falhou | Não reproduziu em 4 rodadas Release seguidas com saída detalhada. Margens não alteradas sem saber a causa; se voltar, rodar com `--logger "console;verbosity=normal"` para ver a asserção |
+
 ## Pendências / próximos passos
 
 Na ordem combinada no `PASSOS.md`:
 
-1. **Passo 4** — Processos e Inicialização (somente leitura).
-2. Passo 5 — Event Viewer (inclui eventos de driver de GPU e de disco: Disk 7/153, NTFS), Integridade do Windows e
+1. **Passo 5** — Event Viewer (inclui eventos de driver de GPU e de disco: Disk 7/153, NTFS), Integridade do Windows e
    **processo elevado + IPC** (habilita SMART detalhado, desgaste e horas ligadas dos discos).
-3. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
+2. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
+
+Itens do Passo 4 para depois: desativar entrada de inicialização com backup e desfazer (Correções, Passo 8); fixtures
+de pior caso das telas Processos e Inicialização no seletor de dados (break-ui ainda não rodado nelas); a lista de
+processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode
+sair da área visível.
 
 Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); exportar a análise de
 espaço (relatórios chegam no Passo 10); análise de espaço não é salva no histórico (fica em memória na sessão).
@@ -389,6 +459,12 @@ espaço (relatórios chegam no Passo 10); análise de espaço não é salva no h
 - O histórico de fundo existe só enquanto o app está aberto (30 min em memória). Logo após abrir, regras de duração
   (CPU sustentada, vazamento) ainda não têm amostras suficientes e simplesmente não concluem.
 - Uso de CPU por processo não é medido em processos protegidos do sistema sem administrador (a tela informa quantos).
+- E/S por processo soma disco, rede e dispositivos (`GetProcessIoCounters`): separar exige ETW/administrador.
+- Impacto de inicialização é estimado pelo consumo atual (memória privada e CPU acumulada dos processos do mesmo
+  executável), não pelo tempo de boot medido; item que não está rodando fica "não medido".
+- Assinatura verificada sem consulta de revogação (offline e rápida): certificado revogado depois de assinar não é detectado.
+- Processos protegidos não podem ser finalizados pelo app (lista fixa em `CriticalProcesses`); outros processos de
+  administrador falham com "sem permissão" até existir o processo elevado (Passo 5).
 - GPU sem contadores "GPU Engine" (VMs, drivers antigos) aparece como "não disponível".
 - Discos sem administrador: vida útil, horas ligadas e SMART detalhado ficam "não disponível" (o Windows nega o acesso);
   temperatura só quando o dispositivo informa via IOCTL. Chegam com o processo elevado (Passo 5).

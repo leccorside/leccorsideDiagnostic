@@ -109,6 +109,19 @@ discordam. `StorageScreenTests` cobre isso.
 Testes: `StorageRulesTests` (um caso que não dispara e outro que dispara por regra, incluindo o C: real desta máquina —
 7% livre, mas 65 GB — que **não** deve gerar alerta).
 
+### Inicialização (Passo 4)
+
+Só concluem com prova: o executável foi interpretado da linha de comando e conferido no disco, e a entrada está ativa
+(desativada não roda, não incomoda). Existência desconhecida não conclui nada.
+
+| Regra | Scanner | Dispara quando | Severidade | Confiança |
+| --- | --- | --- | --- | --- |
+| `startup.missing-executable` | startup | Entrada ativa cujo executável não existe | Baixo; Médio para serviço (falha em todo boot e gera erros no log). Tarefa do próprio Windows (`\Microsoft\Windows\…`): **Informação**, "não é preciso fazer nada" (ex.: `Autochk\Proxy` → `acproxy.dll`, removida pelo Windows 11) | 95% |
+| `startup.temp-location` | startup | Entrada ativa cujo executável está em pasta temporária (`%TEMP%`, `Windows\Temp`, `AppData\Local\Temp`) | Médio se o arquivo existe (padrão comum de malware e de instaladores mal feitos); Baixo se não existe | 60% (possível: conferir fabricante e assinatura) |
+
+A tela Inicialização usa os mesmos critérios (`StartupRow.Problem`). Testes: `StartupTests` (linhas de comando reais
+desta máquina, pasta temporária, cada regra disparando e não disparando).
+
 A justificativa técnica de cada parâmetro está no próprio código (`RuleParameter.Justification`) e é verificada por
 teste (`Every_performance_rule_declares_justified_parameters`). Cada regra tem testes com uma série que **não** deve
 disparar e outra que deve (`PerformanceRulesTests`).

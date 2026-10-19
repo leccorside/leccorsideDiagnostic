@@ -8,4 +8,7 @@ public interface IShellLauncher
 {
     /// <summary>Falso quando o caminho não existe mais ou o shell recusou.</summary>
     bool Reveal(string path);
+
+    /// <summary>Abre a janela "Propriedades" do arquivo (a mesma do Explorer). Não executa o arquivo.</summary>
+    bool ShowProperties(string path);
 }

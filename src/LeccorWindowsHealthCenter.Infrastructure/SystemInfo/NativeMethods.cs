@@ -45,6 +45,10 @@ internal static class NativeMethods
     [DllImport("ole32.dll")]
     public static extern void CoTaskMemFree(IntPtr pointer);
 
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SHObjectProperties(IntPtr window, uint objectType, string objectName, string? propertyPage);
+
     /// <summary>Tamanho total da lixeira de todas as unidades (rootPath null). Retorna HRESULT.</summary>
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "SHQueryRecycleBinW")]
     public static extern int ShQueryRecycleBin(string? rootPath, ref ShQueryRbInfo info);

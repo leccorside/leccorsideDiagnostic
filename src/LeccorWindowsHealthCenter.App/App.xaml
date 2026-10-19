@@ -16,6 +16,7 @@
             <conv:VisibleWhenConverter x:Key="VisibleWhen" />
             <conv:ScoreToValueConverter x:Key="ScoreToValue" />
             <conv:EnumEqualsConverter x:Key="EnumEquals" />
+            <conv:SortGlyphConverter x:Key="SortGlyph" />
 
             <!-- Linha rótulo → valor. "não disponível" fica em tinta secundária (contraste ≥ 4,5:1), nunca escondido. -->
             <DataTemplate x:Key="InfoRowTemplate" DataType="{x:Type vm:InfoRow}">
@@ -90,6 +91,12 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:StorageViewModel}">
                 <views:StorageView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ProcessesViewModel}">
+                <views:ProcessesView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:StartupViewModel}">
+                <views:StartupView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
                 <views:SettingsView />

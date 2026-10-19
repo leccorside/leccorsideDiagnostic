@@ -24,6 +24,9 @@ public static class DependencyInjection
         services.AddSingleton<IStorageInventoryProvider, SystemInfo.WmiStorageInventoryProvider>();
         services.AddSingleton<Application.Storage.ISpaceAnalyzer, Storage.FileSystemSpaceAnalyzer>();
         services.AddSingleton<IShellLauncher, SystemInfo.ShellLauncher>();
+        services.AddSingleton<IProcessInventoryProvider, SystemInfo.ProcessInventoryProvider>();
+        services.AddSingleton<IFileIdentityProvider, SystemInfo.FileIdentityProvider>();
+        services.AddSingleton<Application.Startup.IStartupInventoryProvider, Startup.StartupInventoryProvider>();
 
         var commandOptions = new CommandExecutionOptions();
         foreach (var executable in configuration.GetSection(CommandExecutionOptions.SectionName).GetSection("AdditionalTrustedExecutables").GetChildren())

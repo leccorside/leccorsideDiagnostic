@@ -45,6 +45,21 @@ public sealed class ScoreToValueConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+/// <summary>
+/// Seta de ordenação do cabeçalho: valores = [coluna ordenada, decrescente?], parâmetro = coluna do cabeçalho.
+/// Devolve o glifo Fluent (ChevronDown/ChevronUp) ou vazio quando o cabeçalho não é a coluna ordenada.
+/// </summary>
+public sealed class SortGlyphConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture) =>
+        values is [{ } column, bool descending] && column.ToString() == parameter?.ToString()
+            ? descending ? "" : ""
+            : string.Empty;
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>Compara um enum com o parâmetro (para RadioButtons).</summary>
 public sealed class EnumEqualsConverter : IValueConverter
 {

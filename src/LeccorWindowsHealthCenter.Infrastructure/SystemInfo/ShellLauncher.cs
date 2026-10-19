@@ -46,4 +46,21 @@ public sealed class ShellLauncher : IShellLauncher
             NativeMethods.CoTaskMemFree(pidl);
         }
     }
+
+    public bool ShowProperties(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || (!File.Exists(path) && !Directory.Exists(path)))
+        {
+            return false;
+        }
+
+        // SHOP_FILEPATH = 2: a janela pertence ao Explorer e é não modal; o app só a pede.
+        var shown = NativeMethods.SHObjectProperties(IntPtr.Zero, 2, Path.GetFullPath(path), null);
+        if (!shown)
+        {
+            _logger.LogWarning("O shell não abriu as propriedades de {Path}", path);
+        }
+
+        return shown;
+    }
 }

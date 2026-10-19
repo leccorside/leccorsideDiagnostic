@@ -422,6 +422,21 @@ de resumo ("Arquivos nesta pasta", "N pastas menores") usam a mesma forma sem na
 compactos separados por chevrons, sem chevron após o último nível. Nas listas de arquivos, o nome quebra linha
 (nunca corta: o fim diferencia arquivos parecidos) e a pasta é encurtada no meio ("C:\Users\…\blobs").
 
+### Table Row (lista ao vivo)
+
+Para listas longas atualizadas no lugar (Processos): `ListBox` virtualizado com o estilo `TableRow`. Linha sem borda,
+hover em Nav Hover, seleção com fundo Nav Selected e pílula Brasa de 3px à esquerda (igual à navegação), foco de
+teclado com borda de 2px. Colunas de largura fixa compartilhadas com o cabeçalho; números alinhados à direita e
+tabulares; nome corta no fim com o caminho na dica. Cabeçalho ordenável: Row Buttons compactos em Label semibold, com
+a seta Fluent (chevron 9px, tinta secundária) só na coluna ordenada; clicar de novo inverte. Em larguras estreitas, a
+coluna menos essencial sai (o valor continua no painel de detalhes) em vez de cortar todas.
+
+### Inline Confirmation
+
+Ação destrutiva (Finalizar processo) confirma no lugar, sem diálogo modal: o botão vira uma caixa com borda neutra de
+1px, a frase com o custo ("Trabalho não salvo nesse programa será perdido.") e Primary "Encerrar" + Secondary
+"Cancelar". O foco vai para "Encerrar"; Esc/Cancelar volta. Sem cor semântica: não há achado, só uma decisão.
+
 ### Named Rules
 
 **The Sem Sobretítulo Rule.** Nenhum rótulo pequeno acima de um título. A categoria vira título de seção; o cartão

@@ -150,6 +150,22 @@ public class ScanOrchestratorTests
     }
 
     [Fact]
+    public async Task Progress_never_goes_backwards_with_parallel_scanners()
+    {
+        // Muitos scanners em paralelo aumentam a chance da corrida (publicação fora de ordem) se ela voltar.
+        for (var round = 0; round < 20; round++)
+        {
+            var progress = new SyncProgress();
+            await Orchestrator(Enumerable.Range(0, 8).Select(i => (IDiagnosticScanner)new FakeScanner($"s{i}")).ToList())
+                .RunAsync(ScanPlan.Full, progress, CancellationToken.None);
+
+            var percents = progress.Reports.Select(p => p.Percent).ToList();
+            Assert.Equal(percents.Order(), percents);
+            Assert.Equal(100, percents[^1]);
+        }
+    }
+
+    [Fact]
     public async Task Repository_failure_does_not_lose_the_report()
     {
         var orchestrator = new ScanOrchestrator(

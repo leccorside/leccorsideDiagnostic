@@ -40,6 +40,11 @@ public static class DependencyInjection
         services.AddSingleton<IRule, DiskTemperatureRule>();
         services.AddSingleton<IRule, TrimDisabledRule>();
         services.AddSingleton<IRule, TempCacheLargeRule>();
+
+        // Passo 4 — MVP 1 (c): Processos e Inicialização
+        services.AddSingleton<IDiagnosticScanner, Startup.StartupScanner>();
+        services.AddSingleton<IRule, StartupMissingExecutableRule>();
+        services.AddSingleton<IRule, StartupTempLocationRule>();
         return services;
     }
 }
