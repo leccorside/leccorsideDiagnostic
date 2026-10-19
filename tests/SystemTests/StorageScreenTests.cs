@@ -21,6 +21,24 @@ public sealed class StorageScreenTests
         Assert.True(shortened.Length <= 64, shortened);
     }
 
+    [Theory]
+    [InlineData(1L, "menos de 1 MB")]
+    [InlineData(512L, "menos de 1 MB")]
+    [InlineData(0L, "0 B")]
+    public void Tiny_totals_are_approximated(long bytes, string expected)
+    {
+        var previous = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
+        try
+        {
+            Assert.Equal(expected, StorageViewModel.ApproxBytes(bytes));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previous;
+        }
+    }
+
     [Fact]
     public void Short_paths_are_untouched() => Assert.Equal(@"C:\Users\Jo\Downloads", StorageViewModel.ShortPath(@"C:\Users\Jo\Downloads"));
 

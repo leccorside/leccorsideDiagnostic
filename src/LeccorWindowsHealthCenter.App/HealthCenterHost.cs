@@ -51,6 +51,7 @@ public static class HealthCenterHost
         builder.Services.AddSingleton<ThemeService>();
         builder.Services.AddSingleton<ScanSession>();
         builder.Services.AddSingleton<UiPreferences>();
+        builder.Services.AddSingleton<IFolderPicker, FolderPicker>();
         builder.Services.AddSingleton<DashboardViewModel>();
         builder.Services.AddSingleton<ScanViewModel>();
         builder.Services.AddSingleton<PerformanceViewModel>();

@@ -34,6 +34,17 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DeviceIoControl(SafeFileHandle device, uint ioControlCode, byte[] inBuffer, int inSize, byte[] outBuffer, int outSize, out int bytesReturned, IntPtr overlapped);
 
+    /// <summary>Caminho → PIDL do shell (liberar com <see cref="CoTaskMemFree"/>). Retorna HRESULT.</summary>
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    public static extern int SHParseDisplayName(string name, IntPtr bindingContext, out IntPtr pidl, uint sfgaoIn, out uint sfgaoOut);
+
+    /// <summary>Com cidl = 0 e o PIDL completo do item: abre a pasta-mãe com o item selecionado. Não executa nada.</summary>
+    [DllImport("shell32.dll")]
+    public static extern int SHOpenFolderAndSelectItems(IntPtr pidlFolder, uint cidl, IntPtr apidl, uint flags);
+
+    [DllImport("ole32.dll")]
+    public static extern void CoTaskMemFree(IntPtr pointer);
+
     /// <summary>Tamanho total da lixeira de todas as unidades (rootPath null). Retorna HRESULT.</summary>
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "SHQueryRecycleBinW")]
     public static extern int ShQueryRecycleBin(string? rootPath, ref ShQueryRbInfo info);

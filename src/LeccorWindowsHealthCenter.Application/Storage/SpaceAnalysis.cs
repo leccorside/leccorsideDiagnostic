@@ -75,6 +75,12 @@ public sealed class SpaceAnalysisOptions
 
     public int MaxChildrenPerFolder { get; set; } = 50;
 
+    /// <summary>
+    /// Quando as subpastas cortadas somam mais da metade da pasta (ex.: node_modules com 1.300 pacotes de 2 MB), a lista
+    /// sobe até este limite: senão "N pastas menores" esconderia quase tudo, sem navegação.
+    /// </summary>
+    public int DominantChildrenPerFolder { get; set; } = 500;
+
     public long MinFolderBytes { get; set; } = 1024 * 1024;
 
     public int TopFiles { get; set; } = 50;
@@ -91,6 +97,9 @@ public enum StorageLocationKind
     CrashData,
     Update,
     RecycleBin,
+
+    /// <summary>Cache de ferramenta de desenvolvimento (npm, NuGet, Gradle…): recriado pela ferramenta quando preciso.</summary>
+    DeveloperCache,
 }
 
 /// <summary>
@@ -98,7 +107,11 @@ public enum StorageLocationKind
 /// nada aqui é apagado (seção 15: não excluir automaticamente).
 /// </summary>
 /// <param name="PathPatterns">Caminhos com variáveis de ambiente; "*" substitui um único nível (ex.: perfis do navegador).</param>
-public sealed record StorageLocation(string Id, string Title, StorageLocationKind Kind, string Description, IReadOnlyList<string> PathPatterns);
+public sealed record StorageLocation(string Id, string Title, StorageLocationKind Kind, string Description, IReadOnlyList<string> PathPatterns)
+{
+    /// <summary>Comando oficial de limpeza da própria ferramenta (copiável na tela; o app não o executa).</summary>
+    public string? CleanupCommand { get; init; }
+}
 
 public sealed record LocationMeasure
 {
@@ -160,5 +173,29 @@ public static class StorageLocations
         new(RecycleBinId, "Lixeira", StorageLocationKind.RecycleBin,
             "Arquivos que você já apagou e ainda podem ser restaurados. Esvaziar é decisão sua.",
             []),
+
+        // Caches de ferramentas de desenvolvimento (perfil principal do produto — PRODUCT.md). Cada um diz o comando
+        // oficial de limpeza: apagar a pasta à mão funciona, mas o comando da própria ferramenta é o caminho seguro.
+        new("npm-cache", "Cache do npm", StorageLocationKind.DeveloperCache,
+            "Pacotes baixados pelo npm. Recriado na próxima instalação; limpe com npm cache clean --force.",
+            [@"%LOCALAPPDATA%\npm-cache"]) { CleanupCommand = "npm cache clean --force" },
+        new("yarn-cache", "Cache do Yarn", StorageLocationKind.DeveloperCache,
+            "Pacotes baixados pelo Yarn. Limpe com yarn cache clean.",
+            [@"%LOCALAPPDATA%\Yarn\Cache"]) { CleanupCommand = "yarn cache clean" },
+        new("pnpm-store", "Armazém do pnpm", StorageLocationKind.DeveloperCache,
+            "Pacotes compartilhados entre projetos pnpm. Remova os não usados com pnpm store prune.",
+            [@"%LOCALAPPDATA%\pnpm\store"]) { CleanupCommand = "pnpm store prune" },
+        new("nuget-packages", "Pacotes do NuGet", StorageLocationKind.DeveloperCache,
+            "Pacotes .NET baixados. Restaurados no próximo build; limpe com dotnet nuget locals all --clear.",
+            [@"%USERPROFILE%\.nuget\packages"]) { CleanupCommand = "dotnet nuget locals all --clear" },
+        new("gradle-cache", "Cache do Gradle", StorageLocationKind.DeveloperCache,
+            "Dependências e builds em cache do Gradle (Android/Java). Recriado no próximo build; feche o Android Studio antes de limpar.",
+            [@"%USERPROFILE%\.gradle\caches"]),
+        new("maven-repository", "Repositório local do Maven", StorageLocationKind.DeveloperCache,
+            "Dependências Java baixadas pelo Maven. Baixadas de novo quando um projeto precisar.",
+            [@"%USERPROFILE%\.m2\repository"]),
+        new("pip-cache", "Cache do pip", StorageLocationKind.DeveloperCache,
+            "Pacotes Python baixados. Limpe com pip cache purge.",
+            [@"%LOCALAPPDATA%\pip\Cache"]) { CleanupCommand = "pip cache purge" },
     ];
 }

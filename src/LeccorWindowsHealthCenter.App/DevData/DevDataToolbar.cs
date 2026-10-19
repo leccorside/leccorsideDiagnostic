@@ -60,6 +60,7 @@ public static class DevDataToolbar
             {
                 sw.Set(mode);
                 _ = hardware.RefreshCommand.ExecuteAsync(null);
+                storage.ResetAnalyses();
                 _ = storage.RefreshCommand.ExecuteAsync(null);
             };
             panel.Children.Add(button);

@@ -63,13 +63,23 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   (até 30 min) e maiores consumidores de CPU e memória. Amostra a cada 2 s só com a tela aberta.
 - **Hardware**: sistema, SO, BIOS e placa-mãe; processadores; memória e módulos; placas de vídeo (VRAM real, driver e data).
   Botão "Ler novamente"; fontes WMI que falharam aparecem no modo avançado.
-- **Armazenamento**: volumes com espaço livre e barra de uso; **análise de espaço** sob demanda por volume (progresso ao
-  vivo, "Cancelar análise", navegação por pastas com trilha clicável, maiores arquivos e arquivos grandes sem alteração
-  há anos, com explicação de arquivos do sistema como `pagefile.sys`); temporários e caches medidos (a Lixeira fica fora
-  da soma); discos físicos (tipo, utilizado/livre, vida útil, estado SMART, temperatura, TRIM, partições, firmware).
-  Sem administrador, vida útil e horas ligadas aparecem como "não disponível" com a explicação. Nada é apagado.
-  Volume com pouco espaço fica âmbar/vermelho pela mesma decisão da regra `storage.low-free-space`; com mais de 4
-  discos, a lista vira compacta (abrir mostra o cartão completo); ao iniciar a análise, a tela rola até o painel.
+- **Armazenamento** (ordenada como laudo):
+  1. **Diagnóstico no topo:** cartões para disco com falha prevista/estado ruim e volume com pouco espaço (evidência,
+     volumes afetados, ação e botão "Analisar"), pelos mesmos critérios das regras; sem achados, uma linha de OK.
+  2. **Volumes** com espaço livre e barra de uso (âmbar/vermelho pela regra `storage.low-free-space`; compactos acima de 6).
+  3. **Análise de espaço** sob demanda por volume ou pasta ("Analisar outra pasta…"): progresso ao vivo, cancelar,
+     análises guardadas por volume, trilha de navegação, ordenar por tamanho/nome, linhas que entram na pasta ou a
+     mostram no Explorer, menu de contexto (Mostrar no Explorer, Copiar caminho), atalhos (Enter, Backspace/Alt+←, Ctrl+C, F5).
+  4. **Arquivos da pasta atual** (maiores e grandes sem alteração há anos) com filtro por nome/extensão e "Mostrar todos";
+     explicação de itens conhecidos (`StorageHints`: discos virtuais do Docker/WSL, modelos de IA, ISOs, `.sys`,
+     `node_modules`…) com "não apague" quando apagar quebra algo.
+  5. **Discos físicos** (tipo, utilizado/livre, vida útil, estado SMART, temperatura, TRIM, partições, firmware); lista
+     compacta acima de 4 discos com o crítico já aberto.
+  6. **Temporários e caches** medidos, incluindo npm, Yarn, pnpm, NuGet, Gradle, Maven e pip com o comando oficial de
+     limpeza; a Lixeira fica fora da soma. Nada é apagado.
+  Sem administrador, vida útil e horas ligadas aparecem como "não disponível" com a explicação. Leitor de tela: status
+  da análise anunciado no início/fim, nomes acessíveis completos e foco que acompanha a ação.
+  "Mostrar no Explorer" usa a API do shell (`ShellLauncher`, `SHOpenFolderAndSelectItems`): seleciona, nunca executa.
 - **Configurações**: tema (Windows/Claro/Escuro, inclusive barra de título), modo avançado, estado de privilégio,
   Dry Run, caminhos de dados, versão.
 - Logos: `logo2.png` (tema claro) e `logo1.jpg` (tema escuro, como selo); `logo-mark.png` e `app.ico` são
@@ -165,10 +175,10 @@ logs e saídas, backups com ACL. Detalhes: [docs/SECURITY.md](docs/SECURITY.md).
 
 | Projeto | Testes |
 | --- | --- |
-| UnitTests | 214 (inclui `InventoryTextTests`, `StorageTextTests` — códigos do WMI de armazenamento — e `StorageRulesTests`) |
-| IntegrationTests | 30 (inclui leitura real de WMI, PDH, memória, processos, histórico, discos/volumes desta máquina e o analisador de espaço sobre uma árvore temporária: soma, poda, maiores/antigos, junção não seguida, cancelamento) |
-| SystemTests | 17 (inclui varredura completa real com os 6 scanners, `FmtTests` e `StorageScreenTests`) |
-| **Total** | **261 — todos passando** (Debug e Release com `-warnaserror`; 3 rodadas seguidas com as suítes em paralelo) |
+| UnitTests | 230 (inclui `InventoryTextTests`, `StorageTextTests`, `StorageRulesTests` e `StorageHintsTests`) |
+| IntegrationTests | 32 (inclui lista ampliada com pastas dominantes, `ShellLauncher` com caminho inexistente, leitura real de WMI, PDH, memória, processos, histórico, discos/volumes desta máquina e o analisador de espaço sobre uma árvore temporária: soma, poda, maiores/antigos, junção não seguida, cancelamento) |
+| SystemTests | 20 (inclui varredura completa real com os 6 scanners, `FmtTests` e `StorageScreenTests`) |
+| **Total** | **282 — todos passando** (Debug e Release com `-warnaserror`; 3 rodadas seguidas com as suítes em paralelo) |
 
 ## 11. Dados de desenvolvimento e textos de inventário
 

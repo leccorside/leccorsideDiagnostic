@@ -52,7 +52,8 @@ CPU (não há fonte confiável sem driver de kernel; não será estimada).
 - [x] Regras: pouco espaço livre, disco sinaliza problema (SMART/HealthStatus), temperatura alta (quando disponível), TRIM desativado em SSD, temporários/caches grandes (recomendação)
 - [x] Tela Armazenamento revisada com impeccable nos temas claro e escuro, em 1280 e 980 px
 - [x] Teste de estresse break-ui da tela Armazenamento: seletor de dados de desenvolvimento com fixtures de pior caso, 14 achados + 4 decisões corrigidos (formatação de espaço com zero e valores quase iguais, plural, corrida de carregamento, pastas sem permissão, barra do volume pela mesma decisão da regra, lista compacta de discos, rolagem até a análise)
-- [x] Testes: 214 unitários, 30 integração (fontes reais + árvore temporária + pasta sem permissão), 17 sistema (varredura completa com 6 scanners + tela Armazenamento)
+- [x] Crítica com impeccable (26/40) e execução do plano inteiro: tela "laudo primeiro" com diagnóstico no topo, análises guardadas, listas da pasta atual, explicações para desenvolvedor (Docker/WSL/modelos) e caches de npm/NuGet/Gradle/pip/Yarn/pnpm/Maven, acessibilidade (foco, região viva, nomes completos, menu de contexto), mostrar no Explorer pela API do shell
+- [x] Testes: 229 unitários, 32 integração (fontes reais + árvore temporária + pasta sem permissão), 20 sistema (varredura completa com 6 scanners + tela Armazenamento)
 
 Fica para passos seguintes: SMART/NVMe detalhado, desgaste e horas ligadas (exigem o processo elevado — Passo 5);
 eventos de disco (Disk 7/153, NTFS — Passo 5, Event Viewer); limpeza dos temporários/caches (Passo 7).

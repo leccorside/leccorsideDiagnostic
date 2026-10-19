@@ -21,7 +21,7 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   temperatura alta, TRIM desativado em SSD, temporários/caches grandes como recomendação).
 - App abre sem admin: Dashboard (score com cobertura "Avaliou X de 6 áreas", CPU/RAM/disco/GPU ao vivo), Varredura,
   **Performance**, **Hardware**, **Armazenamento** e Configurações. Demais menus: páginas "em construção" com o MVP previsto.
-- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 261/261 (214 unitários, 30 integração, 17 sistema),
+- Build Debug e Release com `-warnaserror`: 0 avisos, 0 erros. Testes: 282/282 (230 unitários, 32 integração, 20 sistema),
   estáveis em 3 rodadas seguidas com as suítes em paralelo.
 - Telas de Performance e Hardware (16 correções) e Armazenamento (14 correções + 4 decisões) passaram pelo teste de
   estresse break-ui; o seletor de dados de desenvolvimento (só DEBUG) cobre as três telas.
@@ -308,6 +308,69 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 | Edições da View não aplicadas pelo script | `R` é alias de `Invoke-History` no PowerShell | Edições refeitas com a ferramenta de edição; não usar nomes curtos de função em scripts |
 | `PASSOS.md` e dois docs corrompidos (caracteres isolados trocados no arquivo inteiro) ao atualizar a documentação | No PowerShell, `@(@('a','b'))` com um único par é achatado: o laço recebeu strings e `$p[0]`/`$p[1]` viraram caracteres | Arquivos restaurados do último commit com `git checkout --` (sem trabalho pendente neles) e edições refeitas com a ferramenta de edição. Para um só par, usar `@(,@('a','b'))` — ou, melhor, a ferramenta de edição |
 
+### Crítica da tela Armazenamento com impeccable (19/10/2026)
+
+- Duas avaliações isoladas (revisão de design + detector). Nota **26/40 (Aceitável)**: 1 P0, 3 P1, 1 P2. Registro em
+  `.impeccable/critique/2026-10-19T04-48-50Z__…storageview-xaml-….md`.
+- O detector do impeccable **não analisa XAML** (as regras procuram CSS/JSX; ao escanear uma pasta, ignora `.xaml`):
+  "limpo" não é evidência em telas WPF. Verificado com arquivos de controle.
+- Decisões do usuário: começar pela **hierarquia**; direção **"laudo primeiro"** (a tela abre pelo diagnóstico mais
+  grave — saúde dos discos e pouco espaço — e só depois a análise); escopo **tudo** (5 prioritários + menores).
+
+### Plano da crítica executado (19/10/2026) — layout, harden, clarify, audit, menores, polish
+
+- **Layout ("laudo primeiro"):** a tela abre por cartões de diagnóstico (`StorageAlert`): disco com falha prevista ou
+  estado ruim (evidência SMART/operacional, volumes afetados, "faça backup agora") e volume com pouco espaço (limite
+  real da regra, botão "Analisar C:"). Mesmos critérios de `DiskHealthRule` e `LowFreeSpaceRule`. Sem achados: linha
+  "Nenhum disco sinaliza problema…". Ordem: alertas → Volumes → Análise de espaço → arquivos → Discos físicos →
+  Temporários e caches. Leitura vazia no topo; análise escondida sem volumes; volumes compactos acima de 6; disco
+  crítico já aberto na lista compacta; "disco com falha prevista" na legenda dos volumes afetados.
+- **Harden:** análises guardadas por volume/pasta (chips "Análises feitas"), a anterior continua visível enquanto a
+  nova lê e cancelar não perde nada; listas de arquivos seguem a pasta atual (com escopo dito); analisador amplia a
+  lista quando as pastas cortadas passam de metade da pasta (`DominantChildrenPerFolder` = 500); toda linha tem ação
+  (entra na pasta ou mostra no Explorer); "pastas menores" diz por que não estão listadas; trilha com a pasta atual
+  como texto (não botão); "Analisar outra pasta…" (`IFolderPicker`/`OpenFolderDialog`).
+- **Clarify:** `StorageHints` explica `.vhdx` do Docker e do WSL, discos virtuais, modelos do Ollama e do Docker Model
+  Runner, `.gguf`/`.safetensors`, ISOs, despejos, arquivos `.sys` e pastas (`node_modules`, `.venv`, `.gradle`,
+  `WinSxS`…), marcando "não apague" quando apagar quebra algo. Catálogo de caches ganhou npm, Yarn, pnpm, NuGet,
+  Gradle, Maven e pip (`DeveloperCache`, com o comando oficial de limpeza). Nesta máquina: npm 7,8 GB, Gradle 4,7 GB,
+  pip 3,3 GB, NuGet 2,9 GB. Sem promessa de roadmap na interface; erros em linguagem clara (detalhe técnico só no modo
+  avançado); "via WMI" saiu do subtítulo; "links físicos" explicado.
+- **Audit (acessibilidade):** foco vai para "Cancelar análise" ao analisar e para a primeira pasta ao terminar/navegar;
+  status com `AutomationProperties.LiveSetting` + evento `LiveRegionChanged` no início/fim/cancelamento; nomes
+  acessíveis completos (nome, tamanho, %, ação) e caminho em `HelpText`; arquivos e locais focáveis; menu de contexto
+  (Mostrar no Explorer, Copiar caminho); Ctrl+C, Backspace/Alt+← e F5; Expander com nome; texto diferente por nível
+  ("pouco espaço livre" / "espaço criticamente baixo"); borda de foco das linhas com 2 px.
+- **Menores:** unidade sobe a partir de 1.000 ("0,99 GB"), "menos de 1 MB" em totais, colunas alinhadas com
+  `SharedSizeGroup`, ordenar por tamanho/nome, filtro por nome/extensão, "Mostrar todos (N)".
+- **"Mostrar no Explorer" sem executar nada:** `ShellLauncher` usa `SHParseDisplayName` + `SHOpenFolderAndSelectItems`
+  (seleciona o item na pasta-mãe; um `.exe` nunca é executado), por isso não passa pelo `CommandExecutor`.
+- **Polish:** sombra Flutuante em menus e tooltips (pendência antiga), estilos de `ContextMenu`, `MenuItem` e
+  `FilterBox`; DESIGN.md com Diagnostic Alert, Floating e Filter Box.
+- Defeitos achados na verificação e corrigidos: status "C:: analisado" (dois-pontos duplicado), "1 pasta menor: cada
+  uma com menos de 1,2 TB", alerta "0 B livres" (agora "está sem espaço livre"), e no seletor de dados a análise de
+  teste ficava sobre o C: real (`ResetAnalyses`, só chamado pelo seletor).
+- Testes novos: `StorageHintsTests`, lista ampliada com pastas dominantes, `ShellLauncher` com caminho inexistente,
+  "menos de 1 MB"; formatação atualizada ("0,99 GB", "1 KB"). 281/281.
+- **Nova crítica (2ª rodada): 26 → 28/40 (Bom)**; P0 1 → 0, P1 3 → 2. Registro em
+  `.impeccable/critique/2026-10-19T05-47-28Z__…storageview-xaml-….md`. Detector continua sem cobrir XAML.
+  P1 e P2 da 2ª rodada **corrigidos** (decisão do usuário: "Corrigir P1 e P2", soma tratada com o usado no título):
+  - Título da análise na raiz mostra o **espaço usado** ("3,6 TB usados em C:"); a soma das pastas e o motivo (links
+    físicos) ficam na legenda, com aviso de que as porcentagens são sobre a soma.
+  - Alertas dentro de `AccessibleRegion` (ContentControl focável com AutomationPeer de grupo; nome = nível, título,
+    o que aconteceu e ação), anel de foco `CardFocusRing`; resumo "N problemas críticos…" com `LiveSetting=Assertive`
+    anunciado ao abrir; títulos com `AutomationProperties.HeadingLevel` (página nível 1, seções nível 2, alertas nível 3).
+  - Barra de progresso aproximada (bytes lidos ÷ usado, até 99%) na análise de volume; status em Body; "Caminho
+    copiado"/"Comando copiado" anunciados.
+  - Linha de pasta com uma ação (entrar); "Mostrar no Explorer" num botão próprio ao lado; caso dominante sem o corte
+    de 1 MB; lista limitada a 25 com "Mostrar mais N pastas".
+  - Dica do Docker diz o que `docker system prune` remove e indica Clean / Purge data; comandos copiáveis pelo menu
+    ("Copiar comando": `docker system df`, `wsl --list --verbose`, `ollama list`, `docker model ls`, `npm cache clean
+    --force`, `dotnet nuget locals all --clear`…). O app nunca executa esses comandos.
+  - Não verificado em captura: a barra de progresso (a análise de teste termina antes da foto); verificado no código.
+  Ainda abertos (P3, anotados): unidade escolhida por linha ("994 GB de 16.763,8 GB" ao lado de "1,1 TB de 16,4 TB"), volume a 0 B âmbar com
+    texto "falham", "C:" x "C:\", duas colunas de arquivos apertadas em 980 px, "1 GB livres", `.dump` não reconhecido.
+
 ## Pendências / próximos passos
 
 Na ordem combinada no `PASSOS.md`:
@@ -317,9 +380,8 @@ Na ordem combinada no `PASSOS.md`:
    **processo elevado + IPC** (habilita SMART detalhado, desgaste e horas ligadas dos discos).
 3. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
 
-Item anotado do Passo 3: "Abrir no Explorer" a partir da análise de espaço não foi feito (exige passar pela política de execução).
-
-Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); sombra "flutuante" nos tooltips.
+Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); exportar a análise de
+espaço (relatórios chegam no Passo 10); análise de espaço não é salva no histórico (fica em memória na sessão).
 
 ## Limitações conhecidas (deliberadas)
 

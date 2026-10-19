@@ -334,6 +334,14 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
             children.Sort((a, b) => b.SizeBytes.CompareTo(a.SizeBytes));
             var kept = children.Where(c => c.SizeBytes >= _options.MinFolderBytes).Take(_options.MaxChildrenPerFolder).ToList();
 
+            // Cortadas dominando a pasta (node_modules com 1.300 pacotes): lista maior, senão "N pastas menores" esconde quase tudo.
+            var childrenBytes = children.Sum(c => c.SizeBytes);
+            if (childrenBytes - kept.Sum(c => c.SizeBytes) > (filesBytes + childrenBytes) / 2)
+            {
+                // Sem o mínimo de tamanho: se as pequenas dominam a pasta, são elas que o usuário precisa ver.
+                kept = children.Take(_options.DominantChildrenPerFolder).ToList();
+            }
+
             // Pasta sem permissão tem 0 B e sumiria na poda: a legenda diria "N pastas sem permissão" sem mostrar quais.
             kept.AddRange(children.Where(c => c.Inaccessible && !kept.Contains(c)).Take(MaxInaccessibleShown));
             var hidden = children.Count - kept.Count;

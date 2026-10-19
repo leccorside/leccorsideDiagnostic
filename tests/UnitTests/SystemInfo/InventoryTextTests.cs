@@ -54,7 +54,7 @@ public class InventoryTextTests
 
     [Theory]
     [InlineData(1_099_201_822_310L, 1_099_511_627_776L, "1.023,7 GB", "1.024 GB")] // 1 TB de RAM quase toda em uso
-    [InlineData(1_063_256_064L, 1_073_741_824L, "1.014 MB", "1.024 MB")]
+    [InlineData(1_063_256_064L, 1_073_741_824L, "0,99 GB", "1 GB")] // a partir de 1.000 a unidade sobe
     [InlineData(17_394_536_448L, 34_252_783_616L, "16,2 GB", "31,9 GB")]
     [InlineData(2_198_915_544_064L, 2_199_023_255_552L, "2.047,9 GB", "2.048 GB")] // ambos em TB: "2 TB de 2 TB" esconderia a diferença
     [InlineData(0L, 408_021_893_120L, "0 GB", "380 GB")] // break-ui: volume cheio virava "0 B livres de 408.021.893.120 B"

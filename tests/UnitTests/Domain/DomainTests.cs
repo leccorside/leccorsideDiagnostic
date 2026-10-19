@@ -64,15 +64,20 @@ public class DomainTests
 
     [Theory]
     [InlineData(0, "0 B")]
-    [InlineData(1023, "1,023 B")]
+    [InlineData(999, "999 B")]
+    [InlineData(1023, "1 KB")] // a partir de 1.000 a unidade sobe
     [InlineData(1536, "1.5 KB")]
     [InlineData(1_300_000_000_000, "1.2 TB")]
     public void Byte_size_formatting(long bytes, string expected) =>
         Assert.Equal(expected, ByteSize.Format(bytes, System.Globalization.CultureInfo.InvariantCulture));
 
     [Fact]
-    public void Byte_size_has_thousands_separator_like_the_pairs() =>
-        Assert.Equal("1.012,8 MB", ByteSize.Format(1_062_002_278, System.Globalization.CultureInfo.GetCultureInfo("pt-BR")));
+    public void Byte_size_moves_to_the_next_unit_from_1000() =>
+        Assert.Equal("0,99 GB", ByteSize.Format(1_062_002_278, System.Globalization.CultureInfo.GetCultureInfo("pt-BR")));
+
+    [Fact]
+    public void Byte_size_keeps_thousands_separator_when_the_unit_cannot_grow() =>
+        Assert.Equal("1.536 PB", ByteSize.Format(1_729_382_256_910_270_464, System.Globalization.CultureInfo.GetCultureInfo("pt-BR")));
 
     [Fact]
     public void Byte_size_uses_brazilian_decimal_comma_in_pt_br() =>

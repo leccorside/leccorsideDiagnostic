@@ -377,6 +377,37 @@ com números tabulares à direita, ação secundária "Analisar" e barra de 6px 
 Âmbar (Medium) ou vermelho (Critical) — barra, valor em semibold e "pouco espaço livre" na legenda — só quando a regra
 de pouco espaço acusaria o mesmo volume (mesma função `LowFreeSpaceRule.Assess`; The Significado Fixo Rule).
 
+### Diagnostic Alert (laudo primeiro)
+
+Telas de inventário abrem pelo diagnóstico mais grave. Cartão por achado, acima de todo o resto, com borda de 1px na cor
+semântica (Critical ou Medium), ícone Fluent de 20px na mesma cor e com nome acessível do nível ("Crítico"/"Atenção"),
+título em Title, o que aconteceu em Body, a evidência em Label e a ação em Body semibold. Ação disponível (ex.:
+"Analisar C:") é botão secundário à direita. Mesmo critério das regras da varredura. Sem achados, uma linha calma com
+ícone de check em Status OK: "Nenhum disco sinaliza problema…". Leitura vazia também vai para o topo.
+
+### Accessible Region
+
+Bloco não acionável que precisa ser lido por quem navega no teclado (ex.: cartão de alerta): `AccessibleRegion` entra
+no Tab, aparece ao leitor de tela como grupo com o texto inteiro e mostra o anel `CardFocusRing` (2px, Texto
+Secundário, cantos de 10px). Títulos de página, seção e cartão de alerta declaram `HeadingLevel` (1, 2, 3).
+
+### Row Reveal Button
+
+Ao lado de cada linha de pasta, um Row Button compacto só com o ícone Fluent de abrir fora (13px, tinta secundária),
+nome acessível "Mostrar X no Explorer". A linha em si tem uma ação só (entrar na pasta); a seta aparece apenas onde há
+para onde entrar.
+
+### Floating (menus e tooltips)
+
+Menu de contexto e tooltip usam a sombra Flutuante (`FloatingShadow`: desfoque 16, deslocamento 4 para baixo, 22%),
+fundo Folha do Laudo, borda Fio do Cartão, cantos de 8px (menu) ou 6px (tooltip). Itens do menu com ícone Fluent de
+14px, hover em Nav Hover, atalho em Label secundário à direita.
+
+### Filter Box
+
+Campo de texto com cantos de 6px, borda neutra de 1px e foco com borda Brasa de 2px; o texto de dica vem do `Tag` e
+some quando há texto. Seleção na Brasa translúcida.
+
 ### Disk Summary Row
 
 Com mais de 4 discos, cartões completos viram uma lista compacta dentro de um único cartão: Expander por disco com

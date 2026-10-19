@@ -6,8 +6,16 @@ public static class ByteSize
 {
     private static readonly string[] Units = ["B", "KB", "MB", "GB", "TB", "PB"];
 
+    /// <summary>A partir de 1.000 a unidade sobe (base 1024): 1.000 MB viram "0,98 GB".</summary>
+    private const double UnitThreshold = 1000;
+
+    /// <summary>Abaixo de 1, duas casas ("0,98"); senão uma, com separador de milhar ("1.023,7").</summary>
+    private static string Number(double value, IFormatProvider provider) =>
+        value < 1 ? value.ToString("0.##", provider) : value.ToString("#,##0.#", provider);
+
     /// <summary>
-    /// Formata bytes em unidade legível (base 1024), ex.: "1,3 TB" em pt-BR.
+    /// Formata bytes em unidade legível (base 1024), ex.: "1,3 TB" em pt-BR. Muda de unidade a partir de 1.000
+    /// ("0,99 GB", não "1.012,8 MB"): quatro dígitos antes da vírgula atrapalham a comparação entre linhas.
     /// Sem <paramref name="provider"/>, usa a cultura atual (a da interface).
     /// </summary>
     public static string Format(long bytes, IFormatProvider? provider = null)
@@ -20,7 +28,7 @@ public static class ByteSize
 
         double value = bytes;
         var unit = 0;
-        while (value >= 1024 && unit < Units.Length - 1)
+        while (value >= UnitThreshold && unit < Units.Length - 1)
         {
             value /= 1024;
             unit++;
@@ -28,7 +36,7 @@ public static class ByteSize
 
         return unit == 0
             ? string.Create(provider, $"{bytes:#,##0} B")
-            : string.Create(provider, $"{value:#,##0.#} {Units[unit]}");
+            : $"{Number(value, provider)} {Units[unit]}";
     }
 
     /// <summary>
@@ -42,7 +50,7 @@ public static class ByteSize
 
         // Zero não escolhe a unidade: "0 GB livres de 380 GB", nunca "0 B livres de 408.021.893.120 B".
         double reference = part <= 0 || total <= 0 ? Math.Max(0, Math.Max(part, total)) : Math.Min(part, total);
-        while (reference >= 1024 && unit < Units.Length - 1)
+        while (reference >= UnitThreshold && unit < Units.Length - 1)
         {
             reference /= 1024;
             unit++;
@@ -50,7 +58,7 @@ public static class ByteSize
 
         string Fmt(long v, int u) => u == 0
             ? string.Create(provider, $"{v:#,##0} B")
-            : string.Create(provider, $"{v / Math.Pow(1024, u):#,##0.#} {Units[u]}");
+            : $"{Number(v / Math.Pow(1024, u), provider)} {Units[u]}";
 
         // Valores diferentes que arredondam para o mesmo texto ("2 TB de 2 TB"): desce UMA unidade se isso mostrar a
         // diferença. Mais que isso vira ruído ("2.097.151,5 KB de 2.097.152 KB" por 512 bytes) — fica "2 GB de 2 GB".

@@ -132,6 +132,33 @@ public class StorageSourcesTests
     }
 
     [Fact]
+    public async Task Dominant_small_folders_are_listed_instead_of_summed()
+    {
+        // Crítica: "1.284 pastas menores" com quase todo o conteúdo e sem navegação (node_modules com muitos pacotes).
+        using var temp = new TempDirectory();
+        for (var i = 0; i < 20; i++)
+        {
+            WriteFile(Path.Combine(temp.Path, "node_modules", $"pacote-{i:00}", "index.js"), 200 * 1024); // cada pacote abaixo do mínimo de 1 MB
+        }
+
+        var options = new SpaceAnalysisOptions { MinFolderBytes = Mb, MaxChildrenPerFolder = 5, DominantChildrenPerFolder = 500 };
+        var analysis = await Analyzer(options).AnalyzeAsync(temp.Path, solidState: true, null, CancellationToken.None);
+
+        var modules = Assert.Single(analysis.Root.Children);
+        Assert.Equal(20, modules.Children.Count);
+        Assert.Equal(0, modules.HiddenChildrenCount);
+    }
+
+    [Fact]
+    public void Reveal_of_a_missing_path_returns_false_without_opening_anything()
+    {
+        var shell = new ShellLauncher(NullLogger<ShellLauncher>.Instance);
+
+        Assert.False(shell.Reveal(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "nao-existe.txt")));
+        Assert.False(shell.Reveal(string.Empty));
+    }
+
+    [Fact]
     public async Task Analysis_can_be_cancelled()
     {
         using var temp = new TempDirectory();

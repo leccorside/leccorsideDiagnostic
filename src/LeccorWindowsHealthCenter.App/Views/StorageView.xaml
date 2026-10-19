@@ -4,63 +4,185 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:LeccorWindowsHealthCenter.App.ViewModels"
+             xmlns:controls="clr-namespace:LeccorWindowsHealthCenter.App.Controls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1400"
              d:DataContext="{d:DesignInstance Type=vm:StorageViewModel}">
+    <!-- Atalhos: Backspace e Alt+← sobem um nível na análise; F5 lê discos e volumes de novo. Ctrl+C: ver code-behind. -->
+    <UserControl.InputBindings>
+        <KeyBinding Key="Back" Command="{Binding NavigateUpCommand}" />
+        <KeyBinding Key="Left" Modifiers="Alt" Command="{Binding NavigateUpCommand}" />
+        <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+    </UserControl.InputBindings>
+
     <UserControl.Resources>
+        <!-- Títulos de seção são cabeçalhos de nível 2: o leitor de tela pula entre Volumes, Análise, Discos e Caches. -->
         <Style x:Key="GroupTitle" TargetType="TextBlock" BasedOn="{StaticResource SectionTitle}">
-            <Setter Property="Margin" Value="0,20,0,8" />
+            <Setter Property="Margin" Value="0,24,0,8" />
+            <Setter Property="AutomationProperties.HeadingLevel" Value="Level2" />
         </Style>
 
-        <!-- Arquivo: nome (corta no fim) e tamanho à direita; pasta e data abaixo. Caminho completo na dica. -->
+        <!--
+            Menu das linhas com caminho (clique direito, tecla Menu ou Shift+F10). O menu não está na árvore visual:
+            o ViewModel chega pelo Tag da linha (PlacementTarget.Tag) e o caminho pelo DataContext da própria linha.
+        -->
+        <ContextMenu x:Key="RowMenu" x:Shared="False">
+            <MenuItem Header="Mostrar no Explorer"
+                      Command="{Binding PlacementTarget.Tag.RevealCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding Path}">
+                <MenuItem.Icon>
+                    <TextBlock Style="{StaticResource Icon}" FontSize="14" Text="&#xE838;" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Copiar caminho" InputGestureText="Ctrl+C"
+                      Command="{Binding PlacementTarget.Tag.CopyPathCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding Path}">
+                <MenuItem.Icon>
+                    <TextBlock Style="{StaticResource Icon}" FontSize="14" Text="&#xE8C8;" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <!-- Comando útil do item (consulta ou limpeza oficial): copiado, nunca executado pelo app. -->
+            <MenuItem Header="{Binding Command}" HeaderStringFormat="Copiar comando: {0}"
+                      Command="{Binding PlacementTarget.Tag.CopyCommandCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding Command}"
+                      Visibility="{Binding Command, Converter={StaticResource VisibleWhen}}">
+                <MenuItem.Icon>
+                    <TextBlock Style="{StaticResource Icon}" FontSize="14" Text="&#xE756;" />
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+
+        <!-- Arquivo: nome inteiro (quebra linha), tamanho à direita; pasta encurtada no meio; explicação quando conhecido. -->
         <DataTemplate x:Key="FileRowTemplate" DataType="{x:Type vm:FileRow}">
-            <Grid Margin="0,5" Background="Transparent" ToolTip="{Binding ToolTip}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <!-- Nome quebra linha em vez de cortar: o fim ("(2) - Cópia.pdf") é o que diferencia arquivos parecidos. -->
-                <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding Name}" />
-                <TextBlock Grid.Column="1" Style="{StaticResource Body}" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Top"
-                           Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
-                <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Folder}" />
-                <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource Caption}" Text="{Binding Detail}" />
-            </Grid>
+            <Button Style="{StaticResource RowButton}" ToolTip="{Binding Path}" ContextMenu="{StaticResource RowMenu}"
+                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    Command="{Binding DataContext.RevealCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding Path}"
+                    AutomationProperties.Name="{Binding AccessibleName}" AutomationProperties.HelpText="{Binding Path}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <!-- Nome quebra linha em vez de cortar: o fim ("(2) - Cópia.pdf") é o que diferencia arquivos parecidos. -->
+                    <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding Name}" />
+                    <TextBlock Grid.Column="1" Style="{StaticResource Body}" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Top"
+                               Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
+                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Folder}" />
+                    <TextBlock x:Name="Hint" Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource Caption}" Margin="0,2,0,0" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding Hint}"
+                               Visibility="{Binding Hint, Converter={StaticResource VisibleWhen}}" />
+                    <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource Caption}" Text="{Binding Detail}" />
+                </Grid>
+            </Button>
+            <DataTemplate.Triggers>
+                <!-- "Não apague" (disco virtual, modelo registrado, arquivo do sistema) em semibold, não em cor de alarme. -->
+                <DataTrigger Binding="{Binding DoNotDelete}" Value="True">
+                    <Setter TargetName="Hint" Property="FontWeight" Value="SemiBold" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
         </DataTemplate>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="32,28,32,32" MaxWidth="1200">
             <DockPanel Margin="0,0,0,4">
-                <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Command="{Binding RefreshCommand}">
+                <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Command="{Binding RefreshCommand}"
+                        ToolTip="Lê de novo discos, volumes e caches (F5). A análise de espaço só é refeita pelo botão Analisar.">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE72C;" FontSize="14" Margin="0,0,8,0" />
                         <TextBlock Text="Ler novamente" />
                     </StackPanel>
                 </Button>
-                <TextBlock Style="{StaticResource PageTitle}" Text="Armazenamento" />
+                <TextBlock Style="{StaticResource PageTitle}" Text="Armazenamento" AutomationProperties.HeadingLevel="Level1" />
             </DockPanel>
             <TextBlock Style="{StaticResource PageSubtitle}" Margin="0,0,0,4" Text="{Binding CapturedText}" />
 
             <Border Style="{StaticResource Card}" Margin="0,12,0,0" Visibility="{Binding IsLoading, Converter={StaticResource VisibleWhen}}">
-                <TextBlock Style="{StaticResource Body}" Text="Lendo discos e volumes (WMI de armazenamento do Windows)…" />
+                <TextBlock Style="{StaticResource Body}" Text="Lendo discos e volumes…" />
             </Border>
             <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource CriticalBrush}" Margin="0,12,0,0"
                     Visibility="{Binding Error, Converter={StaticResource VisibleWhen}}">
                 <TextBlock Style="{StaticResource Body}" Text="{Binding Error}" />
             </Border>
+            <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource MediumBrush}" Margin="0,12,0,0"
+                    Visibility="{Binding InventoryEmptyText, Converter={StaticResource VisibleWhen}}">
+                <TextBlock Style="{StaticResource Body}" Text="{Binding InventoryEmptyText}" />
+            </Border>
 
-            <!-- Volumes: espaço livre e o ponto de partida da análise. -->
+            <!--
+                Laudo primeiro: o diagnóstico mais grave abre a tela (disco com falha, pouco espaço), com o que aconteceu,
+                como sabemos e o que fazer. Mesmos critérios da varredura.
+            -->
+            <!-- Resumo dos alertas: o leitor de tela o anuncia ao abrir a tela (região viva, ver code-behind). -->
+            <TextBlock x:Name="AlertSummaryText" Style="{StaticResource Body}" FontWeight="SemiBold" Margin="0,14,0,0"
+                       AutomationProperties.LiveSetting="Assertive" Text="{Binding AlertSummary}"
+                       Visibility="{Binding AlertSummary, Converter={StaticResource VisibleWhen}}" />
+            <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Alerts}" Focusable="False"
+                          Visibility="{Binding Alerts, Converter={StaticResource VisibleWhen}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:StorageAlert}">
+                        <!-- Região focável: o alerta entra no Tab e é lido inteiro (nível, o que aconteceu e o que fazer). -->
+                        <controls:AccessibleRegion Margin="0,0,0,12" FocusVisualStyle="{StaticResource CardFocusRing}"
+                                                   AutomationProperties.Name="{Binding AccessibleName}">
+                        <Border x:Name="AlertCard" Style="{StaticResource Card}" BorderBrush="{DynamicResource MediumBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="AlertIcon" Style="{StaticResource Icon}" FontSize="20" Margin="0,1,14,0" VerticalAlignment="Top"
+                                           Foreground="{DynamicResource MediumBrush}" Text="{Binding Glyph}"
+                                           AutomationProperties.Name="{Binding Level}" />
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Style="{StaticResource SectionTitle}" Margin="0" TextWrapping="Wrap" Text="{Binding Title}"
+                                               AutomationProperties.HeadingLevel="Level3" />
+                                    <TextBlock Style="{StaticResource Body}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Body}" />
+                                    <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Evidence}"
+                                               Visibility="{Binding Evidence, Converter={StaticResource VisibleWhen}}" />
+                                    <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap" Text="{Binding Action}" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Padding="14,6" Margin="16,0,0,0" VerticalAlignment="Top"
+                                        Command="{Binding DataContext.AnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding AnalyzeTarget}"
+                                        Visibility="{Binding AnalyzeTarget, Converter={StaticResource VisibleWhen}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" FontSize="14" Margin="0,0,8,0" />
+                                        <TextBlock Text="{Binding AnalyzeLabel}" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+                        </controls:AccessibleRegion>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                                <Setter TargetName="AlertCard" Property="BorderBrush" Value="{DynamicResource CriticalBrush}" />
+                                <Setter TargetName="AlertIcon" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,0" Visibility="{Binding AllClearText, Converter={StaticResource VisibleWhen}}"
+                        AutomationProperties.Name="{Binding AllClearText}">
+                <TextBlock Style="{StaticResource Icon}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource OkBrush}" Text="&#xE73E;" />
+                <TextBlock Style="{StaticResource Body}" VerticalAlignment="Center" Text="{Binding AllClearText}" />
+            </StackPanel>
+
+            <!-- Volumes: espaço livre e o ponto de partida da análise. Com muitos volumes, uma linha cada. -->
             <TextBlock Style="{StaticResource GroupTitle}" Text="Volumes" Visibility="{Binding Volumes, Converter={StaticResource VisibleWhen}}" />
             <Border Style="{StaticResource Card}" Visibility="{Binding Volumes, Converter={StaticResource VisibleWhen}}">
                 <ItemsControl ItemsSource="{Binding Volumes}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:VolumeRow}">
-                            <Grid Margin="0,6,0,10">
+                            <Grid x:Name="VolumeGrid" Margin="0,6,0,10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
@@ -72,14 +194,15 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Title}" />
-                                <TextBlock Grid.Row="1" Style="{StaticResource Caption}" Margin="0,1,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                <TextBlock x:Name="VolumeCaption" Grid.Row="1" Style="{StaticResource Caption}" Margin="0,1,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
                                            Text="{Binding Caption}" ToolTip="{Binding Caption}" />
                                 <TextBlock x:Name="FreeText" Grid.Column="1" Grid.RowSpan="2" Style="{StaticResource Body}" Margin="16,0" VerticalAlignment="Center"
                                            Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
                                 <Button Grid.Column="2" Grid.RowSpan="2" Style="{StaticResource SecondaryButton}" Padding="14,6" VerticalAlignment="Center"
                                         Command="{Binding DataContext.AnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}"
-                                        AutomationProperties.Name="{Binding Root, StringFormat=Analisar espaço de {0}}">
+                                        AutomationProperties.Name="{Binding Root, StringFormat=Analisar espaço de {0}}"
+                                        AutomationProperties.HelpText="{Binding Caption}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" FontSize="14" Margin="0,0,8,0" />
                                         <TextBlock Text="Analisar" />
@@ -87,10 +210,10 @@
                                 </Button>
                                 <ProgressBar x:Name="UsageBar" Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource ThinProgress}" Margin="0,8,0,0"
                                              Foreground="{DynamicResource ChartStroke2Brush}" Value="{Binding UsedPercent, Mode=OneWay}"
-                                             AutomationProperties.Name="{Binding Value}" />
+                                             AutomationProperties.Name="{Binding AccessibleName}" AutomationProperties.HelpText="{Binding Caption}" />
                             </Grid>
-                            <!-- Âmbar/vermelho só quando a regra de pouco espaço acusaria o mesmo volume (The Significado Fixo Rule). -->
                             <DataTemplate.Triggers>
+                                <!-- Âmbar/vermelho só quando a regra de pouco espaço acusaria o mesmo volume (The Significado Fixo Rule). -->
                                 <DataTrigger Binding="{Binding IsWarning}" Value="True">
                                     <Setter TargetName="FreeText" Property="Foreground" Value="{DynamicResource MediumBrush}" />
                                     <Setter TargetName="FreeText" Property="FontWeight" Value="SemiBold" />
@@ -101,202 +224,321 @@
                                     <Setter TargetName="FreeText" Property="FontWeight" Value="SemiBold" />
                                     <Setter TargetName="UsageBar" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
                                 </DataTrigger>
+                                <!-- Muitos volumes: legenda só na dica, linha mais baixa (a análise não fica três telas abaixo). -->
+                                <DataTrigger Binding="{Binding DataContext.CompactVolumes, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                    <Setter TargetName="VolumeCaption" Property="Visibility" Value="Collapsed" />
+                                    <Setter TargetName="VolumeGrid" Property="Margin" Value="0,2,0,6" />
+                                    <Setter TargetName="VolumeGrid" Property="ToolTip" Value="{Binding Caption}" />
+                                </DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Border>
 
-            <!-- Análise de espaço (seção 15): sob demanda, navegável, cancelável. -->
-            <TextBlock x:Name="AnalysisTitle" Style="{StaticResource GroupTitle}" Text="Análise de espaço" />
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <DockPanel>
-                        <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Padding="14,6" Margin="16,0,0,0" VerticalAlignment="Center"
-                                Command="{Binding CancelAnalysisCommand}" Content="Cancelar análise"
-                                Visibility="{Binding IsAnalyzing, Converter={StaticResource VisibleWhen}}" />
-                        <TextBlock Style="{StaticResource Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                   Text="{Binding AnalysisStatus}" ToolTip="{Binding AnalysisStatus}" />
-                    </DockPanel>
+            <!-- Análise de espaço (seção 15): sob demanda, navegável, cancelável; análises anteriores ficam guardadas. -->
+            <StackPanel Visibility="{Binding ShowAnalysisSection, Converter={StaticResource VisibleWhen}}">
+                <TextBlock x:Name="AnalysisTitle" Style="{StaticResource GroupTitle}" Text="Análise de espaço" />
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <DockPanel>
+                            <Button x:Name="CancelButton" DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Padding="14,6" Margin="16,0,0,0" VerticalAlignment="Center"
+                                    Command="{Binding CancelAnalysisCommand}" Content="Cancelar análise"
+                                    Visibility="{Binding IsAnalyzing, Converter={StaticResource VisibleWhen}}" />
+                            <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Padding="14,6" Margin="16,0,0,0" VerticalAlignment="Center"
+                                    Command="{Binding AnalyzeFolderCommand}"
+                                    Visibility="{Binding IsAnalyzing, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE838;" FontSize="14" Margin="0,0,8,0" />
+                                    <TextBlock Text="Analisar outra pasta…" />
+                                </StackPanel>
+                            </Button>
+                            <!-- Região viva: o leitor de tela anuncia início, fim e cancelamento (o code-behind dispara o evento). -->
+                            <TextBlock x:Name="StatusText" Style="{StaticResource Body}" VerticalAlignment="Center" TextWrapping="Wrap"
+                                       AutomationProperties.LiveSetting="Polite" Text="{Binding AnalysisStatus}" />
+                        </DockPanel>
+                        <!-- Progresso aproximado (bytes lidos ÷ usado no volume); pasta avulsa não tem total conhecido, então só o texto. -->
+                        <ProgressBar Style="{StaticResource ThinProgress}" Margin="0,10,0,0" Value="{Binding AnalysisPercent, Mode=OneWay}"
+                                     AutomationProperties.Name="Progresso da análise"
+                                     Visibility="{Binding HasDeterminateProgress, Converter={StaticResource VisibleWhen}}" />
 
-                    <StackPanel Visibility="{Binding HasAnalysis, Converter={StaticResource VisibleWhen}}">
-                        <!-- Caminho atual: cada nível volta para aquela pasta. -->
-                        <ItemsControl Margin="0,14,0,0" ItemsSource="{Binding Breadcrumb}" Focusable="False">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:BreadcrumbItem}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Style="{StaticResource RowButton}" Margin="0" Padding="6,2"
-                                                Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}">
-                                            <TextBlock Style="{StaticResource Body}" Text="{Binding Name}" />
+                        <!-- Análises guardadas: trocar entre elas não lê o disco de novo. -->
+                        <WrapPanel Margin="0,10,0,0" Visibility="{Binding AnalysisChips, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,6,0" Text="Análises feitas:" />
+                            <ItemsControl ItemsSource="{Binding AnalysisChips}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:AnalysisChip}">
+                                        <Button x:Name="Chip" Style="{StaticResource RowButton}" Margin="0,0,4,0" Padding="7,1"
+                                                Command="{Binding DataContext.ShowAnalysisCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}" AutomationProperties.Name="{Binding Label, StringFormat=Mostrar análise de {0}}">
+                                            <TextBlock x:Name="ChipText" Style="{StaticResource Body}" Text="{Binding Label}" />
                                         </Button>
-                                        <TextBlock x:Name="Separator" Style="{StaticResource Icon}" FontSize="10" Margin="2,0" VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}" Text="&#xE76C;" />
-                                    </StackPanel>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding IsLast}" Value="True">
-                                            <Setter TargetName="Separator" Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                <Setter TargetName="ChipText" Property="FontWeight" Value="SemiBold" />
+                                                <Setter TargetName="Chip" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </WrapPanel>
 
-                        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,10,0,0" Text="{Binding CurrentTitle}" />
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,8" TextWrapping="Wrap" LineHeight="18" Text="{Binding CurrentCaption}" />
+                        <StackPanel Visibility="{Binding HasAnalysis, Converter={StaticResource VisibleWhen}}">
+                            <!-- Caminho atual: cada nível volta para aquela pasta; o último é a página atual (texto, não botão). -->
+                            <ItemsControl Margin="0,14,0,0" ItemsSource="{Binding Breadcrumb}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:BreadcrumbItem}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button x:Name="Crumb" Style="{StaticResource RowButton}" Margin="0" Padding="5,1"
+                                                    Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}" AutomationProperties.Name="{Binding Name, StringFormat=Voltar para {0}}">
+                                                <TextBlock Style="{StaticResource Body}" Text="{Binding Name}" />
+                                            </Button>
+                                            <TextBlock x:Name="Current" Style="{StaticResource Body}" FontWeight="SemiBold" Margin="7,3" Visibility="Collapsed"
+                                                       Text="{Binding Name}" AutomationProperties.Name="{Binding Name, StringFormat=Pasta atual: {0}}" />
+                                            <TextBlock x:Name="Separator" Style="{StaticResource Icon}" FontSize="10" Margin="2,0" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" Text="&#xE76C;" />
+                                        </StackPanel>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                                <Setter TargetName="Separator" Property="Visibility" Value="Collapsed" />
+                                                <Setter TargetName="Crumb" Property="Visibility" Value="Collapsed" />
+                                                <Setter TargetName="Current" Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
 
-                        <!-- Subpastas da maior para a menor; clicar entra na pasta. -->
-                        <ItemsControl ItemsSource="{Binding Folders}" Focusable="False">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:FolderRow}">
-                                    <Button Style="{StaticResource RowButton}" ToolTip="{Binding ToolTip}" IsEnabled="{Binding CanOpen}"
-                                            Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}" AutomationProperties.Name="{Binding Name}">
+                            <TextBlock Style="{StaticResource SectionTitle}" Margin="0,10,0,0" Text="{Binding CurrentTitle}" />
+                            <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,8" TextWrapping="Wrap" LineHeight="18" Text="{Binding CurrentCaption}" />
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,10,0" Text="Ordenar por" />
+                                <RadioButton GroupName="FolderSort" Content="Tamanho" Margin="0,0,14,0" IsChecked="{Binding SortBySize}" />
+                                <RadioButton GroupName="FolderSort" Content="Nome" IsChecked="{Binding SortByName}" />
+                            </StackPanel>
+
+                            <!--
+                                Subpastas (com subpastas: entra; sem: mostra no Explorer). Colunas de % e tamanho compartilham
+                                largura entre linhas (SharedSizeGroup), então os números alinham.
+                            -->
+                            <ItemsControl x:Name="FolderList" ItemsSource="{Binding Folders}" Focusable="False" Grid.IsSharedSizeScope="True">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:FolderRow}">
+                                        <!-- Uma ação por controle: a linha entra na pasta; o botão ao lado mostra no Explorer. -->
                                         <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Style="{StaticResource RowButton}" Margin="-8,0,0,0" ToolTip="{Binding Path}" ContextMenu="{StaticResource RowMenu}"
+                                                Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                AutomationProperties.Name="{Binding AccessibleName}" AutomationProperties.HelpText="{Binding Path}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Detail" />
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Size" />
+                                                    <ColumnDefinition Width="20" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Style="{StaticResource Icon}" FontSize="14" Margin="0,0,10,0" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Glyph}" />
+                                                <TextBlock Grid.Column="1" Style="{StaticResource Body}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Name}" />
+                                                <TextBlock Grid.Column="2" Style="{StaticResource Caption}" Margin="12,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                           Typography.NumeralAlignment="Tabular" Text="{Binding Detail}" />
+                                                <TextBlock Grid.Column="3" Style="{StaticResource Body}" FontWeight="SemiBold" TextWrapping="NoWrap" HorizontalAlignment="Right"
+                                                           Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
+                                                <TextBlock x:Name="Chevron" Grid.Column="4" Style="{StaticResource Icon}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" Text="&#xE76C;" />
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource Caption}" Margin="0,1,0,0" TextWrapping="Wrap"
+                                                           Text="{Binding Hint}" Visibility="{Binding Hint, Converter={StaticResource VisibleWhen}}" />
+                                                <ProgressBar Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource ThinProgress}" Height="4" Margin="0,5,0,0"
+                                                             Foreground="{DynamicResource ChartStroke2Brush}" Value="{Binding Percent, Mode=OneWay}" />
+                                            </Grid>
+                                        </Button>
+                                        <Button Grid.Column="1" Style="{StaticResource RowButton}" Margin="4,0,-8,0" Padding="7,5" VerticalAlignment="Top"
+                                                ToolTip="Mostrar no Explorer" AutomationProperties.Name="{Binding RevealName}"
+                                                Command="{Binding DataContext.RevealCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding Path}">
+                                            <TextBlock Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" Text="&#xE8A7;" />
+                                        </Button>
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <!-- Chevron só onde a linha entra numa pasta. -->
+                                            <DataTrigger Binding="{Binding CanOpen}" Value="False">
+                                                <Setter TargetName="Chevron" Property="Visibility" Value="Hidden" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Style="{StaticResource SecondaryButton}" Padding="14,6" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                    Command="{Binding ShowMoreFoldersCommand}" Content="{Binding MoreFoldersText}"
+                                    Visibility="{Binding MoreFoldersText, Converter={StaticResource VisibleWhen}}" />
+                            <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                       Text="Enter abre a pasta · o botão ao lado mostra no Explorer · Backspace ou Alt+← volta um nível · clique direito ou Shift+F10: copiar caminho (Ctrl+C) ou comando." />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Arquivos da pasta atual (não do volume inteiro), com filtro. -->
+                <StackPanel Visibility="{Binding HasAnalysis, Converter={StaticResource VisibleWhen}}">
+                    <DockPanel Margin="0,16,0,8">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Padding="14,6" Margin="12,0,0,0" VerticalAlignment="Center"
+                                Command="{Binding ToggleShowAllFilesCommand}" Content="{Binding ShowAllFilesLabel}"
+                                Visibility="{Binding CanShowAllFiles, Converter={StaticResource VisibleWhen}}" />
+                        <TextBox DockPanel.Dock="Left" Style="{StaticResource FilterBox}" Width="300" VerticalAlignment="Center"
+                                 Tag="Filtrar arquivos por nome (ex.: .vhdx)" Text="{Binding FileFilter, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Filtrar arquivos por nome ou extensão" />
+                        <TextBlock Style="{StaticResource Caption}" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding FilesScope}" />
+                    </DockPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource Card}" VerticalAlignment="Top">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Maiores arquivos" />
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,6" TextWrapping="Wrap" Text="{Binding LargestFilesEmptyText}"
+                                           Visibility="{Binding LargestFilesEmptyText, Converter={StaticResource VisibleWhen}}" />
+                                <ItemsControl ItemsSource="{Binding LargestFiles}" ItemTemplate="{StaticResource FileRowTemplate}" Focusable="False" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Arquivos grandes sem alteração há anos" />
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,8" TextWrapping="Wrap" Text="{Binding OldFilesCaption}" />
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,6" TextWrapping="Wrap" Text="{Binding OldFilesEmptyText}"
+                                           Visibility="{Binding OldFilesEmptyText, Converter={StaticResource VisibleWhen}}" />
+                                <ItemsControl ItemsSource="{Binding OldFiles}" ItemTemplate="{StaticResource FileRowTemplate}" Focusable="False" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Discos físicos (seção 14): saúde do hardware antes dos caches. -->
+            <StackPanel Visibility="{Binding InventoryEmptyText, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
+                <TextBlock Style="{StaticResource GroupTitle}" Text="Discos físicos" />
+                <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,10" TextWrapping="Wrap" Text="{Binding DisksNote}"
+                           Visibility="{Binding DisksEmptyText, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+                <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource MediumBrush}"
+                        Visibility="{Binding DisksEmptyText, Converter={StaticResource VisibleWhen}}">
+                    <TextBlock Style="{StaticResource Body}" Text="{Binding DisksEmptyText}" />
+                </Border>
+                <!-- Muitos discos: uma linha por disco; abrir mostra o cartão completo. Disco crítico já vem aberto. -->
+                <Border Style="{StaticResource Card}" Padding="8" Visibility="{Binding DiskRows, Converter={StaticResource VisibleWhen}}">
+                    <ItemsControl ItemsSource="{Binding DiskRows}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:DiskSummaryRow}">
+                                <Expander Padding="12,0,12,12" IsExpanded="{Binding IsCritical, Mode=OneTime}"
+                                          AutomationProperties.Name="{Binding AccessibleName}">
+                                    <Expander.Header>
+                                        <Grid Margin="4,6">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="16" />
                                             </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <TextBlock Style="{StaticResource Icon}" FontSize="14" Margin="0,0,10,0" VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Glyph}" />
-                                            <TextBlock Grid.Column="1" Style="{StaticResource Body}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Name}" />
-                                            <TextBlock Grid.Column="2" Style="{StaticResource Caption}" Margin="12,0" VerticalAlignment="Center"
-                                                       Typography.NumeralAlignment="Tabular" Text="{Binding Detail}" />
-                                            <TextBlock Grid.Column="3" Style="{StaticResource Body}" FontWeight="SemiBold" TextWrapping="NoWrap"
-                                                       Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
-                                            <TextBlock x:Name="Chevron" Grid.Column="4" Style="{StaticResource Icon}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}" Text="&#xE76C;" Visibility="Hidden" />
-                                            <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource ThinProgress}" Height="4" Margin="0,5,0,0"
-                                                         Foreground="{DynamicResource ChartStroke2Brush}" Value="{Binding Percent, Mode=OneWay}" />
+                                            <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                                       Text="{Binding Title}" ToolTip="{Binding Title}" />
+                                            <TextBlock x:Name="Summary" Grid.Column="1" Style="{StaticResource Caption}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                                       Text="{Binding Summary}" />
                                         </Grid>
-                                    </Button>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding CanOpen}" Value="True">
-                                            <Setter TargetName="Chevron" Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <UniformGrid Columns="2" Margin="0,16,0,0" Visibility="{Binding HasAnalysis, Converter={StaticResource VisibleWhen}}">
-                <Border Style="{StaticResource Card}" Margin="0,0,8,0">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="Maiores arquivos" />
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,6" Text="{Binding LargestFilesEmptyText}"
-                                   Visibility="{Binding LargestFilesEmptyText, Converter={StaticResource VisibleWhen}}" />
-                        <ItemsControl ItemsSource="{Binding LargestFiles}" ItemTemplate="{StaticResource FileRowTemplate}" Focusable="False" />
-                    </StackPanel>
+                                    </Expander.Header>
+                                    <ItemsControl ItemsSource="{Binding Card.Rows}" ItemTemplate="{StaticResource InfoRowTemplate}" Focusable="False" />
+                                </Expander>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                        <Setter TargetName="Summary" Property="Foreground" Value="{DynamicResource MediumBrush}" />
+                                        <Setter TargetName="Summary" Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                                        <Setter TargetName="Summary" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
+                                        <Setter TargetName="Summary" Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </Border>
-                <Border Style="{StaticResource Card}" Margin="8,0,0,0">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="Arquivos grandes sem alteração há anos" />
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,6" Text="{Binding OldFilesEmptyText}"
-                                   Visibility="{Binding OldFilesEmptyText, Converter={StaticResource VisibleWhen}}" />
-                        <ItemsControl ItemsSource="{Binding OldFiles}" ItemTemplate="{StaticResource FileRowTemplate}" Focusable="False" />
-                    </StackPanel>
-                </Border>
-            </UniformGrid>
+                <ItemsControl ItemsSource="{Binding Disks}" ItemTemplate="{StaticResource InfoCardTemplate}" Margin="0,0,-16,0" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Margin" Value="0,0,16,0" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+            </StackPanel>
 
-            <!-- Temporários e caches: só medição. -->
+            <!-- Temporários e caches: só medição (Windows, navegadores e ferramentas de desenvolvimento). -->
             <TextBlock Style="{StaticResource GroupTitle}" Text="Temporários e caches" />
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource SectionTitle}" Margin="0" Text="{Binding LocationsTitle}" />
-                    <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,8" Text="{Binding LocationsCaption}"
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,8" TextWrapping="Wrap" Text="{Binding LocationsCaption}"
                                Visibility="{Binding LocationsCaption, Converter={StaticResource VisibleWhen}}" />
-                    <ItemsControl ItemsSource="{Binding Locations}" Focusable="False">
+                    <ItemsControl ItemsSource="{Binding Locations}" Focusable="False" Grid.IsSharedSizeScope="True">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:LocationRow}">
-                                <Grid Margin="0,6" Background="Transparent" ToolTip="{Binding ToolTip}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Style="{StaticResource Body}" Text="{Binding Title}" />
-                                    <TextBlock Grid.Column="1" Style="{StaticResource Body}" FontWeight="SemiBold" Margin="16,0,0,0"
-                                               Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
-                                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Caption}" Margin="0,1,0,0" Text="{Binding Detail}" />
-                                </Grid>
+                                <Button Style="{StaticResource RowButton}" ToolTip="{Binding ToolTip}" ContextMenu="{StaticResource RowMenu}"
+                                        IsEnabled="{Binding HasPath}"
+                                        Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Command="{Binding DataContext.RevealCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Path}"
+                                        AutomationProperties.Name="{Binding AccessibleName}" AutomationProperties.HelpText="{Binding Detail}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" SharedSizeGroup="LocationSize" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Style="{StaticResource Body}" Text="{Binding Title}" />
+                                        <TextBlock Grid.Column="1" Style="{StaticResource Body}" FontWeight="SemiBold" Margin="16,0,0,0" HorizontalAlignment="Right"
+                                                   Typography.NumeralAlignment="Tabular" Text="{Binding Value}" />
+                                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Caption}" Margin="0,1,0,0" TextWrapping="Wrap" Text="{Binding Detail}" />
+                                    </Grid>
+                                </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
             </Border>
 
-            <!-- Discos físicos (seção 14). -->
-            <TextBlock Style="{StaticResource GroupTitle}" Text="Discos físicos" />
-            <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,10" Text="{Binding DisksNote}"
-                       Visibility="{Binding DisksEmptyText, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
-            <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource MediumBrush}"
-                    Visibility="{Binding DisksEmptyText, Converter={StaticResource VisibleWhen}}">
-                <TextBlock Style="{StaticResource Body}" Text="{Binding DisksEmptyText}" />
-            </Border>
-            <!-- Muitos discos: uma linha por disco; abrir mostra o cartão completo. -->
-            <Border Style="{StaticResource Card}" Padding="8" Visibility="{Binding DiskRows, Converter={StaticResource VisibleWhen}}">
-                <ItemsControl ItemsSource="{Binding DiskRows}" Focusable="False">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:DiskSummaryRow}">
-                            <Expander Padding="12,0,12,12">
-                                <Expander.Header>
-                                    <Grid Margin="4,6">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
-                                                   Text="{Binding Title}" ToolTip="{Binding Title}" />
-                                        <TextBlock x:Name="Summary" Grid.Column="1" Style="{StaticResource Caption}" Margin="16,0,0,0" VerticalAlignment="Center"
-                                                   Text="{Binding Summary}" />
-                                    </Grid>
-                                </Expander.Header>
-                                <ItemsControl ItemsSource="{Binding Card.Rows}" ItemTemplate="{StaticResource InfoRowTemplate}" Focusable="False" />
-                            </Expander>
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsWarning}" Value="True">
-                                    <Setter TargetName="Summary" Property="Foreground" Value="{DynamicResource MediumBrush}" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsCritical}" Value="True">
-                                    <Setter TargetName="Summary" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Border>
-            <ItemsControl ItemsSource="{Binding Disks}" ItemTemplate="{StaticResource InfoCardTemplate}" Margin="0,0,-16,0" Focusable="False">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Columns="2" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemContainerStyle>
-                    <Style TargetType="ContentPresenter">
-                        <Setter Property="Margin" Value="0,0,16,0" />
-                    </Style>
-                </ItemsControl.ItemContainerStyle>
-            </ItemsControl>
-
-            <!-- Fontes que falharam: técnico, só no modo avançado -->
+            <!-- Técnico, só no modo avançado: fontes que falharam e mensagem da última falha. -->
+            <StackPanel Margin="0,8,0,0" Visibility="{Binding ShowTechnicalError, Converter={StaticResource VisibleWhen}}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Detalhe técnico da última falha" />
+                <TextBlock Style="{StaticResource Caption}" FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding TechnicalError}" />
+            </StackPanel>
             <StackPanel Margin="0,8,0,0" Visibility="{Binding AdvancedModeWithWarnings, Converter={StaticResource VisibleWhen}}">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Fontes que não responderam" />
                 <ItemsControl ItemsSource="{Binding Warnings}" Focusable="False">
