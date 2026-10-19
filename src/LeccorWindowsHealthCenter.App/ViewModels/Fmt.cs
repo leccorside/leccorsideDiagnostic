@@ -38,8 +38,13 @@ public static class Fmt
     public static string Count(double? value, string singular, string plural) =>
         value is { } v ? string.Create(Culture, $"{v:#,##0} {(Math.Abs(v - 1) < 0.5 ? singular : plural)}") : NotAvailable;
 
-    /// <summary>"8 s", "3 min 12 s", "1 h 05 min".</summary>
-    public static string Duration(TimeSpan value) => value.TotalHours >= 1
+    /// <summary>Inteiro com separador de milhar ("1.284.337").</summary>
+    public static string Whole(long value) => value.ToString("#,##0", Culture);
+
+    /// <summary>"8 s", "3 min 12 s", "1 h 05 min", "156 d 12 h" (a partir de um dia).</summary>
+    public static string Duration(TimeSpan value) => value.TotalDays >= 1
+        ? string.Create(Culture, $"{(int)value.TotalDays:#,##0} d {value.Hours} h")
+        : value.TotalHours >= 1
         ? string.Create(Culture, $"{(int)value.TotalHours} h {value.Minutes:00} min")
         : value.TotalMinutes >= 1
             ? string.Create(Culture, $"{(int)value.TotalMinutes} min {value.Seconds} s")

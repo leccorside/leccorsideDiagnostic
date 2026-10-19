@@ -62,9 +62,9 @@ eventos de disco (Disk 7/153, NTFS — Passo 5, Event Viewer); limpeza dos tempo
 
 - [x] Process Manager (PID, CPU, RAM, E/S, threads, handles, usuário, executável, fabricante, assinatura com catálogo; árvore; pesquisa; ordenação; proteção de processos críticos; abrir local, propriedades, copiar caminho e finalizar com confirmação e conferência do horário de início)
 - [x] Startup Manager **somente leitura** (Run/RunOnce HKCU/HKLM/WOW6432Node com o estado do Gerenciador de Tarefas, pastas Inicializar, tarefas agendadas de logon/boot, serviços automáticos) com impacto estimado pelo consumo atual
-- [x] Regras: entradas apontando para executáveis inexistentes (tarefa do próprio Windows = informativo), executáveis em diretórios temporários
+- [x] Regras: entradas apontando para executáveis inexistentes (tarefa do próprio Windows = informativo), executáveis em diretórios temporários, script oculto via hospedeiro do Windows (PowerShell codificado, mshta, regsvr32…) — acrescentada no break-ui
 - [x] Telas Processos e Inicialização revisadas com impeccable nos temas claro e escuro, em 1280 e 980 px
-- [x] Testes: 268 unitários, 37 integração (inventário real, recusa de processo crítico, encerrar processo do teste, assinatura por catálogo), 20 sistema (varredura completa com 7 scanners)
+- [x] Testes: 294 unitários, 37 integração (inventário real, recusa de processo crítico, encerrar processo do teste, assinatura por catálogo), 25 sistema (varredura completa com 7 scanners)
 
 Fica para passos seguintes: desativar entradas de inicialização com backup e desfazer (Passo 8, Correções); finalizar
 processos de administrador (processo elevado, Passo 5); break-ui das duas telas novas.

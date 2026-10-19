@@ -150,7 +150,12 @@ elevação e comportamento quando a fonte não está disponível ("não disponí
   `ScheduledTask`, `Service` —, `location`, `command`, `executable`, `exists`, `enabled`, `windows`, `user`). Valores
   booleanos em `True`/`False` invariantes; vazio = não determinado (ex.: comando que não pôde ser interpretado).
 - **Custo:** ~1–2 s (tarefas agendadas e WMI de serviços). **Elevação:** não; tarefas de outros usuários não aparecem.
-- **Regras:** `startup.missing-executable`, `startup.temp-location`. **Somente leitura:** nada é desativado (Passo 8).
+- **Regras:** `startup.missing-executable`, `startup.temp-location`, `startup.script-host`. **Somente leitura:** nada é
+  desativado (Passo 8).
+- **"Do próprio Windows" (`windows`):** tarefa em `\Microsoft\Windows\…` ou executável na pasta do Windows
+  (`StartupCommand.IsWindowsOwned`), **exceto** hospedeiros de script (`powershell`, `cmd`, `mshta`, `rundll32`,
+  `regsvr32`, `wscript`, `cscript`, `pwsh`: o que roda está no argumento) e drivers no `DriverStore` (NVIDIA, Realtek…).
+  A tela oculta esses itens por padrão; os problemas aparecem sempre.
 - **Impacto** (só na tela, não é finding): `StartupImpact.Estimate` soma memória privada e tempo de CPU dos processos
   em execução com o mesmo executável — ≥ 100 MB ou 5 s = Médio; ≥ 300 MB ou 30 s = Alto; fora de execução = "não medido".
 

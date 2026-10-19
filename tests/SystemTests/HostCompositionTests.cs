@@ -68,7 +68,7 @@ public sealed class HostCompositionTests : IDisposable
         Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Storage.ISpaceAnalyzer>());
         Assert.NotEmpty(services.GetServices<IReportExporter>());
         Assert.Equal(["hardware", "cpu", "memory", "gpu", "disks", "storage", "startup"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
-        Assert.Equal(12, services.GetServices<IRule>().Count());
+        Assert.Equal(13, services.GetServices<IRule>().Count());
     }
 
     [Fact]

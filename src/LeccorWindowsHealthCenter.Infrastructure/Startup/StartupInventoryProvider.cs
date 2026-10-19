@@ -261,7 +261,6 @@ public sealed class StartupInventoryProvider : IStartupInventoryProvider, IDispo
     private static StartupEntry Build(string id, string name, StartupSourceKind kind, string location, bool user, string? command, bool? enabled, string? stateDetail, bool windowsComponent = false)
     {
         var exe = StartupCommand.ExecutablePath(command);
-        var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         return new StartupEntry
         {
             Id = id,
@@ -274,7 +273,8 @@ public sealed class StartupInventoryProvider : IStartupInventoryProvider, IDispo
             ExecutableExists = exe is null ? null : File.Exists(exe),
             Enabled = enabled,
             StateDetail = stateDetail,
-            IsWindowsComponent = windowsComponent || (exe is not null && exe.StartsWith(windows + "\\", StringComparison.OrdinalIgnoreCase)),
+            // powershell/cmd/mshta… e drivers no DriverStore não contam como "do Windows": ficariam ocultos por padrão.
+            IsWindowsComponent = windowsComponent || StartupCommand.IsWindowsOwned(command),
         };
     }
 }

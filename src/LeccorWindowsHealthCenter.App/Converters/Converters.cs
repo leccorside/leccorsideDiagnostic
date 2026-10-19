@@ -46,13 +46,14 @@ public sealed class ScoreToValueConverter : IValueConverter
 }
 
 /// <summary>
-/// Seta de ordenação do cabeçalho: valores = [coluna ordenada, decrescente?], parâmetro = coluna do cabeçalho.
-/// Devolve o glifo Fluent (ChevronDown/ChevronUp) ou vazio quando o cabeçalho não é a coluna ordenada.
+/// Seta de ordenação do cabeçalho: valores = [coluna ordenada, decrescente?, modo árvore?], parâmetro = coluna do
+/// cabeçalho. Devolve o glifo Fluent (ChevronDown/ChevronUp) ou vazio quando o cabeçalho não é a coluna ordenada ou
+/// a lista está em árvore (a ordem é a hierarquia, não a coluna).
 /// </summary>
 public sealed class SortGlyphConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture) =>
-        values is [{ } column, bool descending] && column.ToString() == parameter?.ToString()
+        values is [{ } column, bool descending, ..] && column.ToString() == parameter?.ToString() && !(values.Length > 2 && values[2] is true)
             ? descending ? "" : ""
             : string.Empty;
 

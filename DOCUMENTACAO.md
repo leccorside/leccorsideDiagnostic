@@ -44,7 +44,7 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `StartupInventoryProvider` | Infrastructure/Startup | Run/RunOnce (com `StartupApproved`), pastas Inicializar, tarefas de logon/boot e serviços automáticos; cache de 30 s, cada fonte falha sozinha |
 | `CriticalProcesses` / `ProcessRates` / `StartupCommand` / `StartupImpact` | Application | Processos protegidos, taxas entre fotografias, interpretação de linha de comando e impacto estimado (lógica pura, testada) |
 | `StartupScanner` | Diagnostics/Startup | Scanner do Passo 4 |
-| `StartupMissingExecutableRule`, `StartupTempLocationRule` | Diagnostics/Rules | Regras do Passo 4 (ver docs/RULE_ENGINE.md) |
+| `StartupMissingExecutableRule`, `StartupTempLocationRule`, `StartupScriptHostRule` | Diagnostics/Rules | Regras do Passo 4 (ver docs/RULE_ENGINE.md) |
 | `HardwareScanner`, `CpuScanner`, `MemoryScanner`, `GpuScanner` | Diagnostics | Scanners do Passo 2 (ver docs/DIAGNOSTICS.md) |
 | `DiskScanner`, `StorageScanner` | Diagnostics/Storage | Scanners do Passo 3 |
 | `LowFreeSpaceRule`, `DiskHealthRule`, `DiskTemperatureRule`, `TrimDisabledRule`, `TempCacheLargeRule` | Diagnostics/Rules | Regras do Passo 3 (ver docs/RULE_ENGINE.md) |
@@ -191,10 +191,10 @@ logs e saídas, backups com ACL. Detalhes: [docs/SECURITY.md](docs/SECURITY.md).
 
 | Projeto | Testes |
 | --- | --- |
-| UnitTests | 268 (inclui `InventoryTextTests`, `StorageTextTests`, `StorageRulesTests`, `StorageHintsTests`, `StartupTests` e `ProcessRatesTests`) |
+| UnitTests | 294 (inclui `InventoryTextTests`, `StorageTextTests`, `StorageRulesTests`, `StorageHintsTests`, `StartupTests` e `ProcessRatesTests`) |
 | IntegrationTests | 37 (inclui inventário de processos real, recusa de processo crítico, encerrar um processo iniciado pelo teste, assinatura por catálogo, inventário de inicialização, lista ampliada com pastas dominantes, `ShellLauncher` com caminho inexistente, leitura real de WMI, PDH, memória, histórico, discos/volumes e o analisador de espaço sobre uma árvore temporária) |
-| SystemTests | 20 (inclui varredura completa real com os 7 scanners, `FmtTests` e `StorageScreenTests`) |
-| **Total** | **325 — todos passando** (Debug e Release com `--no-incremental -warnaserror`) |
+| SystemTests | 25 (inclui varredura completa real com os 7 scanners, `FmtTests` e `StorageScreenTests`) |
+| **Total** | **356 — todos passando** (Debug e Release com `--no-incremental -warnaserror`) |
 
 ## 11. Dados de desenvolvimento e textos de inventário
 

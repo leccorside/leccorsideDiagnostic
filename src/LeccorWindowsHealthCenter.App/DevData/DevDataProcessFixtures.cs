@@ -182,10 +182,11 @@ public static class DevDataProcessFixtures
             Entry("Northwind Updater", StartupSourceKind.RegistryRun, RunKey,
                 $"\"{TempUpdater}\" --silent --channel=stable --install-dir=\"{User}\\AppData\\Local\\Programs\\northwind-industries-holdings-portal-do-cliente\" --telemetry-endpoint=https://telemetry.example.com/v2/northwind-industries-holdings/installations/9f8e7d6c-5b4a-4c3d-8e2f-1a0b9c8d7e6f",
                 TempUpdater, true, true),
-            // RunOnce com PowerShell codificado: o executável é do Windows, então o provedor real o marca como componente do Windows.
+            // RunOnce com PowerShell codificado. powershell.exe é hospedeiro de script: não conta como "do Windows"
+            // (StartupCommand.IsWindowsOwned), então não fica oculto — e a regra startup.script-host o aponta.
             Entry("Northwind Pós-instalação", StartupSourceKind.RegistryRunOnce, @"HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce",
                 $@"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand {EncodedPowerShell()}",
-                @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", true, true, "roda uma vez no próximo logon", windows: true),
+                @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", true, true, "roda uma vez no próximo logon"),
             Entry("Integração Contábil — Escritório São João (sincronização automática de lançamentos)", StartupSourceKind.StartupFolder,
                 @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp", $"\"{Erp}\" --background", Erp, true, true, currentUser: false),
             Entry("Ollama", StartupSourceKind.StartupFolder, $@"{User}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup",

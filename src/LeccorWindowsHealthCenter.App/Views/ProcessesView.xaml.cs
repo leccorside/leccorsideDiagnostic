@@ -31,6 +31,8 @@ public partial class ProcessesView : UserControl
         };
         ProcessList.PreviewKeyDown += OnListKeyDown;
         ProcessList.SizeChanged += (_, e) => ApplyCompact(e.NewSize.Width < CompactWidth);
+        // Detalhes nunca passam de 45% da tela: o resto rola dentro do cartão (ver comentário na XAML).
+        SizeChanged += (_, e) => DetailsCard.MaxHeight = Math.Max(200, e.NewSize.Height * 0.45);
     }
 
     /// <summary>Abaixo desta largura de lista a coluna Fabricante sai (continua nos detalhes do processo).</summary>
@@ -64,7 +66,12 @@ public partial class ProcessesView : UserControl
 
         if (e.PropertyName == nameof(ProcessesViewModel.ConfirmingEnd) && _viewModel.ConfirmingEnd)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => ConfirmEndButton.Focus());
+            // A caixa inteira à vista (o foco sozinho rola só até o botão e deixa a borda de baixo cortada).
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+            {
+                ConfirmEndButton.Focus();
+                ConfirmBox.BringIntoView(new Rect(0, 0, ConfirmBox.ActualWidth, ConfirmBox.ActualHeight + 12));
+            });
         }
         else if (e.PropertyName == nameof(ProcessesViewModel.ActionMessage) && !string.IsNullOrEmpty(_viewModel.ActionMessage))
         {

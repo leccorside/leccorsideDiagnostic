@@ -118,6 +118,13 @@ Só concluem com prova: o executável foi interpretado da linha de comando e con
 | --- | --- | --- | --- | --- |
 | `startup.missing-executable` | startup | Entrada ativa cujo executável não existe | Baixo; Médio para serviço (falha em todo boot e gera erros no log). Tarefa do próprio Windows (`\Microsoft\Windows\…`): **Informação**, "não é preciso fazer nada" (ex.: `Autochk\Proxy` → `acproxy.dll`, removida pelo Windows 11) | 95% |
 | `startup.temp-location` | startup | Entrada ativa cujo executável está em pasta temporária (`%TEMP%`, `Windows\Temp`, `AppData\Local\Temp`) | Médio se o arquivo existe (padrão comum de malware e de instaladores mal feitos); Baixo se não existe | 60% (possível: conferir fabricante e assinatura) |
+| `startup.script-host` | startup | Entrada ativa que inicia um hospedeiro de script do Windows (`powershell`, `pwsh`, `cmd`, `wscript`, `cscript`, `mshta`, `regsvr32`, `rundll32`) com: PowerShell `-EncodedCommand` (qualquer abreviação, com conteúdo ≥ 16 caracteres); PowerShell com janela oculta baixando/executando da internet; `mshta`/`rundll32` com `javascript:`/`vbscript:`; `regsvr32` com `scrobj.dll`; endereço `http(s)://` nos argumentos; script em pasta temporária. Detector: `StartupCommand.ScriptConcern` | Médio | 60% (possível: instaladores às vezes terminam a instalação assim, via RunOnce) |
+
+O executável dessas entradas é do Windows, então nada no caminho denuncia o risco: por isso `startup.script-host` olha
+os argumentos, e `StartupCommand.IsWindowsOwned` não marca hospedeiros de script nem o `DriverStore` como "do próprio
+Windows" (antes, uma entrada `powershell -EncodedCommand` ficava oculta por padrão na tela). Comandos comuns que não
+podem disparar estão nos testes: Chrome com URL (não é hospedeiro), `rundll32 shell32.dll,Control_RunDLL`,
+`powershell -File`, `cmd /c script.cmd`.
 
 A tela Inicialização usa os mesmos critérios (`StartupRow.Problem`). Testes: `StartupTests` (linhas de comando reais
 desta máquina, pasta temporária, cada regra disparando e não disparando).

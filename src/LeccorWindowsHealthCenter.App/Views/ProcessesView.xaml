@@ -107,6 +107,7 @@
                                 <MultiBinding Converter="{StaticResource SortGlyph}" ConverterParameter="Name">
                                     <Binding Path="SortColumn" />
                                     <Binding Path="SortDescending" />
+                                    <Binding Path="TreeMode" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -119,6 +120,7 @@
                                 <MultiBinding Converter="{StaticResource SortGlyph}" ConverterParameter="Pid">
                                     <Binding Path="SortColumn" />
                                     <Binding Path="SortDescending" />
+                                    <Binding Path="TreeMode" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -132,6 +134,7 @@
                                 <MultiBinding Converter="{StaticResource SortGlyph}" ConverterParameter="Cpu">
                                     <Binding Path="SortColumn" />
                                     <Binding Path="SortDescending" />
+                                    <Binding Path="TreeMode" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -146,6 +149,7 @@
                                 <MultiBinding Converter="{StaticResource SortGlyph}" ConverterParameter="Memory">
                                     <Binding Path="SortColumn" />
                                     <Binding Path="SortDescending" />
+                                    <Binding Path="TreeMode" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -160,6 +164,7 @@
                                 <MultiBinding Converter="{StaticResource SortGlyph}" ConverterParameter="Io">
                                     <Binding Path="SortColumn" />
                                     <Binding Path="SortDescending" />
+                                    <Binding Path="TreeMode" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -173,6 +178,7 @@
                                 <MultiBinding Converter="{StaticResource SortGlyph}" ConverterParameter="Threads">
                                     <Binding Path="SortColumn" />
                                     <Binding Path="SortDescending" />
+                                    <Binding Path="TreeMode" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -186,6 +192,7 @@
                                 <MultiBinding Converter="{StaticResource SortGlyph}" ConverterParameter="Handles">
                                     <Binding Path="SortColumn" />
                                     <Binding Path="SortDescending" />
+                                    <Binding Path="TreeMode" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -200,6 +207,7 @@
                                 <MultiBinding Converter="{StaticResource SortGlyph}" ConverterParameter="Publisher">
                                     <Binding Path="SortColumn" />
                                     <Binding Path="SortDescending" />
+                                    <Binding Path="TreeMode" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -229,20 +237,25 @@
                             <ColumnDefinition Width="{StaticResource HandlesWidth}" />
                             <ColumnDefinition Width="{DynamicResource PublisherWidth}" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" Margin="{Binding Indent}">
+                        <!-- Grid, não StackPanel: o nome precisa de largura limitada para cortar com reticências. -->
+                        <Grid Margin="{Binding Indent}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
                             <TextBlock x:Name="Shield" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}" Text="&#xEA18;" Visibility="Collapsed"
                                        ToolTip="Processo protegido do Windows: não pode ser encerrado por aqui." />
-                            <TextBlock Style="{StaticResource Cell}" Margin="0" Text="{Binding Name}" ToolTip="{Binding Path}" />
-                        </StackPanel>
+                            <TextBlock Grid.Column="1" Style="{StaticResource Cell}" Margin="0,0,8,0" Text="{Binding Name}" ToolTip="{Binding NameToolTip}" />
+                        </Grid>
                         <TextBlock Grid.Column="1" Style="{StaticResource NumberCell}" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding PidText}" />
                         <TextBlock Grid.Column="2" Style="{StaticResource NumberCell}" Text="{Binding CpuText}" />
                         <TextBlock Grid.Column="3" Style="{StaticResource NumberCell}" Text="{Binding MemoryText}" />
                         <TextBlock Grid.Column="4" Style="{StaticResource NumberCell}" Text="{Binding IoText}" />
-                        <TextBlock Grid.Column="5" Style="{StaticResource NumberCell}" Text="{Binding Threads}" />
-                        <TextBlock Grid.Column="6" Style="{StaticResource NumberCell}" Text="{Binding Handles}" />
+                        <TextBlock Grid.Column="5" Style="{StaticResource NumberCell}" Text="{Binding ThreadsText}" />
+                        <TextBlock Grid.Column="6" Style="{StaticResource NumberCell}" Text="{Binding HandlesText}" />
                         <TextBlock x:Name="PublisherText" Grid.Column="7" Style="{StaticResource Cell}" Margin="16,0,4,0"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Publisher}" ToolTip="{Binding SignatureText}" />
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding PublisherDisplay}" ToolTip="{Binding SignatureText}" />
                     </Grid>
                     <DataTemplate.Triggers>
                         <DataTrigger Binding="{Binding IsCritical}" Value="True">
@@ -251,17 +264,25 @@
                         <!-- Assinatura inválida é evidência concreta (arquivo alterado ou certificado não confiável). -->
                         <DataTrigger Binding="{Binding SignatureInvalid}" Value="True">
                             <Setter TargetName="PublisherText" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
-                            <Setter TargetName="PublisherText" Property="Text" Value="assinatura inválida" />
                         </DataTrigger>
                     </DataTemplate.Triggers>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+        <TextBlock Grid.Row="3" Style="{StaticResource Body}" Margin="10,16,10,0" VerticalAlignment="Top" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.LiveSetting="Polite" Text="{Binding EmptyText}"
+                   Visibility="{Binding EmptyText, Converter={StaticResource VisibleWhen}}" />
 
         <!-- Detalhes do processo selecionado. -->
-        <Border Grid.Row="4" Style="{StaticResource Card}" Margin="0,12,0,0" Visibility="{Binding HasSelection, Converter={StaticResource VisibleWhen}}">
+        <!--
+            Altura máxima (code-behind: 45% da tela) com rolagem própria: em janelas baixas a lista continua visível e a
+            confirmação de encerramento nunca fica fora da janela (o foco em "Encerrar" rola até ela).
+        -->
+        <Border x:Name="DetailsCard" Grid.Row="4" Style="{StaticResource Card}" Margin="0,12,0,0" Padding="0"
+                Visibility="{Binding HasSelection, Converter={StaticResource VisibleWhen}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
             <!-- Largo: ações à direita. Compacto (code-behind): ações abaixo, para os detalhes usarem a largura toda. -->
-            <Grid>
+            <Grid Margin="20">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="24" />
@@ -303,7 +324,18 @@
                         <TextBlock Grid.Row="1" Foreground="{DynamicResource TextSecondaryBrush}" Text="Fabricante" />
                         <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Selected.Publisher}" />
                         <TextBlock Grid.Row="2" Foreground="{DynamicResource TextSecondaryBrush}" Text="Assinatura" />
-                        <TextBlock x:Name="Signature" Grid.Row="2" Grid.Column="1" Text="{Binding Selected.SignatureText}" />
+                        <TextBlock x:Name="Signature" Grid.Row="2" Grid.Column="1" Text="{Binding Selected.SignatureText}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Selected.SignatureInvalid}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource CriticalBrush}" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <TextBlock Grid.Row="3" Foreground="{DynamicResource TextSecondaryBrush}" Text="Usuário" />
                         <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Selected.User}" />
                         <TextBlock Grid.Row="1" Grid.Column="3" Foreground="{DynamicResource TextSecondaryBrush}" Text="Iniciado por" />
@@ -346,7 +378,7 @@
                         </StackPanel>
                     </Button>
                     <!-- Confirmação no lugar (sem diálogo modal): diz o custo antes de encerrar. -->
-                    <Border Visibility="{Binding ConfirmingEnd, Converter={StaticResource VisibleWhen}}" BorderBrush="{DynamicResource TextSecondaryBrush}"
+                    <Border x:Name="ConfirmBox" Visibility="{Binding ConfirmingEnd, Converter={StaticResource VisibleWhen}}" BorderBrush="{DynamicResource TextSecondaryBrush}"
                             BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,8,6" Width="260">
                         <StackPanel>
                             <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap">
@@ -360,6 +392,7 @@
                     </Border>
                 </WrapPanel>
             </Grid>
+            </ScrollViewer>
         </Border>
     </Grid>
 </UserControl>

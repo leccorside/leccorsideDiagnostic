@@ -65,13 +65,46 @@ public sealed partial class ProcessItem : ObservableObject, IPathRow
     [ObservableProperty] private int _depth;
     [ObservableProperty] private ProcessDetails? _details;
 
-    /// <summary>Recuo do modo árvore (16 px por nível).</summary>
-    public System.Windows.Thickness Indent => new(Depth * 16, 0, 0, 0);
+    /// <summary>Níveis com recuo no modo árvore; abaixo disso a cadeia continua sem recuar (o nome nunca some).</summary>
+    public const int MaxIndentLevels = 8;
+
+    /// <summary>Recuo do modo árvore (12 px por nível, até <see cref="MaxIndentLevels"/>).</summary>
+    public System.Windows.Thickness Indent => new(Math.Min(Depth, MaxIndentLevels) * 12, 0, 0, 0);
 
     partial void OnDepthChanged(int value) => OnPropertyChanged(nameof(Indent));
 
     /// <summary>Nome acessível: o leitor de tela lê a linha inteira, não só o nome.</summary>
     public string AccessibleName => $"{Name}, PID {PidText}, CPU {CpuText}, memória {MemoryText}{(IsCritical ? ", processo protegido do Windows" : string.Empty)}";
+
+    /// <summary>O ListBoxItem usa o ToString como nome acessível (sem isto, o leitor lia o nome da classe).</summary>
+    public override string ToString() => AccessibleName;
+
+    /// <summary>Dica do nome: o nome inteiro (cortado na coluna) e o caminho quando conhecido.</summary>
+    public string NameToolTip => Path is null ? Name : $"{Name}{Environment.NewLine}{Path}";
+
+    public string ThreadsText => Fmt.Whole(Threads);
+
+    public string HandlesText => Fmt.Whole(Handles);
+
+    /// <summary>
+    /// Assinatura inválida não esconde quem diz ter feito o arquivo (esse nome é a evidência) e vem primeiro, para o
+    /// corte com reticências nunca levar a marca.
+    /// </summary>
+    public string PublisherDisplay => SignatureInvalid
+        ? string.IsNullOrEmpty(Publisher) || Publisher == "fabricante não informado" ? "assinatura inválida" : $"assinatura inválida · {Publisher}"
+        : Publisher;
+
+    partial void OnNameChanged(string value) => OnPropertyChanged(nameof(NameToolTip));
+
+    partial void OnPathChanged(string? value) => OnPropertyChanged(nameof(NameToolTip));
+
+    partial void OnThreadsChanged(int value) => OnPropertyChanged(nameof(ThreadsText));
+
+    partial void OnHandlesChanged(int value) => OnPropertyChanged(nameof(HandlesText));
+
+    partial void OnPublisherChanged(string value) => OnPropertyChanged(nameof(PublisherDisplay));
+
+    partial void OnSignatureInvalidChanged(bool value) => OnPropertyChanged(nameof(PublisherDisplay));
 
     public void Update(ProcessDetails details, ProcessRate? rate)
     {
@@ -161,6 +194,11 @@ public sealed partial class ProcessesViewModel : ObservableObject, IPageLifecycl
 
     [ObservableProperty] private bool _confirmingEnd;
     [ObservableProperty] private string _actionMessage = string.Empty;
+
+    /// <summary>Texto no lugar da lista vazia: pesquisa sem resultado ou leitura que não devolveu nada.</summary>
+    [ObservableProperty] private string _emptyText = string.Empty;
+
+    private bool _captured;
 
     public bool HasSelection => Selected is not null;
 
@@ -292,8 +330,11 @@ public sealed partial class ProcessesViewModel : ObservableObject, IPageLifecycl
             _previous = snapshot;
             Merge(snapshot, rates);
             ApplyView();
+            _captured = true;
             var cpuKnown = snapshot.Processes.Count(p => p.TotalProcessorTime is not null);
-            Summary = $"{Fmt.Count(snapshot.Processes.Count, "processo", "processos")} · atualiza a cada 2 s · "
+            Summary = snapshot.Processes.Count == 0
+                ? "Nenhum processo lido: o Windows não devolveu a lista. Tentando de novo a cada 2 s."
+                : $"{Fmt.Count(snapshot.Processes.Count, "processo", "processos")} · atualiza a cada 2 s · "
                 + (cpuKnown < snapshot.Processes.Count
                     ? $"{Fmt.Count(snapshot.Processes.Count - cpuKnown, "processo protegido sem CPU medida", "processos protegidos sem CPU medida")} (exigem administrador)"
                     : "CPU de todos os processos medida");
@@ -405,6 +446,10 @@ public sealed partial class ProcessesViewModel : ObservableObject, IPageLifecycl
                 Processes.Move(current, i);
             }
         }
+
+        EmptyText = Processes.Count > 0 || !_captured ? string.Empty
+            : term.Length > 0 ? $"Nenhum processo corresponde a “{term}”. A pesquisa procura no nome, PID, caminho e fabricante."
+            : "Nenhum processo para mostrar.";
     }
 
     private IEnumerable<ProcessItem> Sort(IEnumerable<ProcessItem> items)
@@ -444,7 +489,7 @@ public sealed partial class ProcessesViewModel : ObservableObject, IPageLifecycl
                 return; // ciclo improvável (PID reaproveitado): evita laço infinito
             }
 
-            item.Depth = Math.Min(depth, 12);
+            item.Depth = depth;
             result.Add(item);
             if (children.TryGetValue(item.Pid, out var kids))
             {

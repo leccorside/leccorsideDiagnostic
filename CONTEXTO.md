@@ -19,13 +19,13 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   (CPU sustentada, possível limitação de frequência, pressão de memória, commit alto, possível vazamento).
 - **Scanners em produção (Passo 3):** Discos e Armazenamento, com 5 regras (pouco espaço livre, disco sinaliza problema,
   temperatura alta, TRIM desativado em SSD, temporários/caches grandes como recomendação).
-- **Scanner em produção (Passo 4):** Inicialização (somente leitura), com 2 regras (entrada ativa apontando para arquivo
-  inexistente; executável em pasta temporária). 7 scanners e 12 regras no total.
+- **Scanner em produção (Passo 4):** Inicialização (somente leitura), com 3 regras (entrada ativa apontando para arquivo
+  inexistente; executável em pasta temporária; script oculto via hospedeiro do Windows). 7 scanners e 13 regras no total.
 - App abre sem admin: Dashboard (score com cobertura "Avaliou X de 6 áreas", CPU/RAM/disco/GPU ao vivo), Varredura,
   **Performance**, **Processos**, **Armazenamento**, **Hardware**, **Inicialização** e Configurações. Demais menus:
   páginas "em construção" com o MVP previsto.
-- Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros. Testes: 325/325 (268 unitários,
-  37 integração, 20 sistema).
+- Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros. Testes: 356/356 (294 unitários,
+  37 integração, 25 sistema).
 - Telas de Performance e Hardware (16 correções) e Armazenamento (14 correções + 4 decisões) passaram pelo teste de
   estresse break-ui; o seletor de dados de desenvolvimento (só DEBUG) cobre as três telas.
 - Consumo medido (Release, histórico ativo): 0,17% CPU no Dashboard, 0,46% na Performance, 0,00% minimizado;
@@ -449,7 +449,36 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   cadeia `npm run dev` de 14 níveis, pai já encerrado; Run do Teams clássico desinstalado, updater NSIS em `%TEMP%`,
   RunOnce com PowerShell `-EncodedCommand` (~1.600 caracteres), tarefa do OneDrive com SID, NVIDIA no DriverStore,
   comando sem aspas de fechamento, estado não lido, serviço órfão; Vazio, Um e Muitos (1.529 processos, ~620 entradas).
-- Achados relatados ao usuário (correção só quando pedida). Capturas e `p4-break.ps1` no scratchpad da sessão.
+- 16 achados (6 quebras, 7 visuais, 3 frágeis) + 4 decisões, **todos corrigidos** ("fix all", 19/10/2026; decisões
+  conforme as recomendações):
+  - **Acessibilidade:** a linha da lista de processos era lida como `…ViewModels.ProcessItem` → `ToString()` devolve o
+    nome acessível (mesmo defeito do menu lateral). Confirmado via UIA.
+  - **Entrada suspeita escondida:** `IsWindowsComponent` marcava qualquer executável em `C:\Windows` — inclusive
+    `powershell`, `cmd`, `mshta`, `rundll32`, `regsvr32`, `wscript` e drivers no `DriverStore` — e a tela os ocultava.
+    Agora `StartupCommand.IsWindowsOwned` exclui hospedeiros de script e DriverStore. Nesta máquina, ocultos 85 → 81.
+  - **Regra nova `startup.script-host`** (decisão A): PowerShell com `-EncodedCommand`, PowerShell oculto baixando da
+    internet, `mshta`/`rundll32` com `javascript:`/`vbscript:`, `regsvr32` com `scrobj.dll`, hospedeiro abrindo URL,
+    script em pasta temporária. Médio, 60%. A tela usa o mesmo critério (`StartupCommand.ScriptConcern`); nunca é
+    "aviso do Windows", mesmo numa tarefa em `\Microsoft\Windows\`. Nos dados reais, nenhum falso positivo.
+  - **Defeito do interpretador achado pelos testes:** `regsvr32 /s … scrobj.dll` (só o nome, sem aspas) virava um
+    "caminho" com a linha inteira, porque a busca pela extensão achava o `.dll` do fim. Nome sem barra invertida vai
+    até o primeiro espaço.
+  - Processos: nome com reticências (Grid no lugar de StackPanel) e dica com nome + caminho; milhares em
+    threads/handles (`Fmt.Whole`); "156 d 12 h" (`Fmt.Duration` sobe para dias); árvore com 12 px por nível até 8
+    níveis; seta de ordenação some no modo árvore; mensagens de pesquisa sem resultado e de leitura vazia; detalhes
+    com altura máxima de 45% e rolagem própria (decisão C), com a confirmação trazida inteira à vista; assinatura
+    inválida em vermelho também nos detalhes.
+  - Fabricante com assinatura inválida: "assinatura inválida · Northwind…" (a marca primeiro, o corte nunca a leva);
+    entrada de hospedeiro de script: "via powershell.exe (Microsoft Corporation)", não "Microsoft Corporation" sozinho.
+  - Inicialização: "Tarefa desativada" sem repetição; estado não lido em tinta normal; estado vazio próprio; 3 cartões
+    de problema e "Mostrar mais N" (decisão B); resumo "N com problema · N aviso do Windows" (decisão D); comando do
+    cartão limitado a 4 linhas (dica e "Copiar comando" com o texto inteiro).
+  - **Pesquisa da Inicialização:** os grupos são montados uma vez por leitura e o filtro só muda a visibilidade das
+    linhas (`StartupRow.IsVisible`, `StartupGroup.VisibleCount`): ~1.922 → ~141 ms de CPU por tecla com ~620 entradas.
+- Testes novos: `Fmt.Whole`/`Duration` com dias, `IsWindowsOwned`, `ScriptConcern` (8 padrões + 5 comandos comuns que
+  não podem disparar), `ScriptHostName`, regra `startup.script-host`, `regsvr32` só com o nome. 356/356 em Debug e Release.
+- Verificação: Pior caso em 1280 claro e 980 escuro, Vazio, Um, Muitos e Dados reais. Capturas em `p4fix`/`p4fix2` no
+  scratchpad da sessão.
 
 ## Pendências / próximos passos
 
@@ -459,10 +488,10 @@ Na ordem combinada no `PASSOS.md`:
    **processo elevado + IPC** (habilita SMART detalhado, desgaste e horas ligadas dos discos).
 2. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
 
-Itens do Passo 4 para depois: desativar entrada de inicialização com backup e desfazer (Correções, Passo 8); fixtures
-de pior caso das telas Processos e Inicialização no seletor de dados (break-ui ainda não rodado nelas); a lista de
+Itens do Passo 4 para depois: desativar entrada de inicialização com backup e desfazer (Correções, Passo 8); a lista de
 processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode
-sair da área visível.
+sair da área visível; abrir a tela Inicialização com ~600 entradas custa ~6,6 s de CPU (todas as linhas são criadas;
+virtualizar os grupos resolveria); no modo árvore, níveis além do 8º não recuam mais.
 
 Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); exportar a análise de
 espaço (relatórios chegam no Passo 10); análise de espaço não é salva no histórico (fica em memória na sessão).

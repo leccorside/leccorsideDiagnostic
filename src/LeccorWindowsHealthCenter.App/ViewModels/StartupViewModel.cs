@@ -14,7 +14,17 @@ public sealed partial class StartupRow : ObservableObject, IPathRow
     {
         Entry = entry;
         Impact = impact;
+        _scriptConcern = entry.Enabled == true ? StartupCommand.ScriptConcern(entry.Command) : null;
+        _scriptHost = StartupCommand.ScriptHostName(entry.Command);
     }
+
+    private readonly string? _scriptConcern;
+
+    /// <summary>"powershell.exe" etc.: o fabricante lido é o do hospedeiro, não de quem criou a entrada.</summary>
+    private readonly string? _scriptHost;
+
+    /// <summary>Filtro da tela: a linha só some ou aparece (recriar as linhas a cada tecla custava ~2 s com 600 entradas).</summary>
+    [ObservableProperty] private bool _isVisible = true;
 
     public StartupEntry Entry { get; }
 
@@ -40,18 +50,24 @@ public sealed partial class StartupRow : ObservableObject, IPathRow
 
     public bool IsEnabled => Entry.Enabled == true;
 
-    /// <summary>"Desativado no Gerenciador de Tarefas" em vez de "Desativado · desativado no…".</summary>
+    /// <summary>Desativado com certeza (estado não lido não fica cinza como se estivesse desativado).</summary>
+    public bool IsDisabled => Entry.Enabled == false;
+
+    /// <summary>"Desativado no Gerenciador de Tarefas" / "Tarefa desativada" em vez de "Desativado · …desativad…".</summary>
     public string StatusText => Entry.Enabled switch
     {
         true => Entry.StateDetail is { } detail ? $"Ativo · {detail}" : "Ativo",
-        false when Entry.StateDetail is { Length: > 0 } detail && detail.StartsWith("desativado", StringComparison.CurrentCultureIgnoreCase) =>
+        false when Entry.StateDetail is { Length: > 0 } detail && detail.Contains("desativad", StringComparison.CurrentCultureIgnoreCase) =>
             char.ToUpper(detail[0], System.Globalization.CultureInfo.CurrentCulture) + detail[1..],
         false => Entry.StateDetail is { } detail ? $"Desativado · {detail}" : "Desativado",
         _ => "estado não lido",
     };
 
-    /// <summary>Componente do próprio Windows: o problema é informativo (a regra emite Info), sem cor de alerta.</summary>
-    public bool IsInformational => Entry.IsWindowsComponent;
+    /// <summary>
+    /// Arquivo do próprio Windows removido por atualização: o problema é informativo (a regra emite Info), sem cor de
+    /// alerta. Script oculto nunca é informativo, mesmo numa tarefa em \Microsoft\Windows\ (técnica de persistência).
+    /// </summary>
+    public bool IsInformational => Entry.IsWindowsComponent && IsMissing && _scriptConcern is null;
 
     public string SourceText => Entry.Source switch
     {
@@ -62,9 +78,10 @@ public sealed partial class StartupRow : ObservableObject, IPathRow
         _ => $"Serviço · {Entry.Location}",
     };
 
-    /// <summary>Mesmos critérios de StartupMissingExecutableRule e StartupTempLocationRule.</summary>
+    /// <summary>Mesmos critérios de StartupScriptHostRule, StartupMissingExecutableRule e StartupTempLocationRule.</summary>
     public string? Problem =>
-        Entry.Enabled == true && Entry.ExecutableExists == false && Entry.IsWindowsComponent ? "O arquivo foi removido por uma atualização do Windows; a tarefa falha sem efeito."
+        _scriptConcern is { } script ? script
+        : Entry.Enabled == true && Entry.ExecutableExists == false && Entry.IsWindowsComponent ? "O arquivo foi removido por uma atualização do Windows; a tarefa falha sem efeito."
         : Entry.Enabled == true && Entry.ExecutableExists == false ? "O arquivo não existe mais: resto de programa desinstalado."
         : Entry.Enabled == true && StartupCommand.IsTemporaryLocation(Entry.ExecutablePath) ? "Inicia a partir de uma pasta temporária: confira fabricante e assinatura."
         : null;
@@ -72,7 +89,9 @@ public sealed partial class StartupRow : ObservableObject, IPathRow
     public bool IsMissing => Entry.Enabled == true && Entry.ExecutableExists == false;
 
     /// <summary>Onde desativar com segurança, conforme a origem (esta tela não altera nada).</summary>
-    public string Advice => Entry.IsWindowsComponent
+    public string Advice => _scriptConcern is not null
+        ? "Copie a linha de comando e confira de onde veio. Se não reconhecer, faça uma verificação completa com o Windows Defender antes de remover a entrada."
+        : IsInformational
         ? "Não é preciso fazer nada. Evite desativar tarefas do próprio Windows: a próxima atualização pode corrigi-la ou removê-la."
         : Entry.Source switch
     {
@@ -83,9 +102,25 @@ public sealed partial class StartupRow : ObservableObject, IPathRow
 
     public string AccessibleName => $"{Name}, {StatusText}{(ImpactText.Length > 0 ? $", impacto {ImpactText}" : string.Empty)}{(Problem is { } p ? $". {p}" : string.Empty)}";
 
-    [ObservableProperty] private string _publisher = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PublisherDisplay))]
+    private string _publisher = string.Empty;
+
     [ObservableProperty] private string _signatureText = string.Empty;
-    [ObservableProperty] private bool _signatureInvalid;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PublisherDisplay))]
+    private bool _signatureInvalid;
+
+    /// <summary>
+    /// Assinatura inválida não esconde quem diz ter feito o arquivo (esse nome é a evidência) e vem primeiro, para o
+    /// corte com reticências nunca levar a marca. Em hospedeiro de script, "Microsoft Corporation" sozinho daria falsa
+    /// confiança: o fabricante é do powershell.exe, não de quem criou a entrada.
+    /// </summary>
+    public string PublisherDisplay =>
+        SignatureInvalid ? (string.IsNullOrEmpty(Publisher) || Publisher == "fabricante não informado" ? "assinatura inválida" : $"assinatura inválida · {Publisher}")
+        : _scriptHost is not null && Publisher.Length > 0 ? $"via {_scriptHost} ({Publisher})"
+        : Publisher;
 
     public void ApplyIdentity(FileIdentity identity)
     {
@@ -95,7 +130,17 @@ public sealed partial class StartupRow : ObservableObject, IPathRow
     }
 }
 
-public sealed record StartupGroup(string Title, string Caption, IReadOnlyList<StartupRow> Rows);
+/// <summary>Grupo com todas as linhas da leitura; o filtro só muda <see cref="VisibleCount"/> e a visibilidade das linhas.</summary>
+public sealed partial class StartupGroup(string title, string caption, IReadOnlyList<StartupRow> rows) : ObservableObject
+{
+    public string Title { get; } = title;
+
+    public string Caption { get; } = caption;
+
+    public IReadOnlyList<StartupRow> Rows { get; } = rows;
+
+    [ObservableProperty] private int _visibleCount = rows.Count;
+}
 
 /// <summary>
 /// Inicialização (seção 19), somente leitura: o que o Windows inicia no logon/boot, ativo ou não, com impacto estimado
@@ -149,6 +194,26 @@ public sealed partial class StartupViewModel : ObservableObject, IPageLifecycle
     [ObservableProperty] private string _hiddenText = string.Empty;
     [ObservableProperty] private string _actionMessage = string.Empty;
     [ObservableProperty] private bool _noResults;
+
+    /// <summary>Leitura concluída sem nenhuma entrada (estado vazio próprio, sem filtros sobre lista nenhuma).</summary>
+    [ObservableProperty] private string _emptyText = string.Empty;
+
+    [ObservableProperty] private bool _hasEntries;
+
+    /// <summary>Cartões de problema visíveis: os 3 primeiros, ou todos depois de "Mostrar mais".</summary>
+    [ObservableProperty] private IReadOnlyList<StartupRow> _visibleProblems = [];
+
+    [ObservableProperty] private bool _showAllProblems;
+
+    [ObservableProperty] private string _moreProblemsText = string.Empty;
+
+    /// <summary>Quantos cartões de problema aparecem antes de "Mostrar mais": a lista não fica a várias telas abaixo.</summary>
+    public const int ProblemCardsShown = 3;
+
+    partial void OnShowAllProblemsChanged(bool value) => ApplyProblems();
+
+    [RelayCommand]
+    private void ToggleProblems() => ShowAllProblems = !ShowAllProblems;
 
     partial void OnSearchChanged(string value) => ApplyView();
 
@@ -214,12 +279,43 @@ public sealed partial class StartupViewModel : ObservableObject, IPageLifecycle
             var active = _all.Count(r => r.IsEnabled);
             var high = _all.Count(r => r.IsHighImpact);
             var problems = _all.Count(r => r.Problem is not null && !r.IsInformational);
+            var notices = _all.Count(r => r.Problem is not null && r.IsInformational);
+
+            // A soma de problemas + avisos bate com o número de cartões.
             Summary = string.Join(" · ", new[]
             {
                 $"{Fmt.Count(active, "item ativo inicia", "itens ativos iniciam")} com o Windows",
                 high > 0 ? Fmt.Count(high, "de alto impacto", "de alto impacto") : null,
                 problems > 0 ? Fmt.Count(problems, "com problema", "com problema") : null,
+                notices > 0 ? Fmt.Count(notices, "aviso do Windows", "avisos do Windows") : null,
             }.Where(s => s is not null));
+
+            HasEntries = _all.Count > 0;
+            if (!HasEntries)
+            {
+                Summary = string.Empty; // "0 itens ativos…" ao lado da mensagem de vazio só repetiria
+            }
+
+            EmptyText = HasEntries ? string.Empty
+                : "Nenhum item de inicialização encontrado. Se isso não parece certo, use “Ler novamente”: alguma fonte pode não ter respondido.";
+
+            // Problemas sempre aparecem, mesmo de itens do Windows ou desativados: são o diagnóstico da tela.
+            Problems = _all.Where(r => r.Problem is not null).OrderBy(r => r.IsInformational).ToList();
+            ShowAllProblems = false;
+            ApplyProblems();
+
+            static List<StartupRow> Order(IEnumerable<StartupRow> rows) =>
+                rows.OrderByDescending(r => r.IsEnabled).ThenByDescending(r => r.Impact).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+
+            Groups = new[]
+            {
+                new StartupGroup("Aplicativos", "Registro (Run/RunOnce) e pastas Inicializar: o que o Gerenciador de Tarefas mostra em Aplicativos de inicialização.",
+                    Order(_all.Where(r => r.Entry.Source is StartupSourceKind.RegistryRun or StartupSourceKind.RegistryRunOnce or StartupSourceKind.StartupFolder))),
+                new StartupGroup("Tarefas agendadas", "Tarefas que rodam no logon ou no boot.",
+                    Order(_all.Where(r => r.Entry.Source == StartupSourceKind.ScheduledTask))),
+                new StartupGroup("Serviços automáticos", "Serviços que o Windows inicia no boot, antes do logon.",
+                    Order(_all.Where(r => r.Entry.Source == StartupSourceKind.Service))),
+            };
             ApplyView();
             _ = LoadIdentitiesAsync();
         }
@@ -261,24 +357,27 @@ public sealed partial class StartupViewModel : ObservableObject, IPageLifecycle
             || (r.Command?.Contains(term, StringComparison.CurrentCultureIgnoreCase) ?? false)
             || r.Publisher.Contains(term, StringComparison.CurrentCultureIgnoreCase);
 
-        // Problemas sempre aparecem, mesmo de itens do Windows ou desativados: são o diagnóstico da tela.
-        Problems = _all.Where(r => r.Problem is not null).OrderBy(r => r.IsInformational).ToList();
-        var visible = _all.Where(r => (ShowWindowsItems || !r.Entry.IsWindowsComponent) && (ShowDisabled || r.IsEnabled) && Matches(r)).ToList();
+        foreach (var row in _all)
+        {
+            row.IsVisible = (ShowWindowsItems || !row.Entry.IsWindowsComponent) && (ShowDisabled || !row.IsDisabled) && Matches(row);
+        }
+
+        foreach (var group in Groups)
+        {
+            group.VisibleCount = group.Rows.Count(r => r.IsVisible);
+        }
+
         var hiddenWindows = _all.Count(r => r.Entry.IsWindowsComponent && !ShowWindowsItems);
         HiddenText = hiddenWindows > 0 && !ShowWindowsItems ? $"{Fmt.Count(hiddenWindows, "item do próprio Windows oculto", "itens do próprio Windows ocultos")}." : string.Empty;
+        NoResults = _all.Count > 0 && Groups.All(g => g.VisibleCount == 0);
+    }
 
-        static IOrderedEnumerable<StartupRow> Order(IEnumerable<StartupRow> rows) =>
-            rows.OrderByDescending(r => r.IsEnabled).ThenByDescending(r => r.Impact).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase);
-
-        Groups = new[]
-        {
-            new StartupGroup("Aplicativos", "Registro (Run/RunOnce) e pastas Inicializar: o que o Gerenciador de Tarefas mostra em Aplicativos de inicialização.",
-                Order(visible.Where(r => r.Entry.Source is StartupSourceKind.RegistryRun or StartupSourceKind.RegistryRunOnce or StartupSourceKind.StartupFolder)).ToList()),
-            new StartupGroup("Tarefas agendadas", "Tarefas que rodam no logon ou no boot.",
-                Order(visible.Where(r => r.Entry.Source == StartupSourceKind.ScheduledTask)).ToList()),
-            new StartupGroup("Serviços automáticos", "Serviços que o Windows inicia no boot, antes do logon.",
-                Order(visible.Where(r => r.Entry.Source == StartupSourceKind.Service)).ToList()),
-        }.Where(g => g.Rows.Count > 0).ToList();
-        NoResults = _all.Count > 0 && Groups.Count == 0;
+    private void ApplyProblems()
+    {
+        VisibleProblems = ShowAllProblems ? Problems : Problems.Take(ProblemCardsShown).ToList();
+        var more = Problems.Count - ProblemCardsShown;
+        MoreProblemsText = more <= 0 ? string.Empty
+            : ShowAllProblems ? "Mostrar menos"
+            : $"Mostrar mais {Fmt.Count(more, "problema", "problemas")}";
     }
 }

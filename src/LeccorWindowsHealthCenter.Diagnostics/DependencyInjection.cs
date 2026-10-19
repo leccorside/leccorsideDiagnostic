@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddSingleton<IDiagnosticScanner, Startup.StartupScanner>();
         services.AddSingleton<IRule, StartupMissingExecutableRule>();
         services.AddSingleton<IRule, StartupTempLocationRule>();
+        services.AddSingleton<IRule, StartupScriptHostRule>();
         return services;
     }
 }

@@ -27,6 +27,17 @@ public sealed class FmtTests : IDisposable
         Assert.Equal("123.457 páginas/s", Fmt.Count(123_457, "página/s", "páginas/s"));
 
     [Fact]
+    public void Whole_numbers_have_thousands_separator() => Assert.Equal("1.284.337", Fmt.Whole(1_284_337));
+
+    [Theory]
+    [InlineData(45, "45 s")]
+    [InlineData(192, "3 min 12 s")]
+    [InlineData(3_900, "1 h 05 min")]
+    [InlineData(13_521_000, "156 d 11 h")] // 3.755 h 50 min: horas soltas não sobem para dias
+    public void Duration_rolls_up_to_days(double seconds, string expected) =>
+        Assert.Equal(expected, Fmt.Duration(TimeSpan.FromSeconds(seconds)));
+
+    [Fact]
     public void Missing_reading_is_a_dash_that_fits_any_width()
     {
         Assert.Equal("—", Fmt.Reading(null));

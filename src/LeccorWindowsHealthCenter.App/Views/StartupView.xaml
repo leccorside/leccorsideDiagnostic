@@ -46,6 +46,7 @@
         <!-- Linha: nome e fabricante à esquerda; origem e estado no meio; impacto à direita. Clique mostra no Explorer. -->
         <DataTemplate x:Key="StartupRowTemplate" DataType="{x:Type vm:StartupRow}">
             <Button x:Name="RowButton" Style="{StaticResource RowButton}" ToolTip="{Binding Command}" ContextMenu="{StaticResource RowMenu}"
+                    Visibility="{Binding IsVisible, Converter={StaticResource VisibleWhen}}"
                     Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     Command="{Binding DataContext.RevealCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     CommandParameter="{Binding Path}"
@@ -61,7 +62,7 @@
                     <StackPanel>
                         <TextBlock x:Name="NameText" Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding Name}" />
                         <TextBlock x:Name="PublisherText" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
-                                   Text="{Binding Publisher}" ToolTip="{Binding SignatureText}"
+                                   Text="{Binding PublisherDisplay}" ToolTip="{Binding SignatureText}"
                                    Visibility="{Binding Publisher, Converter={StaticResource VisibleWhen}}" />
                         <TextBlock x:Name="ProblemText" Style="{StaticResource Caption}" Margin="0,2,0,0" TextWrapping="Wrap" FontWeight="SemiBold"
                                    Foreground="{DynamicResource MediumBrush}" Text="{Binding Problem}"
@@ -78,7 +79,7 @@
             </Button>
             <DataTemplate.Triggers>
                 <!-- Desativado: tinta secundária, ainda legível. Alto impacto em semibold (fato medido, não alarme). -->
-                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                <DataTrigger Binding="{Binding IsDisabled}" Value="True">
                     <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsHighImpact}" Value="True">
@@ -93,7 +94,6 @@
                 </DataTrigger>
                 <DataTrigger Binding="{Binding SignatureInvalid}" Value="True">
                     <Setter TargetName="PublisherText" Property="Foreground" Value="{DynamicResource CriticalBrush}" />
-                    <Setter TargetName="PublisherText" Property="Text" Value="assinatura inválida" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Path}" Value="{x:Null}">
                     <Setter TargetName="RowButton" Property="Command" Value="{x:Null}" />
@@ -128,8 +128,8 @@
                        Visibility="{Binding Summary, Converter={StaticResource VisibleWhen}}" />
 
             <!-- Laudo primeiro: entradas com problema, mesmos critérios da varredura (arquivo ausente, pasta temporária). -->
-            <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Problems}" Focusable="False"
-                          Visibility="{Binding Problems, Converter={StaticResource VisibleWhen}}">
+            <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding VisibleProblems}" Focusable="False"
+                          Visibility="{Binding VisibleProblems, Converter={StaticResource VisibleWhen}}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type vm:StartupRow}">
                         <controls:AccessibleRegion Margin="0,0,0,12" FocusVisualStyle="{StaticResource CardFocusRing}"
@@ -147,7 +147,9 @@
                                         <TextBlock Style="{StaticResource SectionTitle}" Margin="0" TextWrapping="Wrap" Text="{Binding Name}"
                                                    AutomationProperties.HeadingLevel="Level3" />
                                         <TextBlock Style="{StaticResource Body}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Problem}" />
-                                        <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" TextWrapping="Wrap" FontFamily="Consolas" Text="{Binding Command}" />
+                                        <!-- Até 4 linhas (um -EncodedCommand tem milhares de caracteres); inteiro na dica e em "Copiar comando". -->
+                                        <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" TextWrapping="Wrap" FontFamily="Consolas" Text="{Binding Command}"
+                                                   MaxHeight="64" TextTrimming="CharacterEllipsis" ToolTip="{Binding Command}" />
                                         <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,0" TextWrapping="Wrap" Text="{Binding SourceText}" />
                                         <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"
                                                    Text="{Binding Advice}" />
@@ -175,7 +177,15 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            <!-- Com muitos restos de desinstalação, só os 3 primeiros cartões: a lista não fica várias telas abaixo. -->
+            <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Padding="14,6" Command="{Binding ToggleProblemsCommand}"
+                    Content="{Binding MoreProblemsText}" Visibility="{Binding MoreProblemsText, Converter={StaticResource VisibleWhen}}" />
 
+            <!-- Leitura sem nenhuma entrada: mensagem própria no lugar de filtros sobre lista nenhuma. -->
+            <TextBlock Style="{StaticResource Body}" Margin="0,16,0,0" TextWrapping="Wrap" Text="{Binding EmptyText}"
+                       Visibility="{Binding EmptyText, Converter={StaticResource VisibleWhen}}" />
+
+            <StackPanel Visibility="{Binding HasEntries, Converter={StaticResource VisibleWhen}}">
             <!-- Filtros. -->
             <WrapPanel Margin="0,16,0,0">
                 <TextBox Style="{StaticResource FilterBox}" Width="320" Margin="0,0,20,8"
@@ -188,13 +198,14 @@
                        Text="Impacto estimado pelo consumo atual dos processos com o mesmo executável (memória privada e tempo de CPU desde que iniciaram). Itens que não estão rodando agora aparecem como “não medido”." />
             <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" Text="{Binding HiddenText}"
                        Visibility="{Binding HiddenText, Converter={StaticResource VisibleWhen}}" />
+            </StackPanel>
 
             <ItemsControl ItemsSource="{Binding Groups}" Focusable="False" Grid.IsSharedSizeScope="True">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type vm:StartupGroup}">
-                        <StackPanel>
+                        <StackPanel Visibility="{Binding VisibleCount, Converter={StaticResource VisibleWhen}}">
                             <TextBlock Style="{StaticResource GroupTitle}">
-                                <Run Text="{Binding Title, Mode=OneWay}" /><Run Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="Normal" Text="{Binding Rows.Count, Mode=OneWay, StringFormat='  {0}'}" />
+                                <Run Text="{Binding Title, Mode=OneWay}" /><Run Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="Normal" Text="{Binding VisibleCount, Mode=OneWay, StringFormat='  {0:#,##0}', ConverterCulture=pt-BR}" />
                             </TextBlock>
                             <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,8" TextWrapping="Wrap" Text="{Binding Caption}" />
                             <Border Style="{StaticResource Card}" Padding="8">

@@ -427,9 +427,15 @@ compactos separados por chevrons, sem chevron após o último nível. Nas listas
 Para listas longas atualizadas no lugar (Processos): `ListBox` virtualizado com o estilo `TableRow`. Linha sem borda,
 hover em Nav Hover, seleção com fundo Nav Selected e pílula Brasa de 3px à esquerda (igual à navegação), foco de
 teclado com borda de 2px. Colunas de largura fixa compartilhadas com o cabeçalho; números alinhados à direita e
-tabulares; nome corta no fim com o caminho na dica. Cabeçalho ordenável: Row Buttons compactos em Label semibold, com
-a seta Fluent (chevron 9px, tinta secundária) só na coluna ordenada; clicar de novo inverte. Em larguras estreitas, a
-coluna menos essencial sai (o valor continua no painel de detalhes) em vez de cortar todas.
+tabulares, com separador de milhar ("1.284.337"); nome corta no fim com reticências (a célula precisa de largura
+limitada: Grid, nunca StackPanel horizontal) e a dica traz nome + caminho. Cabeçalho ordenável: Row Buttons compactos
+em Label semibold, com a seta Fluent (chevron 9px, tinta secundária) só na coluna ordenada e nunca no modo árvore;
+clicar de novo inverte. Árvore: 12px por nível, até 8 níveis. Em larguras estreitas, a coluna menos essencial sai (o
+valor continua no painel de detalhes) em vez de cortar todas. Lista vazia ou pesquisa sem resultado diz por quê no
+lugar da lista. O painel de detalhes abaixo não passa de 45% da tela e rola por dentro.
+
+Fabricante com assinatura inválida em Critical: "assinatura inválida · Fabricante" (a marca primeiro, para o corte
+nunca levá-la, e o fabricante declarado continua visível, porque é a evidência).
 
 ### Inline Confirmation
 
