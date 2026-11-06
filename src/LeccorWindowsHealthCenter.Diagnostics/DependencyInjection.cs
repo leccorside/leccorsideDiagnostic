@@ -59,6 +59,18 @@ public static class DependencyInjection
         services.AddSingleton<IRule, WindowsComponentStoreRule>();
         services.AddSingleton<IRule, WindowsSystemFilesRule>();
         services.AddSingleton<IRule, WindowsFileSystemRule>();
+
+        // Passo 6 — MVP 2 (a): Explorer, Serviços e Drivers
+        services.AddSingleton<IDiagnosticScanner, Explorer.ExplorerScanner>();
+        services.AddSingleton<IDiagnosticScanner, Services.ServicesScanner>();
+        services.AddSingleton<IDiagnosticScanner, Drivers.DriversScanner>();
+
+        services.AddSingleton<IRule, ExplorerMissingShellExtensionRule>();
+        services.AddSingleton<IRule, ExplorerUnsignedShellExtensionRule>();
+        services.AddSingleton<IRule, ServicesMissingExecutableRule>();
+        services.AddSingleton<IRule, ServicesFailedStartupRule>();
+        services.AddSingleton<IRule, DriversDeviceErrorRule>();
+        services.AddSingleton<IRule, DriversMissingDriverRule>();
         return services;
     }
 }

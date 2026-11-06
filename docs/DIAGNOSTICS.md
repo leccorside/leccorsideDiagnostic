@@ -61,6 +61,9 @@ Implementar `CollectAsync(ScanCollector collector, CancellationToken ct)`. A bas
 | Integridade do Windows | `windows.integrity` | Windows | sim | 65 | 5 |
 | Inicialização | `startup` | Startup | sim | 70 | 4 |
 | Visualizador de Eventos | `eventviewer` | Events | sim | 75 | 5 |
+| Windows Explorer | `explorer` | Explorer | sim | 80 | 6 |
+| Serviços do Windows | `services` | Services | sim | 85 | 6 |
+| Dispositivos e Drivers | `drivers` | Drivers | sim | 90 | 6 |
 
 Cada scanner novo deve ser documentado aqui com: fonte de dados (WMI/contador/API/EventLog/comando),
 métricas e observações produzidas (nome, unidade, tags), custo estimado (tempo/CPU), necessidade de
@@ -180,6 +183,32 @@ elevação e comportamento quando a fonte não está disponível ("não disponí
 - **Observações:** `eventviewer.group` por grupo de Log + Origem + EventID com atributos (`log`, `provider`, `eventId`, `level`, `count24h`, `firstSeen`, `lastSeen`, `message`, `targetResource`, `technicalDetails`). Persistido na tabela `EventSummary` do SQLite.
 - **Custo:** ~0,4–1,2 s para ler os eventos recentes com limitação de buffer (`MaxEventsPerLog`). **Elevação:** não (logs padrão são legíveis por usuários comuns; quando elevado, lê canais adicionais).
 - **Regras:** `eventviewer.disk-io-errors`, `eventviewer.gpu-driver-crash`, `eventviewer.hardware-whea`, `eventviewer.unexpected-shutdown`, `eventviewer.app-crash`.
+
+### Windows Explorer (`explorer`)
+
+- **Fonte:** varredura de registros de extensões de shell (`HKCR\*\shellex`, `Directory\shellex`, `Folder\shellex`, `Drive\shellex`, etc.) resolvendo `InprocServer32`, lista de bloqueios em `Shell Extensions\Blocked`, e tamanho dos arquivos de cache de ícones e miniaturas (`IconCache.db`, `thumbcache_*.db`) em `%LocalAppData%\Microsoft\Windows\Explorer`.
+- **Métricas:** `explorer.shellex.count` (count), `explorer.cache.total_bytes` (bytes), `explorer.cache.files` (count).
+- **Observações:**
+  - `explorer.shellex` por extensão de shell registrada (`name`, `clsid`, `type`, `dllPath`, `exists`, `publisher`, `signed`, `windows`, `blocked`);
+  - `explorer.cache` com tamanho dos caches e eventuais arquivos inacessíveis/bloqueados.
+- **Custo:** ~0,1–0,3 s. **Elevação:** não.
+- **Regras:** `explorer.missing-shell-extension`, `explorer.unsigned-shell-extension`.
+
+### Serviços (`services`)
+
+- **Fonte:** leitura do registro `SYSTEM\CurrentControlSet\Services` (ImagePath, Tipo de inicialização, Dependências, Conta de logon) correlacionada com WMI `Win32_Service` (`SELECT Name, State, ProcessId FROM Win32_Service` em ~100 ms) para obter estado atual e PID sem dependência de DLLs externas, com validação de existência do executável e assinatura Authenticode/Catálogo.
+- **Métricas:** `services.total` (count), `services.running` (count), `services.automatic` (count).
+- **Observações:** `windows.service` por serviço do Windows (`name`, `displayName`, `state`, `startupType`, `account`, `executablePath`, `exists`, `publisher`, `signed`, `windows`, `pid`).
+- **Custo:** ~0,2–0,4 s. **Elevação:** não (leitura do registro de serviços e consulta básica de WMI funcionam com privilégios de usuário comum).
+- **Regras:** `services.missing-executable`, `services.failed-startup` (avalia falhas de SCM no Event Log).
+
+### Dispositivos e Drivers (`drivers`)
+
+- **Fonte:** inventário PnP via WMI `Win32_PnPEntity` e `Win32_PnPSignedDriver` cruzando DeviceID, fabricante, versão, data do driver, e códigos de erro de hardware do sistema (`ConfigManagerErrorCode`).
+- **Métricas:** `drivers.devices.total` (count), `drivers.devices.problems` (count).
+- **Observações:** `driver.device` por dispositivo com status operacional (`deviceId`, `name`, `manufacturer`, `driverVersion`, `status`, `errorCode`, `statusMessage`, `isProblem`, `isMissing`).
+- **Custo:** ~0,3–0,8 s. **Elevação:** não.
+- **Regras:** `drivers.device-error`, `drivers.missing-driver` (Código 28 / Dispositivo desconhecido).
 
 ## Métricas do dashboard (Monitoring)
 

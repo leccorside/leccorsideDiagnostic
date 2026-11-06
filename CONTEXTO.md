@@ -3,35 +3,38 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **06/11/2026 — Passo 5 concluído (v0.5.0): Event Viewer, Integridade do Windows, Processo Elevado Mínimo e Tela de Resultados Completa.**
+Última atualização: **06/11/2026 — Passo 6 concluído (v0.6.0): Windows Explorer, Benchmark de Pastas Lentas, Inventário e Diagnóstico de Serviços, e Dispositivos/Drivers PnP.**
 
 ---
 
 ## Estado atual
 
-- Solution `LeccorWindowsHealthCenter.sln` com 10 projetos em `src/` (incluindo o novo `LeccorWindowsHealthCenter.Elevated`) e 3 de teste.
+- Solution `LeccorWindowsHealthCenter.sln` com 10 projetos em `src/` (incluindo `LeccorWindowsHealthCenter.Elevated`) e 3 de teste.
 - .NET SDK 10.0.103, WPF, CommunityToolkit.Mvvm 8.4.0, Microsoft.Extensions.* 10.0.11, Microsoft.Data.Sqlite 10.0.11,
   Serilog 4.3.1 (+ Extensions.Logging 10.0.0, Sinks.File 7.0.0, Formatting.Compact 3.0.0), System.Management 10.0.11,
   System.Diagnostics.EventLog 10.0.11, Microsoft.Extensions.Hosting.Abstractions 10.0.11, xUnit 2.9.3.
 - Infraestrutura de diagnóstico completa e testada: orquestrador, RuleEngine, RiskAnalyzer, ScoringEngine,
   RepairEngine (sem ações concretas), executor de comandos seguro, SQLite com migrations, backups, logs.
-- **Scanners em produção:**
+- **Scanners em produção (12 scanners):**
   1. `hardware` (Ordem 10, Hardware)
   2. `cpu` (Ordem 20, Performance)
   3. `memory` (Ordem 30, Performance)
   4. `gpu` (Ordem 40, Hardware)
   5. `disks` (Ordem 50, Disks)
   6. `storage` (Ordem 60, Storage)
-  7. `windows.integrity` (Ordem 65, Windows) — novo no Passo 5
+  7. `windows.integrity` (Ordem 65, Windows)
   8. `startup` (Ordem 70, Startup)
-  9. `eventviewer` (Ordem 75, Events) — novo no Passo 5
-- **Regras em produção:** 21 regras no total (13 dos passos anteriores + 8 novas do Passo 5).
-  - Novas de Integridade: `windows.component-store-corrupted`, `windows.system-files-corrupted`, `windows.file-system-errors`.
-  - Novas de Event Viewer: `eventviewer.disk-io-errors`, `eventviewer.gpu-driver-crash`, `eventviewer.hardware-whea`, `eventviewer.unexpected-shutdown`, `eventviewer.app-crash`.
-- **Processo Elevado Mínimo:** `LeccorWindowsHealthCenter.Elevated.exe` com manifesto `requireAdministrator`, canal Named Pipe com ACL restritiva, token criptográfico de handshake de 256 bits, verificação de PID cliente e allowlist fechada de comandos administrativos (DISM, SFC, CHKDSK, WMI confiabilidade de SSD/NVMe e finalização segura com proteção de PID).
-- **Telas ativas:** Dashboard, Varredura (com resultado completo, card de "Problema mais importante", badges semânticos e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Inicialização, **Windows** (nova), **Eventos** (nova), **Histórico** (nova) e Configurações.
+  9. `eventviewer` (Ordem 75, Events)
+  10. `explorer` (Ordem 80, Explorer) — novo no Passo 6
+  11. `services` (Ordem 85, Services) — novo no Passo 6
+  12. `drivers` (Ordem 90, Drivers) — novo no Passo 6
+- **Regras em produção:** 27 regras no total (21 anteriores + 6 novas do Passo 6).
+  - Novas de Explorer: `explorer.missing-shell-extension`, `explorer.unsigned-shell-extension`.
+  - Novas de Serviços: `services.missing-executable`, `services.failed-startup`.
+  - Novas de Drivers: `drivers.device-error`, `drivers.missing-driver`.
+- **Telas ativas:** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Inicialização, Windows, Eventos, Histórico, **Explorer** (nova: extensões, benchmark de pastas e caches), **Serviços** (nova: catálogo mestre-detalhe, status e dependências), **Drivers** (nova: dispositivos PnP, códigos de erro e fabricantes) e Configurações.
 - Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros.
-- Testes: **397 testes aprovados (100% de sucesso)** — 332 unitários, 38 integração, 27 sistema.
+- Testes: **424 testes aprovados (100% de sucesso)** — 355 unitários, 42 integração, 27 sistema.
 
 ## Histórico de implementações
 
@@ -516,14 +519,53 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - 38 novos testes unitários e de integração adicionados.
   - Total: **397 testes automatizados aprovados (100% de sucesso)** — 332 unitários, 38 integração, 27 sistema.
 
+### Passo 6 — Explorer, Pastas Lentas, Serviços e Drivers (06/11/2026)
+
+- **Windows Explorer (Seção 16 do PROMPT):**
+  - `ExplorerProvider` (`IExplorerProvider`): enumera extensões de Shell registradas em `HKCR\*\shellex`, `Directory\shellex`, `Folder\shellex`, `Drive\shellex`, `AllFileSystemObjects\shellex`, `Directory\Background\shellex`, `DesktopBackground\shellex` e `Directory\ContextMenus`.
+  - Resolução de CLSID em `InprocServer32` em `HKCR\CLSID` e `HKCR\WOW6432Node\CLSID`.
+  - Verificação de lista de bloqueio do sistema (`Shell Extensions\Blocked`).
+  - Resolução de fabricante e validação de assinatura digital via `IFileIdentityProvider` (Authenticode + Catálogo).
+  - Medição do tamanho de arquivos de cache de ícones e miniaturas (`IconCache.db`, `thumbcache_*.db`) em `%LocalAppData%\Microsoft\Windows\Explorer`.
+- **Detector de Pastas Lentas (Seção 17 do PROMPT):**
+  - `FolderBenchmarkService` (`IFolderBenchmarkService`): cronometra tempo de enumeração de arquivos e diretórios na raiz e leitura de atributos/metadados (`GetFileAttributesEx`/`FileInfo`).
+  - Detecção determinística de gargalos: > 3.000 arquivos na raiz, caminhos de rede (UNC ou unidades de rede mapeadas SMB), pastas sincronizadas em nuvem (OneDrive, Dropbox, Google Drive, iCloud) e lentidão de metadados.
+- **Inventário e Diagnóstico de Serviços (Seção 20 do PROMPT):**
+  - `WindowsServicesProvider` (`IServicesProvider`): lê o registro `SYSTEM\CurrentControlSet\Services` de forma atômica para obter ImagePath, StartupType, Dependências e Conta de Logon.
+  - Consulta rápida de estado atual e PID via WMI `Win32_Service` (`SELECT Name, State, ProcessId FROM Win32_Service` em ~100 ms).
+  - Normalização e extração de executável (`ExtractExecutablePath`), validação de existência do arquivo e identidade do binário.
+  - Regra estrita: nunca recomendar desativação cega baseada em listas genéricas de "otimização da internet".
+- **Inventário e Diagnóstico de Dispositivos e Drivers (Seção 25 do PROMPT):**
+  - `PnpDeviceDriverProvider` (`IDriversProvider`): consulta WMI `Win32_PnPEntity` correlacionada com `Win32_PnPSignedDriver` para DeviceID, fabricante, versão, data do driver e códigos de erro de hardware do Windows (`ConfigManagerErrorCode`).
+  - Tradução amigável em pt-BR de todos os códigos de erro do Gerenciador de Dispositivos (10, 14, 18, 22, 28, 31, 43, etc.).
+  - Regra estrita: nunca baixar drivers de fontes não oficiais; orientar uso do Windows Update ou site oficial do fabricante.
+- **Scanners e Regras de Diagnóstico:**
+  - `ExplorerScanner` (Id: `explorer`, Ordem: 80, Módulo: `Explorer`).
+  - `ServicesScanner` (Id: `services`, Ordem: 85, Módulo: `Services`).
+  - `DriversScanner` (Id: `drivers`, Ordem: 90, Módulo: `Drivers`).
+  - 6 novas regras implementadas:
+    - `explorer.missing-shell-extension`: extensão ativa apontando para DLL inexistente (Severidade Baixo).
+    - `explorer.unsigned-shell-extension`: extensão de terceiros sem assinatura digital válida (Severidade Info).
+    - `services.missing-executable`: serviço configurado como Automático cujo executável não existe no disco (Severidade Médio).
+    - `services.failed-startup`: falhas de inicialização ou crash de serviços reportados pelo SCM (Severidade Alto).
+    - `drivers.device-error`: dispositivo PnP com código de erro de hardware/driver no Windows (Severidade Alto).
+    - `drivers.missing-driver`: dispositivo sem driver instalado / Código 28 (Severidade Médio).
+- **Telas e ViewModels:**
+  - `ExplorerView` e `ExplorerViewModel`: 3 abas ("Extensões do Explorer", "Detector de Pastas Lentas" com seletor de pastas e benchmark interativo, e "Caches do Explorer" com status de ícones e miniaturas).
+  - `ServicesView` e `ServicesViewModel`: catálogo mestre-detalhe, estatísticas de total/em execução/automáticos, filtros por estado (Todos, Em Execução, Parados, Automáticos, Falhando/Órfãos, Terceiros), pesquisa em tempo real, painel lateral com detalhes completos, executável, conta e dependências.
+  - `DriversView` e `DriversViewModel`: catálogo de dispositivos PnP, estatísticas de total/com problemas, filtros (Todos, Com Problemas, Fabricante, Categoria), painel lateral com código de erro, fabricante, versão e data do driver.
+  - `FindingItemViewModel`: botões "Investigar" direcionam contextual para `Explorer`, `Services` ou `Drivers`.
+- **Testes novos:**
+  - 27 novos testes unitários e de integração adicionados.
+  - Total: **424 testes automatizados aprovados (100% de sucesso)** — 355 unitários, 42 integração, 27 sistema.
+
 ## Pendências / próximos passos
 
 Na ordem combinada no `PASSOS.md`:
 
-1. **Passo 6 (MVP 2 (a))** — Windows Explorer, Shell extensions, handlers, caches, detector de pastas lentas, Serviços e Drivers com erro.
-2. **Passo 7 (MVP 2 (b))** — Aplicativos, Rede, Windows Update e Limpeza segura por categorias (Seguro, Revisar, Avançado - somente visualização).
-3. **Passo 8 (MVP 3)** — Ações reais de correção (`IRepairAction`), Backup com rollback, Ponto de restauração do sistema e análise antes/depois.
-4. **Passos 9–10** — MVP 4 e 5 (ver `PASSOS.md`).
+1. **Passo 7 (MVP 2 (b))** — Aplicativos, Rede, Windows Update e Limpeza segura por categorias (Seguro, Revisar, Avançado - somente visualização).
+2. **Passo 8 (MVP 3)** — Ações reais de correção (`IRepairAction`), Backup com rollback, Ponto de restauração do sistema e análise antes/depois.
+3. **Passos 9–10** — MVP 4 e 5 (ver `PASSOS.md`).
 
 Itens do Passo 4 para depois: desativar entrada de inicialização com backup e desfazer (Correções, Passo 8); a lista de
 processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode

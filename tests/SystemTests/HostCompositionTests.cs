@@ -66,9 +66,13 @@ public sealed class HostCompositionTests : IDisposable
         Assert.NotNull(services.GetRequiredService<IHardwareInventoryProvider>());
         Assert.NotNull(services.GetRequiredService<IStorageInventoryProvider>());
         Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Storage.ISpaceAnalyzer>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Explorer.IExplorerProvider>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Explorer.IFolderBenchmarkService>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Services.IServicesProvider>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Drivers.IDriversProvider>());
         Assert.NotEmpty(services.GetServices<IReportExporter>());
-        Assert.Equal(["hardware", "cpu", "memory", "gpu", "disks", "storage", "windows.integrity", "startup", "eventviewer"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
-        Assert.Equal(21, services.GetServices<IRule>().Count());
+        Assert.Equal(["hardware", "cpu", "memory", "gpu", "disks", "storage", "windows.integrity", "startup", "eventviewer", "explorer", "services", "drivers"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
+        Assert.Equal(27, services.GetServices<IRule>().Count());
     }
 
     [Fact]

@@ -98,6 +98,15 @@
             <DataTemplate DataType="{x:Type vm:StartupViewModel}">
                 <views:StartupView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ExplorerViewModel}">
+                <views:ExplorerView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ServicesViewModel}">
+                <views:ServicesView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:DriversViewModel}">
+                <views:DriversView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:WindowsViewModel}">
                 <views:WindowsView />
             </DataTemplate>

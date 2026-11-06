@@ -151,6 +151,19 @@ Análise e correlação temporal dos canais de log nas últimas 24h (seção 21 
 | `eventviewer.unexpected-shutdown` | eventviewer | O sistema desligou ou reiniciou sem aviso prévio (Kernel-Power 41 ou EventLog 6008) | Alto | 90% |
 | `eventviewer.app-crash` | eventviewer | Falhas repetidas de um mesmo aplicativo (Application Error 1000) ≥ `CrashThreshold` (3 falhas) em 24h | Médio | 80% |
 
+### Explorer, Serviços e Drivers (Passo 6)
+
+Diagnósticos de extensões do shell, integridade de serviços do Windows e hardware PnP:
+
+| Regra | Scanner | Dispara quando | Severidade | Confiança |
+| --- | --- | --- | --- | --- |
+| `explorer.missing-shell-extension` | explorer | Extensão de Shell ativa cujo binário DLL não existe no disco | Baixo | 95% (extensão órfã) |
+| `explorer.unsigned-shell-extension` | explorer | Extensão de Shell de terceiros ativa e sem assinatura digital válida | Informação | 90% (recomendação preventiva) |
+| `services.missing-executable` | services | Serviço com inicialização Automática cujo executável foi removido do disco | Médio | 95% (falha a cada boot) |
+| `services.failed-startup` | eventviewer | Service Control Manager reporta falhas ao iniciar ou encerramento inesperado (Event IDs 7000, 7009, 7024, 7031, 7034) | Alto | 90% |
+| `drivers.device-error` | drivers | Dispositivo PnP reporta código de erro no Gerenciador de Dispositivos (`ConfigManagerErrorCode != 0`, exceto 28) | Alto | 95% |
+| `drivers.missing-driver` | drivers | Dispositivo PnP sem driver instalado (Código 28 / Dispositivo Desconhecido) | Médio | 95% |
+
 A justificativa técnica de cada parâmetro está no próprio código (`RuleParameter.Justification`) e é verificada por
 teste (`Every_performance_rule_declares_justified_parameters`). Cada regra tem testes com uma série que **não** deve
 disparar e outra que deve (`PerformanceRulesTests`).

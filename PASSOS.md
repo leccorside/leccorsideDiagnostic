@@ -84,7 +84,29 @@ processos de administrador (processo elevado, Passo 5); break-ui das duas telas 
   - `HistoryView` e `HistoryViewModel`: carregamento e navegação pelos laudos anteriores salvos no SQLite
 - [x] Testes: 332 unitários, 38 integração (fontes reais de eventos, armazenamento e processos), 27 sistema (varredura completa e ViewModels) — total de **397 testes automatizados aprovados (100%)**
 
-## Passo 6 — MVP 2 (a): Explorer, Pastas lentas, Serviços e Drivers ⬜
+## Passo 6 — MVP 2 (a): Explorer, Pastas lentas, Serviços e Drivers ✅
+
+- [x] Windows Explorer (seção 16 do PROMPT):
+  - Varredura de extensões de Shell registradas (`HKCR\*\shellex`, `Directory\shellex`, `Folder\shellex`, etc.), resolvendo CLSID em `InprocServer32`, lista de bloqueios (`Shell Extensions\Blocked`), DLL física, fabricante e assinatura Authenticode/Catálogo
+  - Monitoramento e medição do cache de ícones e miniaturas (`IconCache.db`, `thumbcache_*.db`) em `%LocalAppData%\Microsoft\Windows\Explorer`
+- [x] Detector de Pastas Lentas (seção 17 do PROMPT):
+  - Ferramenta interativa de benchmark com medição precisa de tempo de enumeração e leitura de metadados (`GetFileAttributesEx`/`FileInfo`)
+  - Detecção determinística de gargalos: > 3.000 arquivos na raiz, caminhos de rede (UNC/SMB), provedores em nuvem (OneDrive/Dropbox) e lentidão de metadados
+- [x] Inventário e Diagnóstico de Serviços (seção 20 do PROMPT):
+  - Extração via registro `SYSTEM\CurrentControlSet\Services` correlacionada com WMI `Win32_Service` para PID e estado de execução (~100 ms)
+  - Identificação de serviços com inicialização automática cujo executável foi removido (órfãos) e falhas registradas pelo Service Control Manager (Event IDs 7000, 7009, 7024, 7031, 7034)
+- [x] Dispositivos e Drivers (seção 25 do PROMPT):
+  - Inventário PnP via `Win32_PnPEntity` e `Win32_PnPSignedDriver` com código de erro de hardware (`ConfigManagerErrorCode`) traduzido para mensagens amigáveis em pt-BR
+  - Identificação de dispositivos com falha (Código 10, 43, etc.) e dispositivos sem driver / Código 28 (Dispositivo Desconhecido)
+- [x] Regras de Diagnóstico Novas (6 regras, totalizando 27 regras na solução):
+  - `explorer.missing-shell-extension` e `explorer.unsigned-shell-extension`
+  - `services.missing-executable` e `services.failed-startup`
+  - `drivers.device-error` e `drivers.missing-driver`
+- [x] Telas e ViewModels integrados à navegação principal:
+  - `ExplorerView` e `ExplorerViewModel`: abas de Extensões de Shell, Benchmark de Pastas Lentas e Caches do Explorer
+  - `ServicesView` e `ServicesViewModel`: catálogo mestre-detalhe de serviços com busca, filtros por status e dependências
+  - `DriversView` e `DriversViewModel`: catálogo de dispositivos com filtro de problemas e detalhes técnicos do driver
+- [x] Testes: 355 unitários, 42 integração (fontes reais do Windows), 27 sistema (varredura completa com 12 scanners) — total de **424 testes automatizados aprovados (100%)**
 
 ## Passo 7 — MVP 2 (b): Aplicativos, Rede, Windows Update e Limpeza segura (visualização) ⬜
 
