@@ -55,11 +55,14 @@ public static class DependencyInjection
         services.AddSingleton<Application.DevTools.IDevToolsProvider, DevTools.DevToolsProvider>();
         services.AddSingleton<Application.Security.ISecurityProvider, Security.SecurityProvider>();
         services.AddSingleton<Application.Crash.ICrashAnalyzerProvider, Crash.CrashAnalyzerProvider>();
+        services.AddSingleton<Application.Scheduling.IScanSchedulerService, Scheduling.WindowsTaskSchedulerService>();
+        services.AddSingleton<Application.Notifications.INotificationService, Notifications.WindowsNotificationService>();
 
         services.AddSingleton(new SqliteDatabase(paths.Database));
         services.AddSingleton<MigrationRunner>();
         services.AddSingleton<IScanRepository, SqliteScanRepository>();
         services.AddSingleton<IRepairHistoryRepository, SqliteRepairHistoryRepository>();
+        services.AddSingleton<Application.Settings.IConfigurationRepository, Persistence.SqliteConfigurationRepository>();
         services.AddSingleton<IBackupStore>(sp => new FileBackupStore(paths.Backups, sp.GetRequiredService<ILogger<FileBackupStore>>()));
         return services;
     }

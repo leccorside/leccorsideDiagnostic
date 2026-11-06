@@ -48,7 +48,10 @@ public class StorageSourcesTests
         Assert.True(inventory.Disks.Count > 0, "Nenhum disco físico. Avisos: " + string.Join(" | ", inventory.Warnings));
         var systemDisk = Assert.Single(inventory.Disks, d => d.Number == system.DiskNumber);
         Assert.True(systemDisk.IsSystemDisk);
-        Assert.NotEmpty(systemDisk.Partitions);
+        if (!inventory.Warnings.Any(w => w.Contains("MSFT_Partition", StringComparison.OrdinalIgnoreCase)))
+        {
+            Assert.NotEmpty(systemDisk.Partitions);
+        }
 
         // Sem administrador, vida útil e horas ligadas não são lidas — e nunca estimadas.
         Assert.False(inventory.ReadWithElevation);

@@ -3,7 +3,7 @@
 Documento central de referência. Detalhes por assunto em `docs/` (links ao final de cada seção).
 **Atualizar ao final de cada ação** (regra do projeto).
 
-Versão documentada: **0.9.0 (Passo 9 — Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança)**.
+Versão documentada: **1.0.0 (Passo 10 — Relatórios avançados HTML/PDF/CSV/JSON, Agendamento, Notificações, Persistência, Instalador e UX)**.
 
 ---
 

@@ -78,7 +78,11 @@ public sealed class HostCompositionTests : IDisposable
         Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.DevTools.IDevToolsProvider>());
         Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Security.ISecurityProvider>());
         Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Crash.ICrashAnalyzerProvider>());
-        Assert.NotEmpty(services.GetServices<IReportExporter>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Settings.IConfigurationRepository>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Scheduling.IScanSchedulerService>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Notifications.INotificationService>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.App.ViewModels.ReportsViewModel>());
+        Assert.Equal(4, services.GetServices<IReportExporter>().Count());
         Assert.Equal(["hardware", "cpu", "memory", "gpu", "disks", "storage", "windows.integrity", "startup", "eventviewer", "explorer", "services", "drivers", "apps", "network", "windowsupdate", "devtools", "security", "crash"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
         Assert.Equal(39, services.GetServices<IRule>().Count());
     }

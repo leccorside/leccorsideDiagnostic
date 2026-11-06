@@ -1,7 +1,12 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
 using LeccorWindowsHealthCenter.App.Services;
+using LeccorWindowsHealthCenter.Application.Notifications;
+using LeccorWindowsHealthCenter.Application.Persistence;
+using LeccorWindowsHealthCenter.Application.Scanning;
 using LeccorWindowsHealthCenter.Application.Settings;
+using LeccorWindowsHealthCenter.Domain;
 using LeccorWindowsHealthCenter.Infrastructure.Persistence;
 using LeccorWindowsHealthCenter.Shared;
 using Microsoft.Extensions.DependencyInjection;
@@ -66,8 +71,64 @@ public partial class App : System.Windows.Application
 
         _startup.Mark("Banco de dados preparado");
 
-        var options = _host.Services.GetRequiredService<IOptions<HealthCenterOptions>>().Value;
-        _host.Services.GetRequiredService<ThemeService>().Apply(options.Theme);
+        // Execução em segundo plano para agendamento (seção 60)
+        if (e.Args.Any(a => string.Equals(a, "--scheduled-scan", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(a, "--background-scan", StringComparison.OrdinalIgnoreCase)))
+        {
+            _logger?.LogInformation("Executando varredura agendada em segundo plano via argumento CLI...");
+            try
+            {
+                var orchestrator = _host.Services.GetRequiredService<IScanOrchestrator>();
+                var scanRepo = _host.Services.GetRequiredService<IScanRepository>();
+                var notifier = _host.Services.GetRequiredService<INotificationService>();
+
+                var report = await orchestrator.RunAsync(ScanPlan.Quick, null, CancellationToken.None);
+                await scanRepo.SaveAsync(report, CancellationToken.None);
+
+                var problems = report.ConfirmedProblemCount;
+                if (problems > 0)
+                {
+                    await notifier.ShowNotificationAsync(
+                        "Leccor Windows Health Center",
+                        $"Varredura agendada concluída: {problems} problema(s) detectado(s). Score: {report.Score.Overall?.ToString(CultureInfo.CurrentCulture) ?? "—"}/100");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Falha na execução da varredura agendada");
+            }
+
+            Shutdown(0);
+            return;
+        }
+
+        // Aplicação de preferências persistidas no SQLite (seção 66)
+        try
+        {
+            var configRepo = _host.Services.GetRequiredService<IConfigurationRepository>();
+            var savedTheme = await configRepo.GetValueAsync("ui.theme");
+            if (!string.IsNullOrEmpty(savedTheme) && Enum.TryParse<AppTheme>(savedTheme, true, out var theme))
+            {
+                _host.Services.GetRequiredService<ThemeService>().Apply(theme);
+            }
+            else
+            {
+                var options = _host.Services.GetRequiredService<IOptions<HealthCenterOptions>>().Value;
+                _host.Services.GetRequiredService<ThemeService>().Apply(options.Theme);
+            }
+
+            var savedAdvMode = await configRepo.GetValueAsync("ui.advanced-mode");
+            if (!string.IsNullOrEmpty(savedAdvMode) && bool.TryParse(savedAdvMode, out var adv))
+            {
+                _host.Services.GetRequiredService<UiPreferences>().AdvancedMode = adv;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Falha ao carregar preferências persistidas");
+            var options = _host.Services.GetRequiredService<IOptions<HealthCenterOptions>>().Value;
+            _host.Services.GetRequiredService<ThemeService>().Apply(options.Theme);
+        }
 
         var window = _host.Services.GetRequiredService<MainWindow>();
         _startup.Mark("Janela principal criada");

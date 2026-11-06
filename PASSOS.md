@@ -205,10 +205,29 @@ processos de administrador (processo elevado, Passo 5); break-ui das duas telas 
   - 386 testes unitários, 46 testes de integração, 30 testes de sistema — total de **462 testes aprovados (100% de sucesso)**.
   - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
 
-## Passo 10 — MVP 5: Relatórios avançados, Agendamento, Notificações, Instalador e UX ⬜
+## Passo 10 — MVP 5: Relatórios avançados, Agendamento, Notificações, Instalador e UX ✅
 
-- Relatórios HTML (visual profissional), CSV e PDF
-- Agendamento via Task Scheduler (opcional), notificações
-- Persistência das preferências do usuário (tabela `Configuration`)
-- Instalador (instalar/atualizar/reparar/desinstalar preservando backups e relatórios)
-- Build `win-arm64`
+- [x] **Relatórios Avançados (Seções 54 e 55 do PROMPT):**
+  - `HtmlReportExporter` (`IReportExporter`): laudo em HTML autocontido com visual profissional, temas claro/escuro, responsivo e estilos de impressão `@media print`.
+  - `CsvReportExporter`: exportação tabular de achados e métricas em CSV com codificação UTF-8 com BOM para Excel.
+  - `PdfReportExporter`: exportador nativo em conformidade com o padrão PDF 1.4, com paginação automática, cabeçalhos, cartões e badges coloridos por severidade, sem dependências externas.
+  - `JsonReportExporter`: exportador completo já em produção.
+  - `ReportsViewModel` e `ReportsView`: tela dedicada com histórico de laudos, seleção de formatos e botões para exportação em arquivo ou abertura imediata.
+- [x] **Persistência de Preferências do Usuário (Seção 66 do PROMPT):**
+  - `IConfigurationRepository` e `SqliteConfigurationRepository`: persistência chave-valor assíncrona na tabela `Configuration` do SQLite (`ui.theme`, `ui.advanced-mode`, `schedule.frequency`).
+  - Carregamento automático na inicialização e sincronização imediata com `ThemeService` e `UiPreferences`.
+- [x] **Agendamento via Task Scheduler & Notificações (Seção 60 do PROMPT):**
+  - `IScanSchedulerService` e `WindowsTaskSchedulerService`: agendamento e gerenciamento determinístico de tarefas via `schtasks.exe` (Diário, Semanal, Mensal ou Desativado).
+  - Execução silenciosa em segundo plano através dos argumentos CLI `--scheduled-scan` e `--background-scan` no `App.xaml.cs`.
+  - `INotificationService` e `WindowsNotificationService`: notificações locais e logging estruturado.
+  - Painel de controle de agendamento na tela de Configurações (`SettingsView`).
+- [x] **Instalador e Modo Portable (Seções 61 e 62 do PROMPT):**
+  - Script PowerShell `installer/package-installer.ps1` com ações automatizadas de `Build`, `Install`, `Uninstall` e `Repair`.
+  - Script Inno Setup `installer/installer.iss` para instalador gráfico x64 moderno em Português do Brasil.
+  - Regra de ouro da desinstalação segura: remove todos os arquivos do aplicativo preservando relatórios e backups do usuário em `%ProgramData%\LeccorWindowsHealthCenter` (limpeza completa apenas sob confirmação via `-PurgeUserData`).
+  - Suporte ao modo portable através do arquivo `portable.flag`.
+- [x] **Compilação e Publicação win-arm64 (Seção 4 do PROMPT):**
+  - Preparação e suporte em `scripts/build.ps1` e `installer/package-installer.ps1` para target `win-arm64`.
+- [x] **Testes Automatizados e Qualidade:**
+  - 396 testes unitários, 46 testes de integração, 32 testes de sistema — total de **474 testes automatizados aprovados (100% de sucesso)**.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).

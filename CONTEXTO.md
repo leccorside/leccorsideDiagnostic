@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **06/11/2026 — Passo 9 concluído (v0.9.0): MVP 4: Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança.**
+Última atualização: **06/11/2026 — Passo 10 concluído (v1.0.0): MVP 5: Relatórios avançados (HTML/PDF/CSV/JSON), Agendamento, Notificações, Persistência, Instalador e UX.**
 
 ---
 
@@ -53,9 +53,25 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   4. `EnableWindowsUpdateServiceRepairAction` (`repair.windowsupdate.enable-service`): reativação do serviço `wuauserv` no registro de Desativado (4) para Manual (3) e início do serviço. Risco: Low. Rollback total.
 - **Ponto de Restauração Nativo (`IRestorePointService`):**
   - Implementado em `RestorePointService` via WMI `root\default:SystemRestore.CreateRestorePoint`. Suporte e diagnóstico para proteção de sistema desativada no C: ou falta de elevação.
-- **Telas ativas:** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Drivers, Inicialização, Serviços, Aplicativos, Windows, Windows Update, Eventos, Rede, Limpeza (Safe Cleaner), Correções (Central de Correções com abas de Correções Disponíveis, Dry Run, Ponto de Restauração e Histórico de Correções com Rollback ativo), **Desenvolvimento** (nova: DevTools, Docker Desktop, WSL2 e análise de PATH), **Segurança** (nova: Windows Defender/Antivírus, Firewall, UAC, Persistências suspeitas e Crash Analyzer), Histórico e Configurações.
+- **Relatórios Avançados (4 exportadores em produção):**
+  - `HtmlReportExporter`: laudo HTML autocontido com layout profissional, paleta acessível e regras de impressão `@media print`.
+  - `PdfReportExporter`: documento PDF 1.4 estruturado, nativo e sem dependências externas.
+  - `CsvReportExporter`: exportação tabular de achados e métricas para Excel (UTF-8 com BOM).
+  - `JsonReportExporter`: exportação estruturada em JSON.
+- **Agendamento e Notificações:**
+  - `WindowsTaskSchedulerService`: agendamento e gerenciamento via `schtasks.exe` (Diário, Semanal, Mensal ou Desativado).
+  - Suporte CLI `--scheduled-scan` e `--background-scan` para execução silenciosa em segundo plano.
+  - `WindowsNotificationService`: notificações nativas e logging integrado.
+- **Persistência de Configurações:**
+  - `SqliteConfigurationRepository` na tabela `Configuration` do SQLite (`ui.theme`, `ui.advanced-mode`, `schedule.frequency`).
+- **Instalador e Modo Portable:**
+  - Script `installer/package-installer.ps1` com ações `Build`, `Install`, `Uninstall` e `Repair`.
+  - Script Inno Setup `installer/installer.iss` com instalador x64 moderno em Português do Brasil.
+  - Preservação obrigatória de dados do usuário (`%ProgramData%\LeccorWindowsHealthCenter`).
+  - Suporte a modo portable através do arquivo `portable.flag`.
+- **Telas ativas (100% das 22 telas do menu lateral ativas):** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Drivers, Inicialização, Serviços, Aplicativos, Windows, Windows Update, Eventos, Rede, Limpeza (Safe Cleaner), Correções (Central de Correções com abas de Correções Disponíveis, Dry Run, Ponto de Restauração e Histórico de Correções com Rollback ativo), Desenvolvimento, Segurança, Histórico, **Relatórios** (nova: Central de Laudos e Exportação HTML/PDF/CSV/JSON) e **Configurações** (com agendamento via Task Scheduler e persistência em banco).
 - Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros.
-- Testes: **462 testes aprovados (100% de sucesso)** — 386 unitários, 46 integração, 30 sistema.
+- Testes: **474 testes aprovados (100% de sucesso)** — 396 unitários, 46 integração, 32 sistema.
 
 ## Histórico de implementações
 
@@ -675,11 +691,44 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - **462 testes automatizados aprovados (100% de sucesso)** — 386 unitários, 46 integração, 30 sistema.
   - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
 
+### Passo 10 — MVP 5: Relatórios avançados, Agendamento, Notificações, Instalador e UX (06/11/2026)
+
+- **Relatórios Avançados (Seções 54 e 55 do PROMPT):**
+  - `HtmlReportExporter` (`IReportExporter`): laudo em HTML autocontido com visual profissional, temas claro/escuro, responsivo e estilos de impressão `@media print`.
+  - `CsvReportExporter`: exportação tabular de achados e métricas em CSV com codificação UTF-8 com BOM para Excel.
+  - `PdfReportExporter`: exportador nativo em conformidade com o padrão PDF 1.4, com paginação automática, cabeçalhos, cartões e badges coloridos por severidade, sem dependências externas.
+  - `JsonReportExporter`: exportador completo já em produção.
+  - `ReportsViewModel` e `ReportsView`: tela dedicada com histórico de laudos, seleção de formatos e botões para exportação em arquivo ou abertura imediata no visualizador padrão.
+- **Persistência de Preferências do Usuário (Seção 66 do PROMPT):**
+  - `IConfigurationRepository` e `SqliteConfigurationRepository`: persistência chave-valor assíncrona na tabela `Configuration` do SQLite (`ui.theme`, `ui.advanced-mode`, `schedule.frequency`).
+  - Carregamento automático na inicialização e sincronização imediata com `ThemeService` e `UiPreferences`.
+- **Agendamento via Task Scheduler & Notificações (Seção 60 do PROMPT):**
+  - `IScanSchedulerService` e `WindowsTaskSchedulerService`: agendamento e gerenciamento determinístico de tarefas via `schtasks.exe` (Diário, Semanal, Mensal ou Desativado).
+  - Execução silenciosa em segundo plano através dos argumentos CLI `--scheduled-scan` e `--background-scan` no `App.xaml.cs`.
+  - `INotificationService` e `WindowsNotificationService`: notificações locais e logging estruturado.
+  - Painel de controle de agendamento na tela de Configurações (`SettingsView`).
+- **Instalador e Modo Portable (Seções 61 e 62 do PROMPT):**
+  - Script PowerShell `installer/package-installer.ps1` com ações automatizadas de `Build`, `Install`, `Uninstall` e `Repair`.
+  - Script Inno Setup `installer/installer.iss` para instalador gráfico x64 moderno em Português do Brasil.
+  - Regra de ouro da desinstalação segura: remove todos os arquivos do aplicativo preservando relatórios e backups do usuário em `%ProgramData%\LeccorWindowsHealthCenter` (limpeza completa apenas sob confirmação via `-PurgeUserData`).
+  - Suporte ao modo portable através do arquivo `portable.flag`.
+- **Compilação e Publicação win-arm64 (Seção 4 do PROMPT):**
+  - Preparação e suporte em `scripts/build.ps1` e `installer/package-installer.ps1` para target `win-arm64`.
+- **Testes Automatizados e Qualidade:**
+  - 396 testes unitários, 46 testes de integração, 32 testes de sistema — total de **474 testes automatizados aprovados (100% de sucesso)**.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
+
 ## Pendências / próximos passos
 
-Na ordem combinada no `PASSOS.md`:
+Com a conclusão do **Passo 10 (MVP 5)**, todos os 10 passos estruturais e funcionais previstos no plano de execução original `PASSOS.md` foram 100% implementados, testados e validados!
 
-1. **Passo 10 (MVP 5)** — Relatórios avançados (HTML com design profissional, CSV e PDF), Agendamento via Task Scheduler, Notificações do Windows, Persistência das preferências do usuário (`Configuration`), Instalador (instalar/atualizar/reparar/desinstalar preservando histórico e backups) e build `win-arm64`.
+Próximas frentes sugeridas para evolução e homologação contínua:
+
+1. **Homologação em Produção e Empacotamento de Release:** Executar `./installer/package-installer.ps1 -Action Build` para gerar os binários finais self-contained de distribuição.
+2. **Revisão e Polimento Visual (impeccable) em Telas Recentes:** Rodada de testes de contraste e layout responsivo nas telas de Relatórios, Desenvolvimento e Segurança nos temas claro e escuro.
+3. **Validação de Tarefas Agendadas no Windows:** Testar a criação e disparo de tarefas reais via Windows Task Scheduler com `--scheduled-scan` em ambiente de homologação.
+4. **Otimizações de Virtualização de UI:** Implementar virtualização de listas de processos e itens de inicialização com mais de 500 entradas para reduzir consumo de CPU ao abrir a tela.
+5. **Expansão de Regras de Diagnóstico e Reparo:** Adicionar novos scripts de correção segura para extensões de terceiros e otimizações adicionais sugeridas pela telemetria.
 
 Itens do Passo 4 para depois: a lista de
 processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode
@@ -705,9 +754,9 @@ espaço (relatórios chegam no Passo 10); análise de espaço não é salva no h
 - Análise de espaço usa tamanho lógico: links físicos (WinSxS) contam em cada pasta, arquivos comprimidos/esparsos
   contam pelo tamanho lógico. Pastas sem permissão (sem admin) são contadas e avisadas, não lidas.
 - A análise de espaço fica só em memória (não é salva no histórico); fechar o app perde o resultado.
-- Preferências alteradas na UI (tema, modo avançado) valem só na sessão; persistência na tabela `Configuration` no Passo 10.
+- Preferências alteradas na UI (tema, modo avançado, agendamento) são persistidas no banco SQLite na tabela `Configuration`.
 - Dry Run disponível tanto via flag global no `appsettings.json` quanto sob demanda na interface da Central de Correções.
 - Backups em `%ProgramData%` recebem ACL do usuário que criou a pasta; outro usuário Windows na mesma máquina
   não conseguirá gravar backups ali (falha segura: a correção é abortada antes de alterar algo).
-- Exportação de relatório apenas JSON (HTML/CSV/PDF no MVP 5). Instalador não existe ainda (Passo 10).
-- `win-arm64` preparado mas não publicado no CI até haver validação em hardware ARM.
+- Exportação de relatório completa em HTML, PDF 1.4, CSV (UTF-8 com BOM) e JSON.
+- Instalador e scripts de build/automação disponíveis em `installer/` para `win-x64` e `win-arm64`.

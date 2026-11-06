@@ -52,6 +52,7 @@ public sealed partial class MainViewModel : ObservableObject
         SecurityViewModel security,
         DevToolsViewModel devTools,
         HistoryViewModel history,
+        ReportsViewModel reports,
         SettingsViewModel settings)
     {
         _scan = scan;
@@ -78,7 +79,7 @@ public sealed partial class MainViewModel : ObservableObject
             new("Limpeza", "", safeClean),
             new("Correções", "", repairs),
             new("Histórico", "", history),
-            Planned("Relatórios", "", "Exportação em HTML, JSON, CSV e PDF.", "MVP 5"),
+            new("Relatórios", "", reports),
             new("Configurações", "", settings, IsFooter: true),
         ];
 

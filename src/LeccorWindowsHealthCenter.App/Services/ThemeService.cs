@@ -25,17 +25,20 @@ public sealed class ThemeService
             _ => SystemUsesDarkTheme(),
         };
 
-        var dictionaries = System.Windows.Application.Current.Resources.MergedDictionaries;
-        var uri = new Uri(IsDark ? "Themes/Dark.xaml" : "Themes/Light.xaml", UriKind.Relative);
-        var existing = dictionaries.FirstOrDefault(d => d.Source?.OriginalString is "Themes/Dark.xaml" or "Themes/Light.xaml");
-        var replacement = new ResourceDictionary { Source = uri };
-        if (existing is null)
+        if (System.Windows.Application.Current is not null)
         {
-            dictionaries.Insert(0, replacement);
-        }
-        else
-        {
-            dictionaries[dictionaries.IndexOf(existing)] = replacement;
+            var dictionaries = System.Windows.Application.Current.Resources.MergedDictionaries;
+            var uri = new Uri(IsDark ? "Themes/Dark.xaml" : "Themes/Light.xaml", UriKind.Relative);
+            var existing = dictionaries.FirstOrDefault(d => d.Source?.OriginalString is "Themes/Dark.xaml" or "Themes/Light.xaml");
+            var replacement = new ResourceDictionary { Source = uri };
+            if (existing is null)
+            {
+                dictionaries.Insert(0, replacement);
+            }
+            else
+            {
+                dictionaries[dictionaries.IndexOf(existing)] = replacement;
+            }
         }
 
         ThemeChanged?.Invoke(this, EventArgs.Empty);

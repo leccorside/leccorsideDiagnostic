@@ -132,6 +132,9 @@
             <DataTemplate DataType="{x:Type vm:RepairsViewModel}">
                 <views:RepairsView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ReportsViewModel}">
+                <views:ReportsView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:DevToolsViewModel}">
                 <views:DevToolsView />
             </DataTemplate>
