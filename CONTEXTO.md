@@ -835,6 +835,7 @@ Próximos passos recomendados:
 
 ### 2. O Que Falta Ser Implementado ou Corrigido
 - **Débitos Técnicos no Código:** **Zero.** Não há nenhum TODO, FIXME ou `NotImplementedException` pendente no código-fonte. Todas as 22 telas do menu lateral possuem ViewModels e Views reais ativas.
+- **Correção de Inicialização WPF em `App.xaml.cs` (Resolvido ✅):** Identificado e corrigido comportamento de `ShutdownMode.OnMainWindowClose` no WPF: como `OnStartup` é assíncrono (`async void`) e executa migrações assíncronas do banco antes de criar a janela, o dispatcher encerrava a aplicação no primeiro await por interpretar ausência de janelas abertas. Foi definido `ShutdownMode.OnExplicitShutdown` durante a fase assíncrona de inicialização e restaurado para `OnMainWindowClose` logo após a criação da `MainWindow`.
 - **Instalador Inno Setup (.exe):** O script `installer/installer.iss` e o wrapper PowerShell `installer/package-installer.ps1` estão 100% configurados e prontos. A compilação do arquivo de instalação gráfico (`.exe`) requer que o Inno Setup 6 esteja instalado no ambiente local (ou seja executado em pipeline de CI/CD). O modo portable (`portable.flag`) e a instalação direta via PowerShell já estão 100% operacionais localmente.
 - **Limitações Conhecidas Mantidas por Segurança:**
   - Temperatura de CPU/GPU via Ring 0: Não implementada deliberadamente para evitar instalação de drivers `.sys` não assinados que violam o modelo de segurança e geram risco de tela azul.

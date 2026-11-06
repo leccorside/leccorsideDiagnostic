@@ -27,6 +27,8 @@ public partial class App : System.Windows.Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        // Evita que o WPF encerre prematuramente durante os awaits assíncronos antes da MainWindow ser instanciada
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
         _startup.Mark("XAML do App carregado e Dispatcher em execução");
         base.OnStartup(e);
 
@@ -153,6 +155,7 @@ public partial class App : System.Windows.Application
         var window = _host.Services.GetRequiredService<MainWindow>();
         _startup.Mark("Janela principal criada");
         MainWindow = window;
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
         window.ContentRendered += OnFirstRender;
 #if DEBUG
         DevData.DevDataToolbar.Attach(window,
