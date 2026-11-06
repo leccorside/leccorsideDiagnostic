@@ -738,25 +738,46 @@ virtualizar os grupos resolveria); no modo árvore, níveis além do 8º não re
 Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); exportar a análise de
 espaço (relatórios chegam no Passo 10); análise de espaço não é salva no histórico (fica em memória na sessão).
 
-## Limitações conhecidas (deliberadas)
+## Limitações conhecidas (análise técnica de viabilidade)
 
-- Temperatura de CPU/GPU não é exibida: não há fonte confiável sem driver de kernel; não será estimada.
-- O histórico de fundo existe só enquanto o app está aberto (30 min em memória). Logo após abrir, regras de duração
-  (CPU sustentada, vazamento) ainda não têm amostras suficientes e simplesmente não concluem.
-- Uso de CPU por processo não é medido em processos protegidos do sistema sem administrador (a tela informa quantos).
-- E/S por processo soma disco, rede e dispositivos (`GetProcessIoCounters`): separar exige ETW/administrador.
-- Impacto de inicialização é estimado pelo consumo atual (memória privada e CPU acumulada dos processos do mesmo
-  executável), não pelo tempo de boot medido; item que não está rodando fica "não medido".
-- Assinatura verificada sem consulta de revogação (offline e rápida): certificado revogado depois de assinar não é detectado.
-- Processos protegidos não podem ser finalizados pelo app (lista fixa em `CriticalProcesses`); processos comuns de outros usuários/administrador agora são finalizados com segurança através do processo elevado mínimo com conferência de PID e hora de início.
-- GPU sem contadores "GPU Engine" (VMs, drivers antigos) aparece como "não disponível".
-- Discos: contadores de confiabilidade e desgaste de SSD/NVMe (`MSFT_StorageReliabilityCounter`) são enriquecidos via processo elevado sob demanda.
-- Análise de espaço usa tamanho lógico: links físicos (WinSxS) contam em cada pasta, arquivos comprimidos/esparsos
-  contam pelo tamanho lógico. Pastas sem permissão (sem admin) são contadas e avisadas, não lidas.
-- A análise de espaço fica só em memória (não é salva no histórico); fechar o app perde o resultado.
-- Preferências alteradas na UI (tema, modo avançado, agendamento) são persistidas no banco SQLite na tabela `Configuration`.
-- Dry Run disponível tanto via flag global no `appsettings.json` quanto sob demanda na interface da Central de Correções.
-- Backups em `%ProgramData%` recebem ACL do usuário que criou a pasta; outro usuário Windows na mesma máquina
-  não conseguirá gravar backups ali (falha segura: a correção é abortada antes de alterar algo).
-- Exportação de relatório completa em HTML, PDF 1.4, CSV (UTF-8 com BOM) e JSON.
-- Instalador e scripts de build/automação disponíveis em `installer/` para `win-x64` e `win-arm64`.
+### 1. Inviáveis ou Impossíveis por Arquitetura do Windows / Princípios do Software
+- **Temperatura de CPU/GPU (Impossível em modo usuário):**
+  - *Motivo técnico:* Não existe API Win32 ou WMI nativa padronizada em placas-mãe modernas para leitura de sensores térmicos de núcleos (MSRs de CPU, barramentos SMBus/I2C ou chips Super I/O) sem carregar um driver de kernel (Ring 0, tipo `.sys`). Softwares como OpenHardwareMonitor ou HWiNFO usam drivers proprietários para acessar registradores de baixo nível.
+  - *Princípio inviolável:* O projeto proíbe estritamente a instalação de drivers de kernel por estabilidade e risco de segurança (BSOD e vulnerabilidades de drivers), além de proibir a exibição de estimativas ou dados fictícios.
+- **Finalização de processos críticos do sistema (Bloqueado por segurança):**
+  - *Motivo técnico:* Processos vitais do Windows (`smss.exe`, `csrss.exe`, `lsass.exe`, `services.exe`, `wininit.exe`) possuem a flag `BreakOnTermination` no kernel. Qualquer tentativa de finalização (mesmo com token SYSTEM ou privilégio `SeDebugPrivilege`) causa BSOD imediato (`CRITICAL_PROCESS_DIED` - 0xEF).
+  - *Princípio inviolável:* A lista fixa em `CriticalProcesses` é uma barreira de segurança obrigatória para proteger o usuário e o sistema operacional.
+- **GPU Engine em VMs básicas ou drivers antigos (Indisponível no hypervisor):**
+  - *Motivo técnico:* A telemetria de GPU via contadores PDH depende da especificação WDDM 2.0+ (Windows 10). Em máquinas virtuais com adaptador de vídeo genérico (sem GPU Passthrough no Hyper-V/VMware/VirtualBox) ou sessões RDP simples, o Windows não expõe contadores de GPU.
+  - *Comportamento do software:* Identifica com precisão a ausência do subsistema e informa honestamente "Não disponível", sem mascarar dados.
+- **Processos PPL (Protected Process Light):**
+  - *Motivo técnico:* Processos com nível de integridade protegido pelo kernel (ex: `MsMpEng.exe` do Defender, serviços de DRM e subsistema LSA protegido) bloqueiam abertura de handles de consulta (`OpenProcess`) mesmo para o usuário Administrador.
+  - *Comportamento do software:* Retorna valores nulos para atributos inacessíveis em vez de falhar a varredura ou inventar números.
+- **Criação de Ponto de Restauração com Proteção Desativada:**
+  - *Motivo técnico:* Se a Proteção do Sistema estiver explicitamente desativada no volume `C:` pelo usuário ou via GPO, a API VSS/SystemRestore recusa a chamada. O software não força a reativação de recursos de sistema contra a política da máquina.
+
+### 2. Totalmente Possíveis de Implementar em Versões Futuras
+- **Separação de E/S por processo (Disco vs Rede):**
+  - *Como implementar:* Atualmente `GetProcessIoCounters` agrega toda a E/S em um único total. É possível separar via sessão ETW (*Event Tracing for Windows*) em tempo real usando o pacote oficial `Microsoft.Diagnostics.Tracing.TraceEvent` no processo elevado, capturando eventos de kernel `DiskIO` e `TcpIp` correlacionados com o PID.
+  - *Esforço:* Médio (requer parser assíncrono de eventos ETW com pooling de buffers).
+- **Impacto de Inicialização baseado no tempo real de boot:**
+  - *Como implementar:* Consultar o canal de eventos `Microsoft-Windows-Diagnostics-Performance/Operational` via `EventLogReader`. Os Event IDs 101 a 110 registram exatamente o nome de cada executável e a degradação em milissegundos causada no boot real anterior.
+  - *Esforço:* Baixo (aproveita a infraestrutura de Event Log já existente no projeto).
+- **Persistência da Análise de Espaço em Disco:**
+  - *Como implementar:* Gravar o snapshot da árvore podada de maiores pastas em tabela SQLite (`SpaceAnalysisSnapshot`) com timestamp. Ao abrir a tela de Disco, o usuário vê o último mapeamento instantaneamente, com opção de atualizar sob demanda.
+  - *Esforço:* Baixo (criação de tabela no SQLite e serialização de nó raiz).
+- **Deduplicação de Hard Links na análise de espaço:**
+  - *Como implementar:* Fazer P/Invoke para `GetFileInformationByHandleEx` com `FILE_ID_INFO` e manter um `HashSet<(ulong, FileId)>` em memória durante a travessia. Se o mesmo arquivo físico for referenciado mais de uma vez (como no `WinSxS`), seu tamanho físico só é contado uma única vez.
+  - *Esforço:* Baixo a Médio.
+- **Histórico contínuo de métricas com app fechado:**
+  - *Como implementar:* O comando silencioso `--scheduled-scan` (ou um serviço auxiliar do Windows) pode ser acionado periodicamente via Task Scheduler para coletar amostras e salvar no SQLite, exibindo gráficos completos de dias ou semanas.
+  - *Esforço:* Médio.
+- **Verificação online de revogação de certificados (CRL/OCSP):**
+  - *Como implementar:* Adicionar um toggle no Modo Avançado para habilitar a flag `WTD_REVOKE_WHOLECHAIN` na chamada assíncrona de `WinVerifyTrust`, com timeout estrito de 2 segundos para não congelar em máquinas offline.
+  - *Esforço:* Baixo.
+- **Virtualização de UI para agrupamentos em listas grandes (> 500 itens):**
+  - *Como implementar:* Configurar `VirtualizingPanel.IsVirtualizingWhenGrouping="True"` e modo de reciclagem nas listas de Processos e Inicialização para carregamento instantâneo de listas extensas.
+  - *Esforço:* Baixo.
+- **Exportação dedicada da Árvore de Espaço em Disco:**
+  - *Como implementar:* Botão de exportação em CSV/JSON da hierarquia completa de diretórios analisados, reutilizando a arquitetura de relatórios do Passo 10.
+  - *Esforço:* Baixo.
