@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LeccorWindowsHealthCenter.App.Services;
@@ -70,6 +72,20 @@ public sealed partial class StartupRow : ObservableObject, IPathRow
     /// alerta. Script oculto nunca é informativo, mesmo numa tarefa em \Microsoft\Windows\ (técnica de persistência).
     /// </summary>
     public bool IsInformational => Entry.IsWindowsComponent && IsMissing && _scriptConcern is null;
+
+    public string GroupName => Entry.Source switch
+    {
+        StartupSourceKind.RegistryRun or StartupSourceKind.RegistryRunOnce or StartupSourceKind.StartupFolder => "Aplicativos",
+        StartupSourceKind.ScheduledTask => "Tarefas agendadas",
+        _ => "Serviços automáticos",
+    };
+
+    public int GroupOrder => Entry.Source switch
+    {
+        StartupSourceKind.RegistryRun or StartupSourceKind.RegistryRunOnce or StartupSourceKind.StartupFolder => 0,
+        StartupSourceKind.ScheduledTask => 1,
+        _ => 2,
+    };
 
     public string SourceText => Entry.Source switch
     {
@@ -188,6 +204,7 @@ public sealed partial class StartupViewModel : ObservableObject, IPageLifecycle
     [ObservableProperty] private string _summary = string.Empty;
     [ObservableProperty] private string? _error;
     [ObservableProperty] private IReadOnlyList<StartupGroup> _groups = [];
+    [ObservableProperty] private ICollectionView? _rowsView;
     [ObservableProperty] private IReadOnlyList<StartupRow> _problems = [];
     [ObservableProperty] private IReadOnlyList<string> _warnings = [];
     [ObservableProperty] private string _search = string.Empty;
@@ -318,6 +335,18 @@ public sealed partial class StartupViewModel : ObservableObject, IPageLifecycle
                 new StartupGroup("Serviços automáticos", "Serviços que o Windows inicia no boot, antes do logon.",
                     Order(_all.Where(r => r.Entry.Source == StartupSourceKind.Service))),
             };
+
+            var view = CollectionViewSource.GetDefaultView(_all);
+            view.GroupDescriptions.Clear();
+            view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(StartupRow.GroupName)));
+            view.SortDescriptions.Clear();
+            view.SortDescriptions.Add(new SortDescription(nameof(StartupRow.GroupOrder), ListSortDirection.Ascending));
+            view.SortDescriptions.Add(new SortDescription(nameof(StartupRow.IsEnabled), ListSortDirection.Descending));
+            view.SortDescriptions.Add(new SortDescription(nameof(StartupRow.Impact), ListSortDirection.Descending));
+            view.SortDescriptions.Add(new SortDescription(nameof(StartupRow.Name), ListSortDirection.Ascending));
+            view.Filter = FilterRowObject;
+            RowsView = view;
+
             ApplyView();
             _ = LoadIdentitiesAsync();
         }
@@ -351,27 +380,48 @@ public sealed partial class StartupViewModel : ObservableObject, IPageLifecycle
         }
     }
 
-    private void ApplyView()
+    private bool FilterRowObject(object obj)
     {
+        if (obj is not StartupRow r)
+        {
+            return false;
+        }
+
+        if (!ShowWindowsItems && r.Entry.IsWindowsComponent)
+        {
+            return false;
+        }
+
+        if (!ShowDisabled && r.IsDisabled)
+        {
+            return false;
+        }
+
         var term = Search.Trim();
-        bool Matches(StartupRow r) => term.Length == 0
-            || r.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase)
+        if (term.Length == 0)
+        {
+            return true;
+        }
+
+        return r.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase)
             || (r.Command?.Contains(term, StringComparison.CurrentCultureIgnoreCase) ?? false)
             || r.Publisher.Contains(term, StringComparison.CurrentCultureIgnoreCase);
+    }
 
-        foreach (var row in _all)
-        {
-            row.IsVisible = (ShowWindowsItems || !row.Entry.IsWindowsComponent) && (ShowDisabled || !row.IsDisabled) && Matches(row);
-        }
-
-        foreach (var group in Groups)
-        {
-            group.VisibleCount = group.Rows.Count(r => r.IsVisible);
-        }
+    private void ApplyView()
+    {
+        RowsView?.Refresh();
 
         var hiddenWindows = _all.Count(r => r.Entry.IsWindowsComponent && !ShowWindowsItems);
         HiddenText = hiddenWindows > 0 && !ShowWindowsItems ? $"{Fmt.Count(hiddenWindows, "item do próprio Windows oculto", "itens do próprio Windows ocultos")}." : string.Empty;
-        NoResults = _all.Count > 0 && Groups.All(g => g.VisibleCount == 0);
+
+        var visibleCount = _all.Count(FilterRowObject);
+        NoResults = _all.Count > 0 && visibleCount == 0;
+
+        foreach (var group in Groups)
+        {
+            group.VisibleCount = group.Rows.Count(FilterRowObject);
+        }
     }
 
     private void ApplyProblems()

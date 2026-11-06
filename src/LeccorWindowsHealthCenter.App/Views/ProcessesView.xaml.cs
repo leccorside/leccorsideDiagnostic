@@ -21,12 +21,14 @@ public partial class ProcessesView : UserControl
             if (_viewModel is not null)
             {
                 _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+                _viewModel.RequestBringIntoView -= OnRequestBringIntoView;
             }
 
             _viewModel = e.NewValue as ProcessesViewModel;
             if (_viewModel is not null)
             {
                 _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+                _viewModel.RequestBringIntoView += OnRequestBringIntoView;
             }
         };
         ProcessList.PreviewKeyDown += OnListKeyDown;
@@ -79,6 +81,14 @@ public partial class ProcessesView : UserControl
                 (UIElementAutomationPeer.FromElement(ActionText) ?? UIElementAutomationPeer.CreatePeerForElement(ActionText))
                     ?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged));
         }
+    }
+
+    private void OnRequestBringIntoView(object? sender, ProcessItem item)
+    {
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+        {
+            ProcessList.ScrollIntoView(item);
+        });
     }
 
     /// <summary>Ctrl+C copia o caminho; Delete pede a confirmação de encerramento (nunca encerra direto).</summary>

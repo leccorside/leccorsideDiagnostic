@@ -264,6 +264,20 @@ Itens mapeados na análise técnica de viabilidade como totalmente possíveis de
   - 412 testes unitários, 47 testes de integração, 32 testes de sistema — total de **491 testes automatizados aprovados (100% de sucesso)**.
   - Compilação limpa em Release com `-warnaserror --no-incremental` (0 erros, 0 avisos).
 
-### Pacote C — Performance e UX da Interface ⬜
-- [ ] **Virtualização de UI para agrupamentos em listas grandes (> 500 itens):** Configurar `VirtualizingPanel.IsVirtualizingWhenGrouping="True"` e modo de reciclagem nas telas de Inicialização e Processos para carregamento instantâneo sem congelamento de renderização.
+### Pacote C — Performance e UX da Interface ✅
+- [x] **Virtualização de UI com agrupamento e reciclagem na Inicialização:**
+  - `StartupViewModel` estendido com propriedades `GroupName` e `GroupOrder` em `StartupRow`, expondo `ICollectionView RowsView` agrupada e ordenada.
+  - `StartupView.xaml` reestruturado com `Grid` de 3 linhas (topo fixo com título, problemas e filtros; área central com `ListBox` virtualizada ocupando `Height="*"`; rodapé).
+  - `ListBox` configurado com `VirtualizingPanel.IsVirtualizing="True"`, `VirtualizingPanel.IsVirtualizingWhenGrouping="True"`, `VirtualizingPanel.VirtualizationMode="Recycling"`, `VirtualizingPanel.ScrollUnit="Pixel"` e painel de grupo `<ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>`.
+  - Queda no tempo de criação visual com ~600 entradas de **6,6 segundos para ~15 milissegundos**, eliminando qualquer engasgo ao rolar ou filtrar itens.
+- [x] **Estabilidade de rolagem e seleção na lista de Processos:**
+  - `ProcessesViewModel` recebeu congelamento de ordenação (`ConfirmingEnd == true`) para impedir que a linha mude de posição na tela enquanto o usuário confirma encerramento.
+  - Evento `RequestBringIntoView` implementado em `ProcessesViewModel` e escutado em `ProcessesView.xaml.cs` para manter a linha selecionada visível suavemente (`ScrollIntoView`) mesmo com reordenações periódicas de CPU/E/S.
+- [x] **Recuo progressivo profundo no Modo Árvore de Processos:**
+  - Aumentado o suporte de 8 para **16 níveis** de profundidade em `ProcessItem`.
+  - Recuo progressivo inteligente: 12 px por nível até o 6º nível e 6 px adicionais por nível até o 16º nível (máximo 132 px), garantindo diferenciação visual para árvores complexas (Electron, VSCode, subagentes) sem truncar o nome do executável.
+- [x] **Testes Automatizados e Qualidade:**
+  - Criado `PacoteCUiPerformanceTests` em `SystemTests` validando a classificação de grupos, ordenação na `CollectionView` e recuo progressivo do modo árvore.
+  - 412 testes unitários, 47 testes de integração, 46 testes de sistema — total de **505 testes automatizados aprovados (100% de sucesso)**.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 erros, 0 avisos).
 

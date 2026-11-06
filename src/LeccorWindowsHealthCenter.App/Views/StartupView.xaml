@@ -14,7 +14,7 @@
 
     <UserControl.Resources>
         <Style x:Key="GroupTitle" TargetType="TextBlock" BasedOn="{StaticResource SectionTitle}">
-            <Setter Property="Margin" Value="0,24,0,2" />
+            <Setter Property="Margin" Value="0,16,0,2" />
             <Setter Property="AutomationProperties.HeadingLevel" Value="Level2" />
         </Style>
 
@@ -42,6 +42,21 @@
                 </MenuItem.Icon>
             </MenuItem>
         </ContextMenu>
+
+        <Style x:Key="StartupItemContainer" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,2" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <!-- Linha: nome e fabricante à esquerda; origem e estado no meio; impacto à direita. Clique mostra no Explorer. -->
         <DataTemplate x:Key="StartupRowTemplate" DataType="{x:Type vm:StartupRow}">
@@ -102,8 +117,15 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="32,28,32,32" MaxWidth="1200">
+    <Grid Margin="32,28,32,24" MaxWidth="1200">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="220" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Linha 0: Cabeçalho, Problemas prioritários e Filtros -->
+        <StackPanel Grid.Row="0">
             <DockPanel Margin="0,0,0,4">
                 <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Command="{Binding RefreshCommand}"
                         AutomationProperties.Name="Ler novamente" ToolTip="Lê de novo registro, pastas Inicializar, tarefas e serviços (F5).">
@@ -186,36 +208,61 @@
                        Visibility="{Binding EmptyText, Converter={StaticResource VisibleWhen}}" />
 
             <StackPanel Visibility="{Binding HasEntries, Converter={StaticResource VisibleWhen}}">
-            <!-- Filtros. -->
-            <WrapPanel Margin="0,16,0,0">
-                <TextBox Style="{StaticResource FilterBox}" Width="320" Margin="0,0,20,8"
-                         Tag="Pesquisar por nome, comando ou fabricante" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
-                         AutomationProperties.Name="Pesquisar itens de inicialização" />
-                <CheckBox VerticalAlignment="Center" Margin="0,0,20,8" Content="Mostrar desativados" IsChecked="{Binding ShowDisabled}" />
-                <CheckBox VerticalAlignment="Center" Margin="0,0,20,8" Content="Mostrar itens do próprio Windows" IsChecked="{Binding ShowWindowsItems}" />
-            </WrapPanel>
-            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
-                       Text="Impacto estimado pelo consumo atual dos processos com o mesmo executável (memória privada e tempo de CPU desde que iniciaram). Itens que não estão rodando agora aparecem como “não medido”." />
-            <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" Text="{Binding HiddenText}"
-                       Visibility="{Binding HiddenText, Converter={StaticResource VisibleWhen}}" />
+                <!-- Filtros. -->
+                <WrapPanel Margin="0,16,0,0">
+                    <TextBox Style="{StaticResource FilterBox}" Width="320" Margin="0,0,20,8"
+                             Tag="Pesquisar por nome, comando ou fabricante" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Pesquisar itens de inicialização" />
+                    <CheckBox VerticalAlignment="Center" Margin="0,0,20,8" Content="Mostrar desativados" IsChecked="{Binding ShowDisabled}" />
+                    <CheckBox VerticalAlignment="Center" Margin="0,0,20,8" Content="Mostrar itens do próprio Windows" IsChecked="{Binding ShowWindowsItems}" />
+                </WrapPanel>
+                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                           Text="Impacto estimado pelo consumo atual dos processos com o mesmo executável (memória privada e tempo de CPU desde que iniciaram). Itens que não estão rodando agora aparecem como “não medido”." />
+                <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,8" Text="{Binding HiddenText}"
+                           Visibility="{Binding HiddenText, Converter={StaticResource VisibleWhen}}" />
             </StackPanel>
+        </StackPanel>
 
-            <ItemsControl ItemsSource="{Binding Groups}" Focusable="False" Grid.IsSharedSizeScope="True">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type vm:StartupGroup}">
-                        <StackPanel Visibility="{Binding VisibleCount, Converter={StaticResource VisibleWhen}}">
-                            <TextBlock Style="{StaticResource GroupTitle}">
-                                <Run Text="{Binding Title, Mode=OneWay}" /><Run Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="Normal" Text="{Binding VisibleCount, Mode=OneWay, StringFormat='  {0:#,##0}', ConverterCulture=pt-BR}" />
-                            </TextBlock>
-                            <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,8" TextWrapping="Wrap" Text="{Binding Caption}" />
-                            <Border Style="{StaticResource Card}" Padding="8">
-                                <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource StartupRowTemplate}" Focusable="False" />
-                            </Border>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+        <!-- Linha 1: Lista virtualizada com agrupamento e reciclagem de alta performance -->
+        <ListBox Grid.Row="1" ItemsSource="{Binding RowsView}"
+                 VirtualizingPanel.IsVirtualizing="True"
+                 VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                 VirtualizingPanel.VirtualizationMode="Recycling"
+                 VirtualizingPanel.ScrollUnit="Pixel"
+                 ScrollViewer.CanContentScroll="True"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ItemTemplate="{StaticResource StartupRowTemplate}"
+                 ItemContainerStyle="{StaticResource StartupItemContainer}"
+                 Background="Transparent" BorderThickness="0"
+                 Focusable="False" Grid.IsSharedSizeScope="True"
+                 AutomationProperties.Name="Itens de inicialização">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,16,0,6">
+                                <TextBlock Style="{StaticResource GroupTitle}">
+                                    <Run Text="{Binding Name, Mode=OneWay}" /><Run Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="Normal" Text="{Binding ItemCount, Mode=OneWay, StringFormat='  ({0:#,##0})', ConverterCulture=pt-BR}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                    <GroupStyle.Panel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                    </GroupStyle.Panel>
+                </GroupStyle>
+            </ListBox.GroupStyle>
+        </ListBox>
 
+        <!-- Linha 2: Rodapé e diagnóstico avançado -->
+        <StackPanel Grid.Row="2">
             <TextBlock Style="{StaticResource Body}" Margin="0,16,0,0" Text="Nenhum item corresponde à pesquisa."
                        Visibility="{Binding NoResults, Converter={StaticResource VisibleWhen}}" />
 
@@ -233,5 +280,5 @@
                 </ItemsControl>
             </StackPanel>
         </StackPanel>
-    </ScrollViewer>
+    </Grid>
 </UserControl>

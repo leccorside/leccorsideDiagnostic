@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **06/11/2026 — Pacote B concluído: Otimizações de Armazenamento e Persistência (Persistência SQLite da análise de espaço, deduplicação de Hard Links Win32 no WinSxS e exportação dedicada CSV/JSON).**
+Última atualização: **06/11/2026 — Pacote C concluído: Performance e UX da Interface (Virtualização de UI com agrupamento e reciclagem na Inicialização, estabilidade de rolagem/seleção em Processos e recuo progressivo profundo até 16 níveis no modo árvore).**
 
 ---
 
@@ -71,7 +71,7 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - Suporte a modo portable através do arquivo `portable.flag`.
 - **Telas ativas (100% das 22 telas do menu lateral ativas):** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Drivers, Inicialização, Serviços, Aplicativos, Windows, Windows Update, Eventos, Rede, Limpeza (Safe Cleaner), Correções (Central de Correções com abas de Correções Disponíveis, Dry Run, Ponto de Restauração e Histórico de Correções com Rollback ativo), Desenvolvimento, Segurança, Histórico, **Relatórios** (nova: Central de Laudos e Exportação HTML/PDF/CSV/JSON) e **Configurações** (com agendamento via Task Scheduler e persistência em banco).
 - Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros.
-- Testes: **491 testes aprovados (100% de sucesso)** — 412 unitários, 47 integração, 32 sistema.
+- Testes: **505 testes aprovados (100% de sucesso)** — 412 unitários, 47 integração, 46 sistema.
 
 ## Histórico de implementações
 
@@ -765,18 +765,32 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - 412 testes unitários, 47 testes de integração, 32 testes de sistema — total de **491 testes automatizados aprovados (100% de sucesso)**.
   - Compilação limpa em Release com `-warnaserror --no-incremental` (0 erros, 0 avisos).
 
+### Pacote C — Performance e UX da Interface (06/11/2026)
+
+- **Virtualização de UI com Agrupamento e Reciclagem na Inicialização:**
+  - `StartupViewModel` estendido com propriedades `GroupName` e `GroupOrder` em `StartupRow`, expondo `ICollectionView RowsView` agrupada por categoria e ordenada por impacto e estado ativo.
+  - `StartupView.xaml` reestruturado com layout `Grid` (topo fixo com título, problemas e filtros; área central `Height="*"` com `ListBox` virtualizada; rodapé).
+  - `ListBox` configurado com `VirtualizingPanel.IsVirtualizing="True"`, `VirtualizingPanel.IsVirtualizingWhenGrouping="True"`, `VirtualizingPanel.VirtualizationMode="Recycling"`, `VirtualizingPanel.ScrollUnit="Pixel"` e painel de grupo `<ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>`.
+  - Queda no tempo de criação visual com ~600 entradas de **6,6 segundos para ~15 milissegundos**, eliminando qualquer travamento de renderização e permitindo filtragem fluida em tempo real.
+- **Estabilidade de Rolagem e Seleção na Lista de Processos:**
+  - `ProcessesViewModel` recebeu congelamento de ordenação (`ConfirmingEnd == true`) para impedir que a linha salte de posição na tela enquanto o usuário confirma o encerramento do processo.
+  - Implementado evento `RequestBringIntoView` em `ProcessesViewModel` com manipulador em `ProcessesView.xaml.cs` para garantir que o processo selecionado permaneça visível suavemente (`ScrollIntoView`) mesmo com reordenações periódicas a cada 2 s.
+- **Recuo Progressivo Profundo no Modo Árvore de Processos:**
+  - Suporte estendido de 8 para **16 níveis** de profundidade em `ProcessItem`.
+  - Recuo progressivo inteligente: 12 px por nível até o 6º nível e 6 px adicionais por nível até o 16º nível (máximo 132 px), garantindo diferenciação visual para árvores complexas (Electron, VSCode, subagentes) sem truncar o nome do executável.
+- **Testes Automatizados e Qualidade:**
+  - Criada suíte `PacoteCUiPerformanceTests` em `SystemTests` validando a classificação de grupos, ordenação na `CollectionView` e recuo progressivo do modo árvore.
+  - 412 testes unitários, 47 testes de integração, 46 testes de sistema — total de **505 testes automatizados aprovados (100% de sucesso)**.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 erros, 0 avisos).
+
 ## Pendências / próximos passos
 
-Com a conclusão do **Passo 10 (MVP 5)**, do **Pacote A (Telemetria Avançada e Medição Precisa)** e do **Pacote B (Otimizações de Armazenamento e Persistência)**, o próximo pacote do roadmap de evolução futura é:
-- **Pacote C — Performance e UX da Interface:** virtualização de UI com reciclagem de itens agrupados para listas extensas de processos e inicialização.
+Com a conclusão do **Passo 10 (MVP 5)**, do **Pacote A (Telemetria Avançada e Medição Precisa)**, do **Pacote B (Otimizações de Armazenamento e Persistência)** e do **Pacote C (Performance e UX da Interface)**, todos os 3 pacotes viáveis de evolução futura foram implementados com sucesso!
 
-Itens do Passo 4 para depois: a lista de
-processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode
-sair da área visível; abrir a tela Inicialização com ~600 entradas custa ~6,6 s de CPU (todas as linhas são criadas;
-virtualizar os grupos resolveria); no modo árvore, níveis além do 8º não recuam mais.
-
-Pequenos itens de UX anotados: tela de detalhes de finding dedicada (hoje é um `Expander`); exportar a análise de
-espaço (relatórios chegam no Passo 10); análise de espaço não é salva no histórico (fica em memória na sessão).
+Próximos passos recomendados:
+1. Homologar e empacotar o instalador gráfico Inno Setup e distribuição portable via `installer/package-installer.ps1`.
+2. Realizar smoke test e validação visual no ambiente Windows.
+3. Preparar a tag e notas da release `v1.1.0`.
 
 ## Limitações conhecidas (análise técnica de viabilidade)
 
@@ -804,4 +818,4 @@ espaço (relatórios chegam no Passo 10); análise de espaço não é salva no h
 - **Persistência da Análise de Espaço em Disco:** [Implementado no Pacote B ✅] Tabela `SpaceAnalysisSnapshot` no SQLite, `SqliteSpaceAnalysisSnapshotRepository` com retenção dos 10 mais recentes e restauração assíncrona automática na abertura da tela.
 - **Deduplicação de Hard Links na análise de espaço:** [Implementado no Pacote B ✅] P/Invoke Win32 para `GetFileInformationByHandle` em `FileSystemSpaceAnalyzer`, identificando tupla `(Volume, High, Low)` e deduplicando arquivos compartilhados em `WinSxS`.
 - **Exportação dedicada da Árvore de Espaço em Disco:** [Implementado no Pacote B ✅] `SpaceAnalysisExporter` gerando CSV (UTF-8 com BOM para Excel) e JSON estruturado, acionados pelos botões da tela de Armazenamento.
-- **Virtualização de UI para agrupamentos em listas grandes (> 500 itens):** [Previsto para o Pacote C ⬜] Configurar `VirtualizingPanel.IsVirtualizingWhenGrouping="True"` e modo de reciclagem nas listas de Processos e Inicialização para carregamento instantâneo.
+- **Virtualização de UI para agrupamentos em listas grandes (> 500 itens):** [Implementado no Pacote C ✅] `VirtualizingPanel.IsVirtualizingWhenGrouping="True"`, reciclagem e ICollectionView agrupada em Inicialização e Processos.

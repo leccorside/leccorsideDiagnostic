@@ -66,10 +66,18 @@ public sealed partial class ProcessItem : ObservableObject, IPathRow
     [ObservableProperty] private ProcessDetails? _details;
 
     /// <summary>Níveis com recuo no modo árvore; abaixo disso a cadeia continua sem recuar (o nome nunca some).</summary>
-    public const int MaxIndentLevels = 8;
+    public const int MaxIndentLevels = 16;
 
-    /// <summary>Recuo do modo árvore (12 px por nível, até <see cref="MaxIndentLevels"/>).</summary>
-    public System.Windows.Thickness Indent => new(Math.Min(Depth, MaxIndentLevels) * 12, 0, 0, 0);
+    /// <summary>Recuo do modo árvore (12 px por nível até o 6º, 6 px até o 16º, máximo 132 px).</summary>
+    public System.Windows.Thickness Indent
+    {
+        get
+        {
+            var depth = Math.Min(Depth, MaxIndentLevels);
+            var pixels = depth <= 6 ? depth * 12 : 72 + (depth - 6) * 6;
+            return new System.Windows.Thickness(pixels, 0, 0, 0);
+        }
+    }
 
     partial void OnDepthChanged(int value) => OnPropertyChanged(nameof(Indent));
 
@@ -218,10 +226,17 @@ public sealed partial class ProcessesViewModel : ObservableObject, IPageLifecycl
 
     partial void OnTreeModeChanged(bool value) => ApplyView();
 
+    /// <summary>Disparado quando a tela deve rolar suavemente até o processo selecionado para mantê-lo visível.</summary>
+    public event EventHandler<ProcessItem>? RequestBringIntoView;
+
     partial void OnSelectedChanged(ProcessItem? value)
     {
         ConfirmingEnd = false;
         ActionMessage = string.Empty;
+        if (value is not null)
+        {
+            RequestBringIntoView?.Invoke(this, value);
+        }
     }
 
     public void Activate()
@@ -417,6 +432,20 @@ public sealed partial class ProcessesViewModel : ObservableObject, IPageLifecycl
                 || p.Publisher.Contains(term, StringComparison.CurrentCultureIgnoreCase));
         }
 
+        if (ConfirmingEnd)
+        {
+            // O usuário abriu a confirmação de encerramento: não move as linhas de posição
+            // até que confirme ou cancele, garantindo estabilidade visual completa.
+            return;
+        }
+
+        if (ConfirmingEnd)
+        {
+            // O usuário abriu a confirmação de encerramento: não move as linhas de posição
+            // até que confirme ou cancele, garantindo estabilidade visual completa.
+            return;
+        }
+
         var ordered = TreeMode && term.Length == 0 ? TreeOrder(visible.ToList()) : Sort(visible).ToList();
         if (!TreeMode || term.Length > 0)
         {
@@ -450,6 +479,11 @@ public sealed partial class ProcessesViewModel : ObservableObject, IPageLifecycl
         EmptyText = Processes.Count > 0 || !_captured ? string.Empty
             : term.Length > 0 ? $"Nenhum processo corresponde a “{term}”. A pesquisa procura no nome, PID, caminho e fabricante."
             : "Nenhum processo para mostrar.";
+
+        if (Selected is { } selected && Processes.Contains(selected))
+        {
+            RequestBringIntoView?.Invoke(this, selected);
+        }
     }
 
     private IEnumerable<ProcessItem> Sort(IEnumerable<ProcessItem> items)
