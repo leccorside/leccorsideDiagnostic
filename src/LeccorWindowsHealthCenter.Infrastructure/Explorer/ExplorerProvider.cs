@@ -54,6 +54,7 @@ public sealed partial class ExplorerProvider : IExplorerProvider
                 {
                     Publisher = id.Publisher,
                     IsSigned = id.Signature is SignatureStatus.Valid or SignatureStatus.SignedByCatalog,
+                    IsRevoked = id.Signature == SignatureStatus.Revoked,
                 });
             }
             else

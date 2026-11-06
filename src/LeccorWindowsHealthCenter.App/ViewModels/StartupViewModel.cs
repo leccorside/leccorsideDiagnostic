@@ -41,6 +41,8 @@ public sealed partial class StartupRow : ObservableObject, IPathRow
     {
         StartupImpactLevel.Disabled => string.Empty,
         StartupImpactLevel.NotMeasured => "não medido",
+        _ when Entry.BootDegradationMs is { } deg => $"{StartupImpact.Text(Impact)} ({deg / 1000.0:F1}s no boot)",
+        _ when Entry.BootTotalTimeMs is { } tot => $"{StartupImpact.Text(Impact)} ({tot / 1000.0:F1}s no boot)",
         _ => StartupImpact.Text(Impact),
     };
 

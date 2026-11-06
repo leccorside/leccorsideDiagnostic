@@ -101,4 +101,35 @@ public class ExplorerRulesTests
 
         Assert.Empty(findings);
     }
+
+    [Fact]
+    public void ExplorerUnsignedShellExtensionRule_TriggersHighSeverity_WhenCertificateIsRevoked()
+    {
+        var rule = new ExplorerUnsignedShellExtensionRule();
+        var obs = new Observation
+        {
+            Kind = ExplorerNames.ObservationShellExtension,
+            Subject = "RevokedTool",
+            ScannerId = ExplorerScanner.ScannerId,
+            Attributes = new Dictionary<string, string>
+            {
+                [ExplorerNames.AttrName] = "RevokedTool",
+                [ExplorerNames.AttrClsid] = "{99999999-8888-7777-6666-555555555555}",
+                [ExplorerNames.AttrType] = "ContextMenuHandler",
+                [ExplorerNames.AttrDllPath] = @"C:\Malware\compromised.dll",
+                [ExplorerNames.AttrSigned] = "true",
+                [ExplorerNames.AttrRevoked] = "true",
+                [ExplorerNames.AttrExists] = "true",
+                [ExplorerNames.AttrWindows] = "false",
+            },
+        };
+
+        var findings = Run(rule, [obs]);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal(rule.Id, finding.RuleId);
+        Assert.Equal(Severity.High, finding.Severity);
+        Assert.Contains("REVOGADO", finding.Title);
+        Assert.Equal(100, finding.Confidence.Percent);
+    }
 }

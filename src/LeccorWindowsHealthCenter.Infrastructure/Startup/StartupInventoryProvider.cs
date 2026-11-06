@@ -26,13 +26,18 @@ public sealed class StartupInventoryProvider : IStartupInventoryProvider, IDispo
 
     private readonly ILogger<StartupInventoryProvider> _logger;
     private readonly TimeProvider _timeProvider;
+    private readonly IBootPerformanceProvider? _bootPerformance;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private StartupInventory? _cached;
 
-    public StartupInventoryProvider(ILogger<StartupInventoryProvider> logger, TimeProvider timeProvider)
+    public StartupInventoryProvider(
+        ILogger<StartupInventoryProvider> logger,
+        TimeProvider timeProvider,
+        IBootPerformanceProvider? bootPerformance = null)
     {
         _logger = logger;
         _timeProvider = timeProvider;
+        _bootPerformance = bootPerformance;
     }
 
     public void Dispose() => _gate.Dispose();
@@ -79,12 +84,59 @@ public sealed class StartupInventoryProvider : IStartupInventoryProvider, IDispo
         Run(() => ReadScheduledTasks(entries, cancellationToken), "Tarefas agendadas", warnings);
         Run(() => ReadServices(entries, warnings, cancellationToken), "Serviços", warnings);
 
+        EnrichWithBootPerformance(entries, cancellationToken);
+
         foreach (var warning in warnings)
         {
             _logger.LogWarning("Inicialização incompleta: {Warning}", warning);
         }
 
         return new StartupInventory { Entries = entries, Warnings = warnings, CapturedAt = _timeProvider.GetUtcNow() };
+    }
+
+    private void EnrichWithBootPerformance(List<StartupEntry> entries, CancellationToken cancellationToken)
+    {
+        if (_bootPerformance is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var bootEvents = _bootPerformance.GetRecentBootDegradationsAsync(cancellationToken).GetAwaiter().GetResult();
+            if (bootEvents is not { Count: > 0 })
+            {
+                return;
+            }
+
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var e = entries[i];
+                BootDegradationRecord? record = null;
+                if (e.ExecutablePath is not null && bootEvents.TryGetValue(e.ExecutablePath, out record))
+                {
+                }
+                else if (bootEvents.TryGetValue(e.Name, out record))
+                {
+                }
+                else if (e.Location is not null && bootEvents.TryGetValue(e.Location, out record))
+                {
+                }
+
+                if (record is not null)
+                {
+                    entries[i] = e with
+                    {
+                        BootDegradationMs = record.DegradationTimeMs,
+                        BootTotalTimeMs = record.TotalTimeMs,
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Não foi possível correlacionar eventos de boot com as entradas de inicialização.");
+        }
     }
 
     private static void Run(Action read, string source, List<string> warnings)

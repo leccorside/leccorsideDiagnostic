@@ -95,6 +95,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _isSavingSchedule;
 
+    [ObservableProperty]
+    private bool _checkRevocationOnline;
+
+    partial void OnCheckRevocationOnlineChanged(bool value)
+    {
+        _ = _configurationRepository.SetValueAsync("security.check-revocation-online", value.ToString(), CancellationToken.None);
+    }
+
     partial void OnSelectedThemeChanged(AppTheme value)
     {
         _themeService.Apply(value);
@@ -115,6 +123,12 @@ public sealed partial class SettingsViewModel : ObservableObject
             if (!string.IsNullOrEmpty(savedAdvMode) && bool.TryParse(savedAdvMode, out var adv))
             {
                 Preferences.AdvancedMode = adv;
+            }
+
+            var savedRevocation = await _configurationRepository.GetValueAsync("security.check-revocation-online", CancellationToken.None).ConfigureAwait(true);
+            if (!string.IsNullOrEmpty(savedRevocation) && bool.TryParse(savedRevocation, out var cro))
+            {
+                CheckRevocationOnline = cro;
             }
 
             await RefreshScheduleStatusAsync().ConfigureAwait(true);

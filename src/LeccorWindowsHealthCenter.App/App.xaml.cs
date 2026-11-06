@@ -85,6 +85,26 @@ public partial class App : System.Windows.Application
                 var report = await orchestrator.RunAsync(ScanPlan.Quick, null, CancellationToken.None);
                 await scanRepo.SaveAsync(report, CancellationToken.None);
 
+                // Gravar amostra contínua de telemetria no SQLite durante varredura em segundo plano (Pacote A)
+                var sampleRepo = _host.Services.GetService<IMetricSampleRepository>();
+                if (sampleRepo is not null)
+                {
+                    var mem = LeccorWindowsHealthCenter.Monitoring.SystemMemory.Read();
+                    if (mem is not null)
+                    {
+                        var sample = new MetricSampleRecord
+                        {
+                            Timestamp = DateTimeOffset.UtcNow,
+                            CpuPercent = 0,
+                            MemoryUsedPercent = mem.UsedPercent,
+                            MemoryUsedBytes = mem.TotalPhysical - mem.AvailablePhysical,
+                            CommitUsedPercent = mem.CommitPercent,
+                            CommitUsedBytes = mem.CommitTotal,
+                        };
+                        await sampleRepo.SaveSampleAsync(sample, CancellationToken.None);
+                    }
+                }
+
                 var problems = report.ConfirmedProblemCount;
                 if (problems > 0)
                 {

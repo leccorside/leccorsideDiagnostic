@@ -17,7 +17,7 @@ public sealed class FileIdentityProvider : IFileIdentityProvider, IDisposable
     private static readonly Guid GenericVerifyV2 = new("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
 
     private readonly ILogger<FileIdentityProvider> _logger;
-    private readonly ConcurrentDictionary<(string Path, DateTime Modified), FileIdentity> _cache = new();
+    private readonly ConcurrentDictionary<(string Path, DateTime Modified, bool Revocation), FileIdentity> _cache = new();
     private readonly SemaphoreSlim _gate = new(2, 2);
 
     public FileIdentityProvider(ILogger<FileIdentityProvider> logger)
@@ -27,7 +27,10 @@ public sealed class FileIdentityProvider : IFileIdentityProvider, IDisposable
 
     public void Dispose() => _gate.Dispose();
 
-    public async Task<FileIdentity> GetAsync(string path, CancellationToken cancellationToken)
+    public Task<FileIdentity> GetAsync(string path, CancellationToken cancellationToken) =>
+        GetAsync(path, checkRevocationOnline: false, cancellationToken);
+
+    public async Task<FileIdentity> GetAsync(string path, bool checkRevocationOnline, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(path);
         if (!File.Exists(path))
@@ -35,7 +38,7 @@ public sealed class FileIdentityProvider : IFileIdentityProvider, IDisposable
             return new FileIdentity { Path = path, Exists = false };
         }
 
-        var key = (path.ToUpperInvariant(), File.GetLastWriteTimeUtc(path));
+        var key = (path.ToUpperInvariant(), File.GetLastWriteTimeUtc(path), checkRevocationOnline);
         if (_cache.TryGetValue(key, out var cached))
         {
             return cached;
@@ -44,7 +47,7 @@ public sealed class FileIdentityProvider : IFileIdentityProvider, IDisposable
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var identity = await Task.Run(() => Read(path), cancellationToken).ConfigureAwait(false);
+            var identity = await Task.Run(() => Read(path, checkRevocationOnline), cancellationToken).ConfigureAwait(false);
             _cache[key] = identity;
             return identity;
         }
@@ -54,7 +57,7 @@ public sealed class FileIdentityProvider : IFileIdentityProvider, IDisposable
         }
     }
 
-    private FileIdentity Read(string path)
+    private FileIdentity Read(string path, bool checkRevocationOnline)
     {
         string? publisher = null, description = null, version = null;
         try
@@ -68,7 +71,7 @@ public sealed class FileIdentityProvider : IFileIdentityProvider, IDisposable
         {
         }
 
-        var status = VerifyEmbedded(path);
+        var status = VerifyEmbedded(path, checkRevocationOnline);
         if (status == SignatureStatus.NoSignature && IsInCatalog(path))
         {
             status = SignatureStatus.SignedByCatalog;
@@ -82,11 +85,11 @@ public sealed class FileIdentityProvider : IFileIdentityProvider, IDisposable
             Description = description,
             Version = version,
             Signature = status,
-            Signer = status is SignatureStatus.Valid or SignatureStatus.Invalid ? SignerName(path) : null,
+            Signer = status is SignatureStatus.Valid or SignatureStatus.Invalid or SignatureStatus.Revoked ? SignerName(path) : null,
         };
     }
 
-    private SignatureStatus VerifyEmbedded(string path)
+    private SignatureStatus VerifyEmbedded(string path, bool checkRevocationOnline)
     {
         var fileInfo = new WinTrustFileInfo { Size = Marshal.SizeOf<WinTrustFileInfo>(), FilePath = path };
         var filePointer = Marshal.AllocHGlobal(Marshal.SizeOf<WinTrustFileInfo>());
@@ -95,11 +98,13 @@ public sealed class FileIdentityProvider : IFileIdentityProvider, IDisposable
         {
             Size = Marshal.SizeOf<WinTrustData>(),
             UiChoice = 2,               // WTD_UI_NONE
-            RevocationChecks = 0,       // WTD_REVOKE_NONE: sem ir à rede
+            RevocationChecks = checkRevocationOnline ? 1u : 0u, // WTD_REVOKE_WHOLECHAIN vs WTD_REVOKE_NONE
             UnionChoice = 1,            // WTD_CHOICE_FILE
             FileInfo = filePointer,
             StateAction = 1,            // WTD_STATEACTION_VERIFY
-            ProvFlags = 0x00001000 | 0x00000010, // WTD_CACHE_ONLY_URL_RETRIEVAL | WTD_REVOCATION_CHECK_NONE
+            ProvFlags = checkRevocationOnline
+                ? 0x00000040u           // WTD_REVOCATION_CHECK_CHAIN_EX
+                : 0x00001000u | 0x00000010u, // WTD_CACHE_ONLY_URL_RETRIEVAL | WTD_REVOCATION_CHECK_NONE
         };
 
         try
@@ -111,6 +116,7 @@ public sealed class FileIdentityProvider : IFileIdentityProvider, IDisposable
             return result switch
             {
                 0 => SignatureStatus.Valid,
+                0x800B010C or 0x80092010 => SignatureStatus.Revoked, // CERT_E_REVOKED ou CRYPT_E_REVOKED
                 0x800B0100 or 0x800B0003 or 0x800B0001 => SignatureStatus.NoSignature, // sem assinatura / formato sem suporte
                 _ => SignatureStatus.Invalid,
             };

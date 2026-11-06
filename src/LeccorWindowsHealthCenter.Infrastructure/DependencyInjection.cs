@@ -24,8 +24,10 @@ public static class DependencyInjection
         services.AddSingleton<IStorageInventoryProvider, SystemInfo.WmiStorageInventoryProvider>();
         services.AddSingleton<Application.Storage.ISpaceAnalyzer, Storage.FileSystemSpaceAnalyzer>();
         services.AddSingleton<IShellLauncher, SystemInfo.ShellLauncher>();
+        services.AddSingleton<IProcessIoTracer, Processes.EtwProcessIoTracer>();
         services.AddSingleton<IProcessInventoryProvider, SystemInfo.ProcessInventoryProvider>();
         services.AddSingleton<IFileIdentityProvider, SystemInfo.FileIdentityProvider>();
+        services.AddSingleton<Application.Startup.IBootPerformanceProvider, Startup.BootPerformanceProvider>();
         services.AddSingleton<Application.Startup.IStartupInventoryProvider, Startup.StartupInventoryProvider>();
 
         var commandOptions = new CommandExecutionOptions();
@@ -62,6 +64,7 @@ public static class DependencyInjection
         services.AddSingleton<MigrationRunner>();
         services.AddSingleton<IScanRepository, SqliteScanRepository>();
         services.AddSingleton<IRepairHistoryRepository, SqliteRepairHistoryRepository>();
+        services.AddSingleton<Application.Persistence.IMetricSampleRepository, Persistence.SqliteMetricSampleRepository>();
         services.AddSingleton<Application.Settings.IConfigurationRepository, Persistence.SqliteConfigurationRepository>();
         services.AddSingleton<IBackupStore>(sp => new FileBackupStore(paths.Backups, sp.GetRequiredService<ILogger<FileBackupStore>>()));
         return services;

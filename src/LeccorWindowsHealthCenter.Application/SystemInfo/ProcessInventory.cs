@@ -37,12 +37,22 @@ public sealed record ProcessDetails
     /// o Windows não separa por tipo sem rastreamento ETW.
     /// </summary>
     public long? IoBytes { get; init; }
+
+    /// <summary>Bytes de E/S de disco acumulados via rastreador ETW; null quando o rastreamento estiver inativo.</summary>
+    public long? DiskIoBytes { get; init; }
+
+    /// <summary>Bytes de E/S de rede acumulados via rastreador ETW; null quando o rastreamento estiver inativo.</summary>
+    public long? NetworkIoBytes { get; init; }
 }
 
 public sealed record ProcessInventorySnapshot(DateTimeOffset CapturedAt, IReadOnlyList<ProcessDetails> Processes);
 
 /// <summary>Taxas de um processo entre duas fotografias. Null = sem leitura nas duas (protegido, recém-iniciado).</summary>
-public readonly record struct ProcessRate(double? CpuPercent, double? IoBytesPerSecond);
+public readonly record struct ProcessRate(
+    double? CpuPercent,
+    double? IoBytesPerSecond,
+    double? DiskIoBytesPerSecond = null,
+    double? NetworkIoBytesPerSecond = null);
 
 /// <summary>Cálculo puro das taxas (testável): o mesmo processo é o mesmo PID com o mesmo horário de início.</summary>
 public static class ProcessRates
@@ -76,7 +86,13 @@ public static class ProcessRates
             double? io = process.IoBytes is { } ioNow && old.IoBytes is { } ioThen
                 ? Math.Max(0, (ioNow - ioThen) / seconds)
                 : null;
-            result[process.Pid] = new ProcessRate(cpu, io);
+            double? diskIo = process.DiskIoBytes is { } dNow && old.DiskIoBytes is { } dThen
+                ? Math.Max(0, (dNow - dThen) / seconds)
+                : null;
+            double? netIo = process.NetworkIoBytes is { } nNow && old.NetworkIoBytes is { } nThen
+                ? Math.Max(0, (nNow - nThen) / seconds)
+                : null;
+            result[process.Pid] = new ProcessRate(cpu, io, diskIo, netIo);
         }
 
         return result;

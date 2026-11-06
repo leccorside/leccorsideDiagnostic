@@ -48,6 +48,12 @@ public sealed record StartupEntry
     /// por padrão: desativá-los raramente ajuda e pode quebrar recursos do sistema.
     /// </summary>
     public bool IsWindowsComponent { get; init; }
+
+    /// <summary>Degradação medida no processo de boot em milissegundos (Event IDs 101 a 110). Null se não registrado.</summary>
+    public long? BootDegradationMs { get; init; }
+
+    /// <summary>Duração total de inicialização medida no boot em milissegundos. Null se não registrado.</summary>
+    public long? BootTotalTimeMs { get; init; }
 }
 
 public sealed record StartupInventory

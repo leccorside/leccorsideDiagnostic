@@ -1,3 +1,4 @@
+using LeccorWindowsHealthCenter.Application.Persistence;
 using LeccorWindowsHealthCenter.Application.SystemInfo;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -34,21 +35,25 @@ public sealed class MetricsHistoryService : BackgroundService, IMetricsHistory
     private readonly IProcessSnapshotProvider _processes;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<MetricsHistoryService> _logger;
+    private readonly IMetricSampleRepository? _metricSampleRepository;
     private readonly CpuUsageMeter _cpu = new();
     private readonly object _gate = new();
     private readonly Queue<SystemHistorySample> _system = new();
     private readonly Queue<ProcessMemorySample> _processSamples = new();
+    private DateTimeOffset _lastPersistedAt = DateTimeOffset.MinValue;
 
     public MetricsHistoryService(
         IOptions<MetricsHistoryOptions> options,
         IProcessSnapshotProvider processes,
         TimeProvider timeProvider,
-        ILogger<MetricsHistoryService> logger)
+        ILogger<MetricsHistoryService> logger,
+        IMetricSampleRepository? metricSampleRepository = null)
     {
         _options = options.Value;
         _processes = processes;
         _timeProvider = timeProvider;
         _logger = logger;
+        _metricSampleRepository = metricSampleRepository;
     }
 
     public TimeSpan Retention => _options.Retention;
@@ -74,11 +79,41 @@ public sealed class MetricsHistoryService : BackgroundService, IMetricsHistory
     {
         var cpu = _cpu.Sample();
         var memory = SystemMemory.Read();
-        var sample = new SystemHistorySample(_timeProvider.GetUtcNow(), cpu, memory?.UsedPercent, memory?.CommitPercent);
+        var now = _timeProvider.GetUtcNow();
+        var sample = new SystemHistorySample(now, cpu, memory?.UsedPercent, memory?.CommitPercent);
         lock (_gate)
         {
             _system.Enqueue(sample);
             Trim(_system, s => s.Timestamp);
+        }
+
+        // Persistência contínua no SQLite a cada 60s (Pacote A)
+        if (_metricSampleRepository is not null && now - _lastPersistedAt >= TimeSpan.FromMinutes(1))
+        {
+            _lastPersistedAt = now;
+            var record = new MetricSampleRecord
+            {
+                Timestamp = now,
+                CpuPercent = cpu ?? 0,
+                MemoryUsedPercent = memory?.UsedPercent ?? 0,
+                MemoryUsedBytes = memory is not null ? memory.TotalPhysical - memory.AvailablePhysical : 0,
+                CommitUsedPercent = memory?.CommitPercent ?? 0,
+                CommitUsedBytes = memory?.CommitTotal ?? 0,
+            };
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _metricSampleRepository.SaveSampleAsync(record, CancellationToken.None).ConfigureAwait(false);
+                    // Retenção automática de 7 dias para não crescer indefinidamente
+                    await _metricSampleRepository.PruneOlderThanAsync(now.AddDays(-7), CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Falha ao persistir amostra de telemetria no SQLite");
+                }
+            });
         }
     }
 

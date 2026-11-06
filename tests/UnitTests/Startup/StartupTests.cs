@@ -217,4 +217,45 @@ public class StartupTests
         Assert.Empty(Run(new StartupScriptHostRule(), Obs(ps, true, false, command: encoded))); // desativada não roda
         Assert.Empty(Run(new StartupScriptHostRule(), Obs(ps, true, true, command: $"{ps} -File C:\\Scripts\\backup.ps1")));
     }
+
+    [Fact]
+    public void Boot_degradation_determines_startup_impact_level()
+    {
+        var entryHigh = new StartupEntry
+        {
+            Id = "1",
+            Name = "HeavyApp",
+            Source = StartupSourceKind.RegistryRun,
+            Location = "HKCU",
+            ExecutablePath = @"C:\App\heavy.exe",
+            Enabled = true,
+            BootDegradationMs = 3500,
+        };
+
+        var entryMedium = new StartupEntry
+        {
+            Id = "2",
+            Name = "MediumApp",
+            Source = StartupSourceKind.RegistryRun,
+            Location = "HKCU",
+            ExecutablePath = @"C:\App\med.exe",
+            Enabled = true,
+            BootDegradationMs = 1500,
+        };
+
+        var entryLow = new StartupEntry
+        {
+            Id = "3",
+            Name = "FastApp",
+            Source = StartupSourceKind.RegistryRun,
+            Location = "HKCU",
+            ExecutablePath = @"C:\App\fast.exe",
+            Enabled = true,
+            BootDegradationMs = 400,
+        };
+
+        Assert.Equal(StartupImpactLevel.High, StartupImpact.Estimate(entryHigh, []));
+        Assert.Equal(StartupImpactLevel.Medium, StartupImpact.Estimate(entryMedium, []));
+        Assert.Equal(StartupImpactLevel.Low, StartupImpact.Estimate(entryLow, []));
+    }
 }

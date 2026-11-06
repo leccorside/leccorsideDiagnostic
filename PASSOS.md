@@ -231,3 +231,26 @@ processos de administrador (processo elevado, Passo 5); break-ui das duas telas 
 - [x] **Testes Automatizados e Qualidade:**
   - 396 testes unitários, 46 testes de integração, 32 testes de sistema — total de **474 testes automatizados aprovados (100% de sucesso)**.
   - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
+
+---
+
+## Evolução Futura — Melhorias e Otimizações Viáveis (Pós-v1.0.0) ⬜
+
+Itens mapeados na análise técnica de viabilidade como totalmente possíveis de implementar em modo usuário e sem dependência de drivers de kernel, organizados por pacotes funcionais:
+
+### Pacote A — Telemetria Avançada e Medição Precisa ✅
+- [x] **Separação de E/S por processo (Disco vs Rede):** Implementada sessão ETW (*Event Tracing for Windows*) em tempo real via `Microsoft.Diagnostics.Tracing.TraceEvent` com `IProcessIoTracer` e `EtwProcessIoTracer`. Discriminação precisa de bytes de disco (`DiskIoBytes`) e rede (`NetworkIoBytes`) com cálculo de taxas em `ProcessRates`.
+- [x] **Impacto de Inicialização baseado no tempo real de boot:** Integrada telemetria do canal `Microsoft-Windows-Diagnostics-Performance/Operational` via `IBootPerformanceProvider` e `BootPerformanceProvider` (Event IDs 101 a 110). Medição de degradação real em milissegundos (`BootDegradationMs`) e exibição enriquecida na UI ("Alto (3.2s no boot)").
+- [x] **Histórico contínuo de métricas com o aplicativo fechado:** Criada a entidade `MetricSampleRecord`, interface `IMetricSampleRepository` e migration `006_MetricSamples.sql` no SQLite. Amostragem contínua em `MetricsHistoryService` e persistência via `--background-scan` com retenção automática de 7 dias.
+- [x] **Verificação online de revogação de certificados (CRL/OCSP):** Implementada checagem opcional em `FileIdentityProvider` passando `WTD_REVOKE_WHOLECHAIN` para `WinVerifyTrust`. Adicionado status `SignatureStatus.Revoked`, toggle no Modo Avançado em `SettingsView` e regra `ExplorerUnsignedShellExtensionRule` com severidade `High` para certificados revogados.
+- [x] **Testes Automatizados:** 406 testes unitários, 46 testes de integração, 32 testes de sistema — total de **484 testes automatizados aprovados (100% de sucesso)**.
+- [x] Compilação limpa em Release com `-warnaserror --no-incremental` (0 erros, 0 avisos).
+
+### Pacote B — Otimizações de Armazenamento e Persistência ⬜
+- [ ] **Persistência da Análise de Espaço em Disco no SQLite:** Criar tabela `SpaceAnalysisSnapshot` para persistir a árvore podada dos maiores diretórios, permitindo carregamento instantâneo da tela de Armazenamento entre sessões.
+- [ ] **Deduplicação de Hard Links na análise de espaço:** P/Invoke para `GetFileInformationByHandleEx` com `FILE_ID_INFO` para evitar contagem duplicada de arquivos com múltiplos hard links no `WinSxS`.
+- [ ] **Exportação dedicada da Árvore de Espaço em Disco:** Adicionar botão na tela de Armazenamento para exportar a hierarquia completa de diretórios em CSV/JSON.
+
+### Pacote C — Performance e UX da Interface ⬜
+- [ ] **Virtualização de UI para agrupamentos em listas grandes (> 500 itens):** Configurar `VirtualizingPanel.IsVirtualizingWhenGrouping="True"` e modo de reciclagem nas telas de Inicialização e Processos para carregamento instantâneo sem congelamento de renderização.
+

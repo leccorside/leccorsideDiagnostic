@@ -13,8 +13,11 @@ public enum SignatureStatus
 
     NoSignature,
 
-    /// <summary>Assinatura presente, mas inválida (arquivo alterado, certificado não confiável ou revogado).</summary>
+    /// <summary>Assinatura presente, mas inválida (arquivo alterado ou certificado não confiável).</summary>
     Invalid,
+
+    /// <summary>Certificado revogado na autoridade certificadora (detectado via CRL ou OCSP online).</summary>
+    Revoked,
 }
 
 /// <summary>Quem fez o executável: fabricante declarado (versão do arquivo) e quem assinou. Null = não informado.</summary>
@@ -43,6 +46,7 @@ public sealed record FileIdentity
         SignatureStatus.SignedByCatalog => "Assinado pelo catálogo do Windows",
         SignatureStatus.NoSignature => "Sem assinatura",
         SignatureStatus.Invalid => "Assinatura inválida",
+        SignatureStatus.Revoked => "Assinatura revogada",
         _ => "não verificado",
     };
 }
@@ -51,7 +55,13 @@ public interface IFileIdentityProvider
 {
     /// <summary>
     /// Fabricante e assinatura do arquivo. Verificar assinatura leva milissegundos por arquivo: o resultado fica em cache
-    /// por caminho + data de modificação. Sem consulta de revogação na rede (o app funciona 100% local).
+    /// por caminho + data de modificação. Sem consulta de revogação na rede (o app funciona 100% local por padrão).
     /// </summary>
     Task<FileIdentity> GetAsync(string path, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Fabricante e assinatura do arquivo com opção de checagem online de revogação de certificados (CRL/OCSP).
+    /// </summary>
+    Task<FileIdentity> GetAsync(string path, bool checkRevocationOnline, CancellationToken cancellationToken) =>
+        GetAsync(path, cancellationToken);
 }

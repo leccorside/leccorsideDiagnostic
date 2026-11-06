@@ -88,16 +88,16 @@ Arquitetura e camadas: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   "Mostrar no Explorer" usa a API do shell (`ShellLauncher`, `SHOpenFolderAndSelectItems`): seleciona, nunca executa.
 - **Processos**: lista virtualizada atualizada a cada 2 s só com a tela visível (CPU em % da máquina, memória privada,
   E/S por segundo, threads, handles, fabricante), ordenação pelo cabeçalho, pesquisa (nome, PID, caminho, fabricante),
-  modo árvore, escudo nos processos protegidos. Detalhes do selecionado: caminho, fabricante, assinatura, usuário,
+  modo árvore, escudo nos processos protegidos. Suporta discriminação de bytes de disco e rede quando a sessão ETW de kernel estiver ativa. Detalhes do selecionado: caminho, fabricante, assinatura, usuário,
   quem iniciou, início, tempo de CPU; ações Abrir local do arquivo, Propriedades, Copiar caminho (Ctrl+C) e
   Finalizar processo com confirmação no lugar (Delete pede a confirmação; processos críticos nunca). Abaixo de 860 px
   de lista, a coluna Fabricante sai e as ações vão para baixo.
 - **Inicialização** (somente leitura): entradas com problema no topo (arquivo inexistente, pasta temporária; tarefa
   do próprio Windows como informação), filtros (pesquisa, desativados, itens do Windows), grupos Aplicativos, Tarefas
-  agendadas e Serviços automáticos com status, origem, fabricante e impacto estimado; menu Mostrar no Explorer,
+  agendadas e Serviços automáticos com status, origem, fabricante e impacto enriquecido pelo tempo real de degradação no boot (canal Diagnostics-Performance, Event IDs 101–110); menu Mostrar no Explorer,
   Copiar caminho, Copiar linha de comando; indica onde desativar conforme a origem. F5 lê de novo.
-- **Configurações**: tema (Windows/Claro/Escuro, inclusive barra de título), modo avançado, estado de privilégio,
-  Dry Run, caminhos de dados, versão.
+- **Configurações**: tema (Windows/Claro/Escuro, inclusive barra de título), modo avançado, verificação online de revogação de certificados digitais (CRL/OCSP), estado de privilégio,
+  Dry Run, agendamento de varredura periódica no Task Scheduler, caminhos de dados, versão.
 - Logos: `logo2.png` (tema claro) e `logo1.jpg` (tema escuro, como selo); `logo-mark.png` e `app.ico` são
   recortes do símbolo da `logo2.png`.
 - **Sistema visual** (`Themes/`): `Light.xaml`/`Dark.xaml` definem todos os pincéis (superfícies, texto, destaque,

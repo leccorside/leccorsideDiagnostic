@@ -718,17 +718,37 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - 396 testes unitários, 46 testes de integração, 32 testes de sistema — total de **474 testes automatizados aprovados (100% de sucesso)**.
   - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
 
+### Evolução Futura — Pacote A: Telemetria Avançada e Medição Precisa (06/11/2026)
+
+- **Separação de E/S por processo (Disco vs Rede):**
+  - Implementado `IProcessIoTracer` e `EtwProcessIoTracer` usando `Microsoft.Diagnostics.Tracing.TraceEvent` (v3.1.21).
+  - Coleta em tempo real eventos de kernel `DiskIO` (`DiskIORead`, `DiskIOWrite`) e `NetworkTCPIP` (`TcpIpSend`, `TcpIpRecv`, `UdpIpSend`, `UdpIpRecv`) correlacionados por PID em dicionário thread-safe concorrente.
+  - Degradação graciosa e tolerante a falhas: se não houver privilégio administrativo ou se a sessão de kernel estiver ocupada, desativa o rastreador sem falhar o aplicativo.
+  - Enriquecimento de `ProcessDetails` com `DiskIoBytes` e `NetworkIoBytes`, e cálculo de taxas discriminadas em `ProcessRates` (`DiskIoBytesPerSecond` e `NetworkIoBytesPerSecond`).
+- **Impacto de Inicialização baseado no tempo real de boot:**
+  - Implementado `IBootPerformanceProvider` e `BootPerformanceProvider` realizando leitura do canal `Microsoft-Windows-Diagnostics-Performance/Operational` via `EventLogReader` (Event IDs 101 a 110).
+  - Extração de `DegradationTimeMs`, `TotalTimeMs`, caminho do executável ou nome do serviço/tarefa.
+  - `StartupInventoryProvider` correlaciona automaticamente os eventos de boot com os itens da inicialização, atribuindo `BootDegradationMs` e `BootTotalTimeMs`.
+  - `StartupImpact.Estimate` prioriza medições reais de boot: degradação ≥ 3 s = Alto, ≥ 1 s = Médio, < 1 s = Baixo. Exibição amigável na UI ("Alto (3.2s no boot)").
+- **Histórico contínuo de métricas com o aplicativo fechado:**
+  - Criada a entidade `MetricSampleRecord`, interface `IMetricSampleRepository` e implementação `SqliteMetricSampleRepository`.
+  - Migration 2 (`006_MetricSamples.sql` / `Migrations.cs` v2) criando a tabela `MetricSamples` com índice temporal decrescente.
+  - `MetricsHistoryService` persiste periodicamente amostras de telemetria no SQLite com rotina de retenção de 7 dias.
+  - O modo de varredura silenciosa `--background-scan` / `--scheduled-scan` no `App.xaml.cs` registra amostras de telemetria no banco mesmo com o aplicativo fechado.
+- **Verificação online de revogação de certificados (CRL/OCSP):**
+  - Estendido `FileIdentityProvider` e `IFileIdentityProvider` para suportar checagem opcional de revogação na rede através de `WinVerifyTrust` com flags `WTD_REVOKE_WHOLECHAIN` (1) e `WTD_REVOCATION_CHECK_CHAIN_EX` (0x40).
+  - Novo valor no enum: `SignatureStatus.Revoked` ("Assinatura revogada").
+  - `ExplorerUnsignedShellExtensionRule` identifica certificados revogados gerando achado de severidade `Severity.High` com 100% de confiança.
+  - Novo controle e binding na tela de Configurações (`SettingsView` / `SettingsViewModel`): toggle "Verificar revogação online de certificados digitais (CRL/OCSP)" com persistência assíncrona na chave `security.check-revocation-online`.
+- **Testes Automatizados:**
+  - 406 testes unitários, 46 testes de integração, 32 testes de sistema — total de **484 testes automatizados aprovados (100% de sucesso)**.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
+
 ## Pendências / próximos passos
 
-Com a conclusão do **Passo 10 (MVP 5)**, todos os 10 passos estruturais e funcionais previstos no plano de execução original `PASSOS.md` foram 100% implementados, testados e validados!
-
-Próximas frentes sugeridas para evolução e homologação contínua:
-
-1. **Homologação em Produção e Empacotamento de Release:** Executar `./installer/package-installer.ps1 -Action Build` para gerar os binários finais self-contained de distribuição.
-2. **Revisão e Polimento Visual (impeccable) em Telas Recentes:** Rodada de testes de contraste e layout responsivo nas telas de Relatórios, Desenvolvimento e Segurança nos temas claro e escuro.
-3. **Validação de Tarefas Agendadas no Windows:** Testar a criação e disparo de tarefas reais via Windows Task Scheduler com `--scheduled-scan` em ambiente de homologação.
-4. **Otimizações de Virtualização de UI:** Implementar virtualização de listas de processos e itens de inicialização com mais de 500 entradas para reduzir consumo de CPU ao abrir a tela.
-5. **Expansão de Regras de Diagnóstico e Reparo:** Adicionar novos scripts de correção segura para extensões de terceiros e otimizações adicionais sugeridas pela telemetria.
+Com a conclusão do **Passo 10 (MVP 5)** e do **Pacote A (Telemetria Avançada e Medição Precisa)**, os próximos pacotes do roadmap de evolução futura são:
+- **Pacote B — Otimizações de Armazenamento e Persistência:** persistência da árvore de espaço em disco no SQLite, deduplicação de hard links com `FILE_ID_INFO` no WinSxS e exportação dedicada do mapa de diretórios.
+- **Pacote C — Performance e UX da Interface:** virtualização de UI com reciclagem de itens agrupados para listas extensas de processos e inicialização.
 
 Itens do Passo 4 para depois: a lista de
 processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode

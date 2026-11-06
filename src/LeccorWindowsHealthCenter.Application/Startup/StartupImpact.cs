@@ -34,6 +34,21 @@ public static class StartupImpact
             return StartupImpactLevel.Disabled;
         }
 
+        // Prioridade 1: Medição real de boot do canal Diagnostics-Performance (Pacote A)
+        if (entry.BootDegradationMs is { } degradation)
+        {
+            return degradation >= 3000 ? StartupImpactLevel.High
+                : degradation >= 1000 ? StartupImpactLevel.Medium
+                : StartupImpactLevel.Low;
+        }
+
+        if (entry.BootTotalTimeMs is { } totalTime)
+        {
+            return totalTime >= 5000 ? StartupImpactLevel.High
+                : totalTime >= 2000 ? StartupImpactLevel.Medium
+                : StartupImpactLevel.Low;
+        }
+
         if (entry.ExecutablePath is not { } exe)
         {
             return StartupImpactLevel.NotMeasured;

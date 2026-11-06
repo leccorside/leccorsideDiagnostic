@@ -50,6 +50,8 @@ public sealed class StartupScanner : DiagnosticScannerBase
                 ["enabled"] = StorageNames.Invariant(entry.Enabled),
                 ["windows"] = StorageNames.Invariant(entry.IsWindowsComponent),
                 ["user"] = StorageNames.Invariant(entry.CurrentUserOnly),
+                ["boot_degradation_ms"] = entry.BootDegradationMs?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+                ["boot_total_ms"] = entry.BootTotalTimeMs?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
             });
         }
 

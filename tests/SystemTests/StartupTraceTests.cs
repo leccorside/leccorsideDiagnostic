@@ -39,8 +39,20 @@ public sealed class StartupTraceTests : IDisposable
         using var trace = new StartupTrace(_logs, TimeSpan.FromMilliseconds(50));
         trace.Mark("Fase lenta simulada");
 
-        await Task.Delay(400);
-        Assert.True(File.Exists(trace.SlowReportPath));
+        // Aguarda o watchdog disparar (com tolerância a concorrência de execução de testes)
+        var exists = false;
+        for (var i = 0; i < 20; i++)
+        {
+            if (File.Exists(trace.SlowReportPath))
+            {
+                exists = true;
+                break;
+            }
+
+            await Task.Delay(50);
+        }
+
+        Assert.True(exists);
         Assert.Contains("Fase lenta simulada", await File.ReadAllTextAsync(trace.SlowReportPath), StringComparison.Ordinal);
 
         trace.Complete();

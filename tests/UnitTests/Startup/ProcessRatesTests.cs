@@ -80,4 +80,30 @@ public class ProcessRatesTests
 
         Assert.Empty(rates);
     }
+
+    [Fact]
+    public void DiskAndNetworkIo_AreComputedWhenAvailable()
+    {
+        var p1 = new ProcessDetails
+        {
+            Pid = 10,
+            Name = "p10",
+            StartTime = Started,
+            DiskIoBytes = 10_000,
+            NetworkIoBytes = 5_000,
+        };
+        var p2 = new ProcessDetails
+        {
+            Pid = 10,
+            Name = "p10",
+            StartTime = Started,
+            DiskIoBytes = 20_000,
+            NetworkIoBytes = 9_000,
+        };
+
+        var rates = ProcessRates.Compute(Snapshot(T0, p1), Snapshot(T0.AddSeconds(2), p2), 4);
+
+        Assert.Equal(5_000, rates[10].DiskIoBytesPerSecond);
+        Assert.Equal(2_000, rates[10].NetworkIoBytesPerSecond);
+    }
 }

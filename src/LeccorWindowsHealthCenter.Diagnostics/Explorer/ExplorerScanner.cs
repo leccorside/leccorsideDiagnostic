@@ -63,6 +63,11 @@ public sealed class ExplorerScanner : DiagnosticScannerBase
                 attributes[ExplorerNames.AttrSigned] = ext.IsSigned.Value.ToString();
             }
 
+            if (ext.IsRevoked)
+            {
+                attributes[ExplorerNames.AttrRevoked] = "True";
+            }
+
             collector.AddObservation(
                 ExplorerNames.ObservationShellExtension,
                 ext.Name,

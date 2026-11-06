@@ -17,12 +17,17 @@ public sealed class ProcessInventoryProvider : IProcessInventoryProvider
 {
     private readonly ILogger<ProcessInventoryProvider> _logger;
     private readonly TimeProvider _timeProvider;
+    private readonly IProcessIoTracer? _ioTracer;
     private readonly ConcurrentDictionary<string, string?> _accounts = new(StringComparer.Ordinal);
 
-    public ProcessInventoryProvider(ILogger<ProcessInventoryProvider> logger, TimeProvider timeProvider)
+    public ProcessInventoryProvider(
+        ILogger<ProcessInventoryProvider> logger,
+        TimeProvider timeProvider,
+        IProcessIoTracer? ioTracer = null)
     {
         _logger = logger;
         _timeProvider = timeProvider;
+        _ioTracer = ioTracer;
     }
 
     public ProcessInventorySnapshot Capture()
@@ -115,6 +120,14 @@ public sealed class ProcessInventoryProvider : IProcessInventoryProvider
             }
         }
 
+        long? diskIo = null;
+        long? networkIo = null;
+        if (_ioTracer?.IsActive == true && _ioTracer.GetProcessIo(pid) is { } breakdown)
+        {
+            diskIo = breakdown.DiskIoBytes;
+            networkIo = breakdown.NetworkIoBytes;
+        }
+
         return new ProcessDetails
         {
             Pid = pid,
@@ -130,6 +143,8 @@ public sealed class ProcessInventoryProvider : IProcessInventoryProvider
             TotalProcessorTime = cpu,
             StartTime = start,
             IoBytes = io,
+            DiskIoBytes = diskIo,
+            NetworkIoBytes = networkIo,
         };
     }
 

@@ -27,6 +27,8 @@ public sealed record ShellExtensionItem
 
     public bool? IsSigned { get; init; }
 
+    public bool IsRevoked { get; init; }
+
     public bool IsBlocked { get; init; }
 
     public bool IsWindowsOwned { get; init; }
@@ -80,6 +82,7 @@ public static class ExplorerNames
     public const string AttrExists = "exists";
     public const string AttrPublisher = "publisher";
     public const string AttrSigned = "signed";
+    public const string AttrRevoked = "revoked";
     public const string AttrWindows = "windows";
     public const string AttrBlocked = "blocked";
 }

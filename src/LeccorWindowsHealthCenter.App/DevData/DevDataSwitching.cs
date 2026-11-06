@@ -161,6 +161,9 @@ internal sealed class SwitchingFileIdentity(FileIdentityProvider real, DevDataSw
 {
     public Task<FileIdentity> GetAsync(string path, CancellationToken cancellationToken) =>
         sw.Mode == DevDataMode.Real ? real.GetAsync(path, cancellationToken) : Task.FromResult(DevDataProcessFixtures.Identity(path));
+
+    public Task<FileIdentity> GetAsync(string path, bool checkRevocationOnline, CancellationToken cancellationToken) =>
+        sw.Mode == DevDataMode.Real ? real.GetAsync(path, checkRevocationOnline, cancellationToken) : Task.FromResult(DevDataProcessFixtures.Identity(path));
 }
 
 internal sealed class SwitchingStartup(StartupInventoryProvider real, DevDataSwitch sw) : IStartupInventoryProvider

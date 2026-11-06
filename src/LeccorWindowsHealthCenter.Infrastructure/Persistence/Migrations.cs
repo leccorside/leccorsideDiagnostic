@@ -152,5 +152,17 @@ public static class Migrations
                 UpdatedAt TEXT NOT NULL
             );
             """),
+        new(2, "MetricSamples", """
+            CREATE TABLE IF NOT EXISTS MetricSamples (
+                Id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                Timestamp         TEXT NOT NULL,
+                CpuPercent        REAL NOT NULL,
+                MemoryUsedPercent REAL NOT NULL,
+                MemoryUsedBytes   INTEGER NOT NULL,
+                CommitUsedPercent REAL NOT NULL,
+                CommitUsedBytes   INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS IX_MetricSamples_Timestamp ON MetricSamples (Timestamp DESC);
+            """),
     ];
 }

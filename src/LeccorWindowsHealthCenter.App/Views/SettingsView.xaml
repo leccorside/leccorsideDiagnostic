@@ -30,6 +30,11 @@
                     <TextBlock Style="{StaticResource SectionTitle}" Text="Modo avançado" />
                     <CheckBox Content="Exibir detalhes técnicos (Event IDs, caminhos de registro, comandos, exit codes, métricas)"
                               IsChecked="{Binding Preferences.AdvancedMode}" />
+                    <CheckBox Content="Verificar revogação online de certificados digitais (CRL/OCSP)"
+                              IsChecked="{Binding CheckRevocationOnline}"
+                              Margin="0,8,0,0" />
+                    <TextBlock Style="{StaticResource Caption}" Margin="24,2,0,0"
+                               Text="Consulta listas de revogação na rede (CRL/OCSP) para validar se certificados de terceiros foram cancelados." />
                 </StackPanel>
             </Border>
 

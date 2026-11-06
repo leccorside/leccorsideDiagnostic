@@ -32,8 +32,13 @@ public sealed class ExplorerUnsignedShellExtensionRule : IRule
                 continue; // Extensões nativas do Windows são ignoradas
             }
 
+            var isRevokedStr = obs.Attributes.GetValueOrDefault(ExplorerNames.AttrRevoked);
+            var isRevoked = bool.TryParse(isRevokedStr, out var rev) && rev;
+
             var signedStr = obs.Attributes.GetValueOrDefault(ExplorerNames.AttrSigned);
-            if (!bool.TryParse(signedStr, out var isSigned) || isSigned)
+            var isSigned = bool.TryParse(signedStr, out var s) && s;
+
+            if (isSigned && !isRevoked)
             {
                 continue;
             }
@@ -47,7 +52,9 @@ public sealed class ExplorerUnsignedShellExtensionRule : IRule
                 new()
                 {
                     Source = EvidenceSource.FileSystem,
-                    Description = $"Biblioteca '{dllPath}' não possui assinatura digital válida",
+                    Description = isRevoked
+                        ? $"Biblioteca '{dllPath}' possui assinatura digital REVOGADA"
+                        : $"Biblioteca '{dllPath}' não possui assinatura digital válida",
                     Reference = clsid,
                     CollectedAt = DateTimeOffset.UtcNow,
                 },
@@ -59,13 +66,23 @@ public sealed class ExplorerUnsignedShellExtensionRule : IRule
                 RuleId = Id,
                 ScannerId = "explorer",
                 Category = FindingCategory.Explorer,
-                Severity = Severity.Info,
-                Confidence = Confidence.FromPercent(90),
-                Title = $"Extensão do Windows Explorer sem assinatura: {name}",
-                Description = $"A biblioteca de extensão '{dllPath}' não possui assinatura digital da Microsoft ou de fabricante conhecido.",
-                ProbableCause = "Software legado ou ferramenta utilitária não assinada.",
-                Impact = "Extensões sem assinatura rodando dentro de explorer.exe têm maior probabilidade de causar instabilidade ou vazamentos de memória no processo da Área de Trabalho.",
-                Recommendation = "Verificar a autenticidade do aplicativo ou mantê-lo atualizado.",
+                Severity = isRevoked ? Severity.High : Severity.Info,
+                Confidence = Confidence.FromPercent(isRevoked ? 100 : 90),
+                Title = isRevoked
+                    ? $"Extensão do Windows Explorer com certificado REVOGADO: {name}"
+                    : $"Extensão do Windows Explorer sem assinatura: {name}",
+                Description = isRevoked
+                    ? $"A biblioteca de extensão '{dllPath}' possui assinatura digital revogada pela autoridade certificadora."
+                    : $"A biblioteca de extensão '{dllPath}' não possui assinatura digital da Microsoft ou de fabricante conhecido.",
+                ProbableCause = isRevoked
+                    ? "Certificado revogado por comprometimento, fraude ou expiração de segurança."
+                    : "Software legado ou ferramenta utilitária não assinada.",
+                Impact = isRevoked
+                    ? "Risco de segurança crítico: bibliotecas com certificados revogados podem conter binários adulterados ou maliciosos rodando dentro de explorer.exe."
+                    : "Extensões sem assinatura rodando dentro de explorer.exe têm maior probabilidade de causar instabilidade ou vazamentos de memória no processo da Área de Trabalho.",
+                Recommendation = isRevoked
+                    ? "Desative imediatamente esta extensão através da Central de Correções e remova o software correspondente."
+                    : "Verificar a autenticidade do aplicativo ou mantê-lo atualizado.",
                 Evidence = evidence,
                 RequiresElevation = false,
                 RequiresRestart = false,
