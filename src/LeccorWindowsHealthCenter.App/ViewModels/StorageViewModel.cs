@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LeccorWindowsHealthCenter.App.Services;
@@ -127,6 +128,8 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
     private readonly IRuleSettings _ruleSettings;
     private readonly LowFreeSpaceRule _lowSpace = new();
     private readonly ILogger<StorageViewModel> _logger;
+    private readonly ISpaceAnalysisSnapshotRepository? _snapshotRepository;
+    private readonly ISpaceAnalysisExporter? _exporter;
     private readonly Dictionary<string, AnalysisState> _analyses = new(StringComparer.OrdinalIgnoreCase);
     private string? _currentKey;
     private int _loadVersion;
@@ -141,7 +144,9 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
         UiPreferences preferences,
         IOptions<SpaceAnalysisOptions> options,
         IRuleSettings ruleSettings,
-        ILogger<StorageViewModel> logger)
+        ILogger<StorageViewModel> logger,
+        ISpaceAnalysisSnapshotRepository? snapshotRepository = null,
+        ISpaceAnalysisExporter? exporter = null)
     {
         _inventory = inventory;
         _analyzer = analyzer;
@@ -151,6 +156,8 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
         _options = options.Value;
         _ruleSettings = ruleSettings;
         _logger = logger;
+        _snapshotRepository = snapshotRepository;
+        _exporter = exporter;
         preferences.PropertyChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(AdvancedModeWithWarnings));
@@ -207,7 +214,10 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
     [ObservableProperty] private double _analysisPercent;
     [ObservableProperty] private bool _hasDeterminateProgress;
     [ObservableProperty] private string _analysisStatus = "Escolha um volume e clique em Analisar para ver as maiores pastas e arquivos. Em discos grandes, a leitura pode levar alguns minutos.";
-    [ObservableProperty] private bool _hasAnalysis;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExportCsvCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExportJsonCommand))]
+    private bool _hasAnalysis;
     [ObservableProperty] private IReadOnlyList<AnalysisChip> _analysisChips = [];
     [ObservableProperty] private IReadOnlyList<BreadcrumbItem> _breadcrumb = [];
     [ObservableProperty] private string _currentTitle = string.Empty;
@@ -392,6 +402,109 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
     /// Esquece as análises guardadas. Só para o seletor de dados de desenvolvimento: trocar a fonte de dados não pode
     /// deixar uma análise de teste sobre o C: real (no uso normal, "Ler novamente" mantém as análises).
     /// </summary>
+    [RelayCommand(CanExecute = nameof(HasAnalysis))]
+    private async Task ExportCsvAsync()
+    {
+        if (_exporter is null || Current is null)
+        {
+            return;
+        }
+
+        var defaultFileName = $"Analise-Espaco-{SanitizeFileName(Current.Label)}-{Current.Analysis.CapturedAt:yyyyMMdd-HHmm}.csv";
+        var filePath = _picker.PickSaveFile("Exportar análise de espaço em CSV", defaultFileName, "Arquivo CSV (*.csv)|*.csv|Todos os arquivos (*.*)|*.*");
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var csvContent = _exporter.ExportToCsv(Current.Analysis);
+            await File.WriteAllTextAsync(filePath, csvContent, Encoding.UTF8);
+            AnalysisStatus = $"Análise exportada com sucesso em: {filePath}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao exportar análise de espaço em CSV");
+            AnalysisStatus = $"Erro ao exportar CSV: {ex.Message}";
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasAnalysis))]
+    private async Task ExportJsonAsync()
+    {
+        if (_exporter is null || Current is null)
+        {
+            return;
+        }
+
+        var defaultFileName = $"Analise-Espaco-{SanitizeFileName(Current.Label)}-{Current.Analysis.CapturedAt:yyyyMMdd-HHmm}.json";
+        var filePath = _picker.PickSaveFile("Exportar análise de espaço em JSON", defaultFileName, "Arquivo JSON (*.json)|*.json|Todos os arquivos (*.*)|*.*");
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var jsonContent = _exporter.ExportToJson(Current.Analysis);
+            await File.WriteAllTextAsync(filePath, jsonContent, Encoding.UTF8);
+            AnalysisStatus = $"Análise exportada com sucesso em: {filePath}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao exportar análise de espaço em JSON");
+            AnalysisStatus = $"Erro ao exportar JSON: {ex.Message}";
+        }
+    }
+
+    private static string SanitizeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray());
+        return sanitized.Replace(" ", "-").Replace(":", "");
+    }
+
+    private async Task TryLoadSavedSnapshotAsync(IReadOnlyList<VolumeInfo> volumes)
+    {
+        if (_snapshotRepository is null || _analyses.Count > 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var orderedVolumes = volumes.OrderByDescending(v => v.IsSystem).ToList();
+            foreach (var vol in orderedVolumes)
+            {
+                if (_analyses.Count > 0)
+                {
+                    break;
+                }
+
+                var snapshot = await _snapshotRepository.GetLatestSnapshotAsync(vol.Root, CancellationToken.None);
+                if (snapshot is not null && _analyses.Count == 0)
+                {
+                    var drive = vol.Root.TrimEnd('\\');
+                    var label = vol.Label is { } l ? $"{drive}  {l}" : drive;
+                    var state = new AnalysisState(vol.Root, label, snapshot, vol.UsedBytes);
+                    _analyses[vol.Root] = state;
+                    _currentKey = vol.Root;
+                    HasAnalysis = true;
+                    ShowAnalysisSection = true;
+                    ShowCurrent(focus: false);
+                    UpdateChips();
+                    AnalysisStatus = $"Exibindo última análise salva ({Fmt.DateTime(snapshot.CapturedAt)}) · {Fmt.Duration(snapshot.Duration)} de leitura · Clique em Analisar para atualizar.";
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Não foi possível carregar o snapshot salvo de análise de espaço.");
+        }
+    }
+
     public void ResetAnalyses()
     {
         _analyses.Clear();
@@ -434,6 +547,11 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
             ShowCurrent(focus: true);
             UpdateChips();
             AnalysisStatus = StatusFor(state);
+
+            if (_snapshotRepository is not null)
+            {
+                _ = _snapshotRepository.SaveSnapshotAsync(path, analysis, CancellationToken.None);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -601,6 +719,11 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
             ? "Temperatura e vida útil aparecem só quando o próprio disco informa. Nada é estimado."
             : "Vida útil restante e horas ligadas exigem administrador: sem ele, o Windows nega o acesso a esses dados. Temperatura aparece só quando o próprio disco informa. Nada é estimado.";
         ShowAnalysisSection = Volumes.Count > 0 || HasAnalysis;
+
+        if (!HasAnalysis && _analyses.Count == 0 && _snapshotRepository is not null && inventory.Volumes.Count > 0)
+        {
+            _ = TryLoadSavedSnapshotAsync(inventory.Volumes);
+        }
     }
 
     private List<StorageAlert> BuildAlerts(StorageInventory inventory, Dictionary<int, PhysicalDiskInfo> failingDisks)
@@ -850,6 +973,11 @@ public sealed partial class StorageViewModel : ObservableObject, IPageLifecycle,
         if (node.CloudOnlyBytes > 0)
         {
             notes.Add($"{Fmt.Bytes(node.CloudOnlyBytes)} só na nuvem (OneDrive), sem ocupar o disco");
+        }
+
+        if (node.HardLinkDeduplicatedBytes > 0)
+        {
+            notes.Add($"{Fmt.Bytes(node.HardLinkDeduplicatedBytes)} deduplicados em links físicos (hard links múltiplos)");
         }
 
         // Arquivos do Windows aparecem em mais de uma pasta (links físicos): a soma pode passar do espaço realmente usado.

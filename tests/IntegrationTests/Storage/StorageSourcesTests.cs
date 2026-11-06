@@ -198,6 +198,32 @@ public class StorageSourcesTests
     }
 
     [Fact]
+    public async Task Hard_links_are_deduplicated_and_do_not_double_count_physical_space()
+    {
+        using var temp = new TempDirectory();
+        var folder = Path.Combine(temp.Path, "HardLinkTest");
+        Directory.CreateDirectory(folder);
+        var original = Path.Combine(folder, "original.bin");
+        WriteFile(original, 5 * Mb);
+        var hardLink = Path.Combine(folder, "linked.bin");
+
+        using (var mklink = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", ["/c", "mklink", "/H", hardLink, original]) { CreateNoWindow = true, UseShellExecute = false }))
+        {
+            await mklink!.WaitForExitAsync();
+        }
+
+        if (!File.Exists(hardLink))
+        {
+            return;
+        }
+
+        var analysis = await Analyzer().AnalyzeAsync(temp.Path, solidState: true, null, CancellationToken.None);
+
+        Assert.Equal(5 * Mb, analysis.Root.SizeBytes);
+        Assert.Equal(5 * Mb, analysis.Root.HardLinkDeduplicatedBytes);
+    }
+
+    [Fact]
     public void Patterns_expand_one_wildcard_level_and_skip_missing_paths()
     {
         using var temp = new TempDirectory();

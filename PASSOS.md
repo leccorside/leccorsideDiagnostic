@@ -246,10 +246,23 @@ Itens mapeados na análise técnica de viabilidade como totalmente possíveis de
 - [x] **Testes Automatizados:** 406 testes unitários, 46 testes de integração, 32 testes de sistema — total de **484 testes automatizados aprovados (100% de sucesso)**.
 - [x] Compilação limpa em Release com `-warnaserror --no-incremental` (0 erros, 0 avisos).
 
-### Pacote B — Otimizações de Armazenamento e Persistência ⬜
-- [ ] **Persistência da Análise de Espaço em Disco no SQLite:** Criar tabela `SpaceAnalysisSnapshot` para persistir a árvore podada dos maiores diretórios, permitindo carregamento instantâneo da tela de Armazenamento entre sessões.
-- [ ] **Deduplicação de Hard Links na análise de espaço:** P/Invoke para `GetFileInformationByHandleEx` com `FILE_ID_INFO` para evitar contagem duplicada de arquivos com múltiplos hard links no `WinSxS`.
-- [ ] **Exportação dedicada da Árvore de Espaço em Disco:** Adicionar botão na tela de Armazenamento para exportar a hierarquia completa de diretórios em CSV/JSON.
+### Pacote B — Otimizações de Armazenamento e Persistência ✅
+- [x] **Persistência da Análise de Espaço em Disco no SQLite:**
+  - Adicionada Migration 3 (`SpaceAnalysisSnapshot`) com tabela indexada por `(VolumeRoot, CapturedAt DESC)`.
+  - Criada interface `ISpaceAnalysisSnapshotRepository` e repositório `SqliteSpaceAnalysisSnapshotRepository` com retenção automática dos últimos 10 snapshots por volume.
+  - Integração no `StorageViewModel`: restauração assíncrona automática em ~10ms do último snapshot salvo no SQLite ao abrir a tela (com status claro e navegação imediata) e persistência em segundo plano após cada análise.
+- [x] **Deduplicação de Hard Links na Análise de Espaço:**
+  - P/Invoke Win32 para `CreateFileW` e `GetFileInformationByHandle` em `FileSystemSpaceAnalyzer`.
+  - Identificação única por `(VolumeSerialNumber, FileIndexHigh, FileIndexLow)` com rastreamento concorrente via `_seenHardLinks` para arquivos com `NumberOfLinks > 1`.
+  - Evita contagem física repetida de bibliotecas e componentes compartilhados em `WinSxS` e pastas do sistema, acumulando os bytes economizados em `FolderNode.HardLinkDeduplicatedBytes` e exibindo a nota deduplicada na UI.
+- [x] **Exportação Dedicada da Árvore de Espaço em Disco (CSV e JSON):**
+  - Implementado `ISpaceAnalysisExporter` e `SpaceAnalysisExporter` no projeto Reporting.
+  - Exportação em CSV tabular com cabeçalho, UTF-8 com BOM (`\uFEFF`) e delimitador `;` para compatibilidade total com Excel pt-BR, cobrindo diretórios, maiores arquivos e arquivos antigos.
+  - Exportação em JSON estruturado legível e indentado.
+  - Botões integrados na barra de análise de espaço em `StorageView.xaml` com comandos reativos `ExportCsvCommand` e `ExportJsonCommand` vinculados a `SaveFileDialog` através de `IFolderPicker.PickSaveFile`.
+- [x] **Testes Automatizados e Qualidade:**
+  - 412 testes unitários, 47 testes de integração, 32 testes de sistema — total de **491 testes automatizados aprovados (100% de sucesso)**.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 erros, 0 avisos).
 
 ### Pacote C — Performance e UX da Interface ⬜
 - [ ] **Virtualização de UI para agrupamentos em listas grandes (> 500 itens):** Configurar `VirtualizingPanel.IsVirtualizingWhenGrouping="True"` e modo de reciclagem nas telas de Inicialização e Processos para carregamento instantâneo sem congelamento de renderização.

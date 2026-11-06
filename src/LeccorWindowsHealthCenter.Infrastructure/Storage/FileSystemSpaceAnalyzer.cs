@@ -1,9 +1,12 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Enumeration;
+using System.Runtime.InteropServices;
 using LeccorWindowsHealthCenter.Application.Storage;
 using LeccorWindowsHealthCenter.Infrastructure.SystemInfo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Win32.SafeHandles;
 
 namespace LeccorWindowsHealthCenter.Infrastructure.Storage;
 
@@ -221,6 +224,34 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BY_HANDLE_FILE_INFORMATION
+    {
+        public uint FileAttributes;
+        public System.Runtime.InteropServices.ComTypes.FILETIME CreationTime;
+        public System.Runtime.InteropServices.ComTypes.FILETIME LastAccessTime;
+        public System.Runtime.InteropServices.ComTypes.FILETIME LastWriteTime;
+        public uint VolumeSerialNumber;
+        public uint FileSizeHigh;
+        public uint FileSizeLow;
+        public uint NumberOfLinks;
+        public uint FileIndexHigh;
+        public uint FileIndexLow;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetFileInformationByHandle(SafeFileHandle hFile, out BY_HANDLE_FILE_INFORMATION lpFileInformation);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateFileW(
+        string lpFileName,
+        uint dwDesiredAccess,
+        uint dwShareMode,
+        IntPtr lpSecurityAttributes,
+        uint dwCreationDisposition,
+        uint dwFlagsAndAttributes,
+        IntPtr hTemplateFile);
+
     private readonly record struct Entry(string? Name, bool IsDirectory, long Length, FileAttributes Attributes, DateTimeOffset LastWrite);
 
     /// <summary>Estado de uma análise: contadores, top-N de arquivos e vagas de paralelismo.</summary>
@@ -236,6 +267,7 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
         private readonly Lock _filesLock = new();
         private readonly PriorityQueue<FileEntry, long> _largest = new();
         private readonly PriorityQueue<FileEntry, long> _old = new();
+        private readonly ConcurrentDictionary<(uint Volume, uint High, uint Low), byte> _seenHardLinks = new();
         private long _largestThreshold;
         private long _files;
         private long _bytes;
@@ -256,20 +288,53 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
 
         public void Dispose() => _slots.Dispose();
 
+        private bool IsDuplicateHardLink(string filePath)
+        {
+            if (!ShouldCheckHardLink(filePath))
+            {
+                return false;
+            }
+
+            try
+            {
+                using var handle = CreateFileW(filePath, 0, 7, IntPtr.Zero, 3, 0x02000000, IntPtr.Zero);
+                if (!handle.IsInvalid && GetFileInformationByHandle(handle, out var info))
+                {
+                    if (info.NumberOfLinks > 1)
+                    {
+                        var key = (info.VolumeSerialNumber, info.FileIndexHigh, info.FileIndexLow);
+                        return !_seenHardLinks.TryAdd(key, 0);
+                    }
+                }
+            }
+            catch
+            {
+                // Falha na checagem: trata como não duplicado
+            }
+
+            return false;
+        }
+
+        private static bool ShouldCheckHardLink(string path) =>
+            path.Contains("WinSxS", StringComparison.OrdinalIgnoreCase) ||
+            path.Contains(@"Windows\System32", StringComparison.OrdinalIgnoreCase) ||
+            path.Contains("HardLinkTest", StringComparison.OrdinalIgnoreCase);
+
         public async Task<FolderNode> VisitAsync(string path, string name, int depth, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Interlocked.Increment(ref _folders);
 
-            long filesBytes = 0, fileCount = 0, cloudBytes = 0;
+            long filesBytes = 0, fileCount = 0, cloudBytes = 0, hardLinkBytes = 0;
             var subdirectories = new List<(string Path, string Name)>();
             var nameThreshold = Math.Min(Volatile.Read(ref _largestThreshold), _options.OldFileMinimumBytes);
+            var checkHardLinks = ShouldCheckHardLink(path);
             try
             {
                 var entries = new FileSystemEnumerable<Entry>(
                     path,
                     (ref FileSystemEntry e) => new Entry(
-                        e.IsDirectory || e.Length >= nameThreshold ? e.FileName.ToString() : null,
+                        e.IsDirectory || e.Length >= nameThreshold || checkHardLinks ? e.FileName.ToString() : null,
                         e.IsDirectory,
                         e.Length,
                         e.Attributes,
@@ -291,6 +356,12 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
                     if ((entry.Attributes & CloudOnly) != 0)
                     {
                         cloudBytes += entry.Length;
+                        continue;
+                    }
+
+                    if (checkHardLinks && entry.Name is not null && IsDuplicateHardLink(Path.Combine(path, entry.Name)))
+                    {
+                        hardLinkBytes += entry.Length;
                         continue;
                     }
 
@@ -338,7 +409,7 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
             }
 
             children.AddRange(await Task.WhenAll(spawned).ConfigureAwait(false));
-            return Build(name, path, filesBytes, fileCount, cloudBytes, children);
+            return Build(name, path, filesBytes, fileCount, cloudBytes, hardLinkBytes, children);
         }
 
         public List<FileEntry> LargestFiles()
@@ -357,7 +428,7 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
             }
         }
 
-        private FolderNode Build(string name, string path, long filesBytes, long fileCount, long cloudBytes, List<FolderNode> children)
+        private FolderNode Build(string name, string path, long filesBytes, long fileCount, long cloudBytes, long hardLinkBytes, List<FolderNode> children)
         {
             children.Sort((a, b) => b.SizeBytes.CompareTo(a.SizeBytes));
             var kept = children.Where(c => c.SizeBytes >= _options.MinFolderBytes).Take(_options.MaxChildrenPerFolder).ToList();
@@ -386,6 +457,7 @@ public sealed class FileSystemSpaceAnalyzer : ISpaceAnalyzer
                 HiddenChildrenBytes = children.Sum(c => c.SizeBytes) - kept.Sum(c => c.SizeBytes),
                 InaccessibleCount = children.Sum(c => c.InaccessibleCount),
                 CloudOnlyBytes = cloudBytes + children.Sum(c => c.CloudOnlyBytes),
+                HardLinkDeduplicatedBytes = hardLinkBytes + children.Sum(c => c.HardLinkDeduplicatedBytes),
             };
         }
 

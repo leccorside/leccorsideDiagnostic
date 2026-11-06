@@ -164,5 +164,17 @@ public static class Migrations
             );
             CREATE INDEX IF NOT EXISTS IX_MetricSamples_Timestamp ON MetricSamples (Timestamp DESC);
             """),
+        new(3, "SpaceAnalysisSnapshot", """
+            CREATE TABLE IF NOT EXISTS SpaceAnalysisSnapshot (
+                Id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                VolumeRoot      TEXT NOT NULL,
+                CapturedAt      TEXT NOT NULL,
+                TotalSizeBytes  INTEGER NOT NULL,
+                TotalFilesCount INTEGER NOT NULL,
+                DurationMs      INTEGER NOT NULL,
+                DataJson        TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS IX_SpaceAnalysisSnapshot_VolumeRoot ON SpaceAnalysisSnapshot (VolumeRoot, CapturedAt DESC);
+            """),
     ];
 }

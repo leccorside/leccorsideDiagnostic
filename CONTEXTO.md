@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **06/11/2026 — Passo 10 concluído (v1.0.0): MVP 5: Relatórios avançados (HTML/PDF/CSV/JSON), Agendamento, Notificações, Persistência, Instalador e UX.**
+Última atualização: **06/11/2026 — Pacote B concluído: Otimizações de Armazenamento e Persistência (Persistência SQLite da análise de espaço, deduplicação de Hard Links Win32 no WinSxS e exportação dedicada CSV/JSON).**
 
 ---
 
@@ -71,7 +71,7 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - Suporte a modo portable através do arquivo `portable.flag`.
 - **Telas ativas (100% das 22 telas do menu lateral ativas):** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Drivers, Inicialização, Serviços, Aplicativos, Windows, Windows Update, Eventos, Rede, Limpeza (Safe Cleaner), Correções (Central de Correções com abas de Correções Disponíveis, Dry Run, Ponto de Restauração e Histórico de Correções com Rollback ativo), Desenvolvimento, Segurança, Histórico, **Relatórios** (nova: Central de Laudos e Exportação HTML/PDF/CSV/JSON) e **Configurações** (com agendamento via Task Scheduler e persistência em banco).
 - Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros.
-- Testes: **474 testes aprovados (100% de sucesso)** — 396 unitários, 46 integração, 32 sistema.
+- Testes: **491 testes aprovados (100% de sucesso)** — 412 unitários, 47 integração, 32 sistema.
 
 ## Histórico de implementações
 
@@ -744,10 +744,30 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - 406 testes unitários, 46 testes de integração, 32 testes de sistema — total de **484 testes automatizados aprovados (100% de sucesso)**.
   - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
 
+### Pacote B — Otimizações de Armazenamento e Persistência (06/11/2026)
+
+- **Persistência da Análise de Espaço em Disco no SQLite:**
+  - Adicionada Migration 3 (`SpaceAnalysisSnapshot`) em `Migrations.cs` com tabela indexada por `(VolumeRoot, CapturedAt DESC)`.
+  - Criada a entidade `SpaceAnalysisSnapshotSummary` e a interface `ISpaceAnalysisSnapshotRepository` em `Application.Storage`.
+  - Implementado `SqliteSpaceAnalysisSnapshotRepository` com persistência atômica, serialização JSON e expurgo automático mantendo apenas os 10 snapshots mais recentes por volume.
+  - Integração assíncrona em `StorageViewModel`: restauração instantânea do último snapshot salvo no SQLite ao carregar a tela e salvamento automático do novo laudo após cada análise.
+- **Deduplicação de Hard Links na Análise de Espaço:**
+  - P/Invoke Win32 para `CreateFileW` e `GetFileInformationByHandle` em `FileSystemSpaceAnalyzer`.
+  - Identificação de arquivos com `NumberOfLinks > 1` pela chave única `(VolumeSerialNumber, FileIndexHigh, FileIndexLow)` com rastreamento concorrente via `ConcurrentDictionary`.
+  - Evita a contagem repetida de bibliotecas idênticas no `WinSxS` e pastas do sistema, acumulando os bytes economizados no campo `FolderNode.HardLinkDeduplicatedBytes` e exibindo a nota deduplicada na UI.
+- **Exportação Dedicada da Árvore de Espaço em Disco (CSV e JSON):**
+  - Interfaces `ISpaceAnalysisExporter` e implementação `SpaceAnalysisExporter` no projeto Reporting.
+  - Exportação em CSV tabular formatado com cabeçalho, UTF-8 com BOM (`\uFEFF`) e delimitador `;` para total compatibilidade com Excel pt-BR, listando hierarquia de diretórios, maiores arquivos e arquivos antigos.
+  - Exportação em JSON estruturado legível.
+  - Botões integrados na barra de análise de espaço em `StorageView.xaml` com comandos `ExportCsvCommand` e `ExportJsonCommand` vinculados a `SaveFileDialog` via `IFolderPicker.PickSaveFile`.
+- **Testes Automatizados e Qualidade:**
+  - Novos testes: `SqliteSpaceAnalysisSnapshotRepositoryTests` (persistência, recuperação e retenção de 10 snapshots), `SpaceAnalysisExporterTests` (BOM UTF-8, CSV tabular e desserialização JSON) e teste real de deduplicação de hard link em `StorageSourcesTests.cs`.
+  - 412 testes unitários, 47 testes de integração, 32 testes de sistema — total de **491 testes automatizados aprovados (100% de sucesso)**.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 erros, 0 avisos).
+
 ## Pendências / próximos passos
 
-Com a conclusão do **Passo 10 (MVP 5)** e do **Pacote A (Telemetria Avançada e Medição Precisa)**, os próximos pacotes do roadmap de evolução futura são:
-- **Pacote B — Otimizações de Armazenamento e Persistência:** persistência da árvore de espaço em disco no SQLite, deduplicação de hard links com `FILE_ID_INFO` no WinSxS e exportação dedicada do mapa de diretórios.
+Com a conclusão do **Passo 10 (MVP 5)**, do **Pacote A (Telemetria Avançada e Medição Precisa)** e do **Pacote B (Otimizações de Armazenamento e Persistência)**, o próximo pacote do roadmap de evolução futura é:
 - **Pacote C — Performance e UX da Interface:** virtualização de UI com reciclagem de itens agrupados para listas extensas de processos e inicialização.
 
 Itens do Passo 4 para depois: a lista de
@@ -776,28 +796,12 @@ espaço (relatórios chegam no Passo 10); análise de espaço não é salva no h
 - **Criação de Ponto de Restauração com Proteção Desativada:**
   - *Motivo técnico:* Se a Proteção do Sistema estiver explicitamente desativada no volume `C:` pelo usuário ou via GPO, a API VSS/SystemRestore recusa a chamada. O software não força a reativação de recursos de sistema contra a política da máquina.
 
-### 2. Totalmente Possíveis de Implementar em Versões Futuras
-- **Separação de E/S por processo (Disco vs Rede):**
-  - *Como implementar:* Atualmente `GetProcessIoCounters` agrega toda a E/S em um único total. É possível separar via sessão ETW (*Event Tracing for Windows*) em tempo real usando o pacote oficial `Microsoft.Diagnostics.Tracing.TraceEvent` no processo elevado, capturando eventos de kernel `DiskIO` e `TcpIp` correlacionados com o PID.
-  - *Esforço:* Médio (requer parser assíncrono de eventos ETW com pooling de buffers).
-- **Impacto de Inicialização baseado no tempo real de boot:**
-  - *Como implementar:* Consultar o canal de eventos `Microsoft-Windows-Diagnostics-Performance/Operational` via `EventLogReader`. Os Event IDs 101 a 110 registram exatamente o nome de cada executável e a degradação em milissegundos causada no boot real anterior.
-  - *Esforço:* Baixo (aproveita a infraestrutura de Event Log já existente no projeto).
-- **Persistência da Análise de Espaço em Disco:**
-  - *Como implementar:* Gravar o snapshot da árvore podada de maiores pastas em tabela SQLite (`SpaceAnalysisSnapshot`) com timestamp. Ao abrir a tela de Disco, o usuário vê o último mapeamento instantaneamente, com opção de atualizar sob demanda.
-  - *Esforço:* Baixo (criação de tabela no SQLite e serialização de nó raiz).
-- **Deduplicação de Hard Links na análise de espaço:**
-  - *Como implementar:* Fazer P/Invoke para `GetFileInformationByHandleEx` com `FILE_ID_INFO` e manter um `HashSet<(ulong, FileId)>` em memória durante a travessia. Se o mesmo arquivo físico for referenciado mais de uma vez (como no `WinSxS`), seu tamanho físico só é contado uma única vez.
-  - *Esforço:* Baixo a Médio.
-- **Histórico contínuo de métricas com app fechado:**
-  - *Como implementar:* O comando silencioso `--scheduled-scan` (ou um serviço auxiliar do Windows) pode ser acionado periodicamente via Task Scheduler para coletar amostras e salvar no SQLite, exibindo gráficos completos de dias ou semanas.
-  - *Esforço:* Médio.
-- **Verificação online de revogação de certificados (CRL/OCSP):**
-  - *Como implementar:* Adicionar um toggle no Modo Avançado para habilitar a flag `WTD_REVOKE_WHOLECHAIN` na chamada assíncrona de `WinVerifyTrust`, com timeout estrito de 2 segundos para não congelar em máquinas offline.
-  - *Esforço:* Baixo.
-- **Virtualização de UI para agrupamentos em listas grandes (> 500 itens):**
-  - *Como implementar:* Configurar `VirtualizingPanel.IsVirtualizingWhenGrouping="True"` e modo de reciclagem nas listas de Processos e Inicialização para carregamento instantâneo de listas extensas.
-  - *Esforço:* Baixo.
-- **Exportação dedicada da Árvore de Espaço em Disco:**
-  - *Como implementar:* Botão de exportação em CSV/JSON da hierarquia completa de diretórios analisados, reutilizando a arquitetura de relatórios do Passo 10.
-  - *Esforço:* Baixo.
+### 2. Melhorias Viáveis de Implementação
+- **Separação de E/S por processo (Disco vs Rede):** [Implementado no Pacote A ✅] Sessão ETW em tempo real via `TraceEvent` com `EtwProcessIoTracer`.
+- **Impacto de Inicialização baseado no tempo real de boot:** [Implementado no Pacote A ✅] Leitura de eventos 101–110 de `Diagnostics-Performance` com `BootPerformanceProvider`.
+- **Histórico contínuo de métricas com app fechado:** [Implementado no Pacote A ✅] Tabela `MetricSamples` no SQLite e persistência via `--background-scan`.
+- **Verificação online de revogação de certificados (CRL/OCSP):** [Implementado no Pacote A ✅] Flag `WTD_REVOKE_WHOLECHAIN` em `FileIdentityProvider` e toggle no Modo Avançado.
+- **Persistência da Análise de Espaço em Disco:** [Implementado no Pacote B ✅] Tabela `SpaceAnalysisSnapshot` no SQLite, `SqliteSpaceAnalysisSnapshotRepository` com retenção dos 10 mais recentes e restauração assíncrona automática na abertura da tela.
+- **Deduplicação de Hard Links na análise de espaço:** [Implementado no Pacote B ✅] P/Invoke Win32 para `GetFileInformationByHandle` em `FileSystemSpaceAnalyzer`, identificando tupla `(Volume, High, Low)` e deduplicando arquivos compartilhados em `WinSxS`.
+- **Exportação dedicada da Árvore de Espaço em Disco:** [Implementado no Pacote B ✅] `SpaceAnalysisExporter` gerando CSV (UTF-8 com BOM para Excel) e JSON estruturado, acionados pelos botões da tela de Armazenamento.
+- **Virtualização de UI para agrupamentos em listas grandes (> 500 itens):** [Previsto para o Pacote C ⬜] Configurar `VirtualizingPanel.IsVirtualizingWhenGrouping="True"` e modo de reciclagem nas listas de Processos e Inicialização para carregamento instantâneo.

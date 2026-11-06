@@ -53,7 +53,26 @@ public sealed class StartupTraceTests : IDisposable
         }
 
         Assert.True(exists);
-        Assert.Contains("Fase lenta simulada", await File.ReadAllTextAsync(trace.SlowReportPath), StringComparison.Ordinal);
+        var content = string.Empty;
+        for (var i = 0; i < 10; i++)
+        {
+            try
+            {
+                using var stream = new FileStream(trace.SlowReportPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var reader = new StreamReader(stream);
+                content = await reader.ReadToEndAsync();
+                if (content.Contains("Fase lenta simulada", StringComparison.Ordinal))
+                {
+                    break;
+                }
+            }
+            catch (IOException)
+            {
+                await Task.Delay(50);
+            }
+        }
+
+        Assert.Contains("Fase lenta simulada", content, StringComparison.Ordinal);
 
         trace.Complete();
         await Task.Delay(100);

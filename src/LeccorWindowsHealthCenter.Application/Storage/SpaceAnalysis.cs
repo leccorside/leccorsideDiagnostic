@@ -35,6 +35,9 @@ public sealed record FolderNode
 
     /// <summary>Esta pasta não pôde ser lida (acesso negado).</summary>
     public bool Inaccessible { get; init; }
+
+    /// <summary>Bytes deduplicados de links físicos adicionais no sistema (WinSxS / hard links).</summary>
+    public long HardLinkDeduplicatedBytes { get; init; }
 }
 
 public sealed record FileEntry(string Path, long SizeBytes, DateTimeOffset LastWrite);

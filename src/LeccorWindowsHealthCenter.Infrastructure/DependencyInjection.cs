@@ -65,6 +65,7 @@ public static class DependencyInjection
         services.AddSingleton<IScanRepository, SqliteScanRepository>();
         services.AddSingleton<IRepairHistoryRepository, SqliteRepairHistoryRepository>();
         services.AddSingleton<Application.Persistence.IMetricSampleRepository, Persistence.SqliteMetricSampleRepository>();
+        services.AddSingleton<Application.Storage.ISpaceAnalysisSnapshotRepository, Persistence.SqliteSpaceAnalysisSnapshotRepository>();
         services.AddSingleton<Application.Settings.IConfigurationRepository, Persistence.SqliteConfigurationRepository>();
         services.AddSingleton<IBackupStore>(sp => new FileBackupStore(paths.Backups, sp.GetRequiredService<ILogger<FileBackupStore>>()));
         return services;

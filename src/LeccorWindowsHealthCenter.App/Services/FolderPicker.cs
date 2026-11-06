@@ -11,6 +11,9 @@ public interface IFolderPicker
 
     /// <summary>Copia texto para a área de transferência; falso quando outro programa a está segurando.</summary>
     bool CopyToClipboard(string text);
+
+    /// <summary>Solicita ao usuário o local para salvar um arquivo (SaveFileDialog).</summary>
+    string? PickSaveFile(string title, string defaultFileName, string filter);
 }
 
 public sealed class FolderPicker : IFolderPicker
@@ -19,6 +22,17 @@ public sealed class FolderPicker : IFolderPicker
     {
         var dialog = new OpenFolderDialog { Title = title, Multiselect = false };
         return dialog.ShowDialog(System.Windows.Application.Current?.MainWindow) == true ? dialog.FolderName : null;
+    }
+
+    public string? PickSaveFile(string title, string defaultFileName, string filter)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = title,
+            FileName = defaultFileName,
+            Filter = filter,
+        };
+        return dialog.ShowDialog(System.Windows.Application.Current?.MainWindow) == true ? dialog.FileName : null;
     }
 
     public bool CopyToClipboard(string text)

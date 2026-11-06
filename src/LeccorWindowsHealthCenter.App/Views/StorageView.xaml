@@ -245,14 +245,34 @@
                             <Button x:Name="CancelButton" DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Padding="14,6" Margin="16,0,0,0" VerticalAlignment="Center"
                                     Command="{Binding CancelAnalysisCommand}" Content="Cancelar análise"
                                     Visibility="{Binding IsAnalyzing, Converter={StaticResource VisibleWhen}}" />
-                            <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Padding="14,6" Margin="16,0,0,0" VerticalAlignment="Center"
-                                    Command="{Binding AnalyzeFolderCommand}"
-                                    Visibility="{Binding IsAnalyzing, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE838;" FontSize="14" Margin="0,0,8,0" />
-                                    <TextBlock Text="Analisar outra pasta…" />
-                                </StackPanel>
-                            </Button>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center"
+                                        Visibility="{Binding IsAnalyzing, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
+                                <Button Style="{StaticResource SecondaryButton}" Padding="10,6" Margin="0,0,8,0"
+                                        Command="{Binding ExportCsvCommand}"
+                                        Visibility="{Binding HasAnalysis, Converter={StaticResource VisibleWhen}}"
+                                        ToolTip="Exportar árvore e arquivos em CSV compatível com Excel (UTF-8 com BOM)">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8B9;" FontSize="14" Margin="0,0,6,0" />
+                                        <TextBlock Text="CSV" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource SecondaryButton}" Padding="10,6" Margin="0,0,8,0"
+                                        Command="{Binding ExportJsonCommand}"
+                                        Visibility="{Binding HasAnalysis, Converter={StaticResource VisibleWhen}}"
+                                        ToolTip="Exportar dados estruturados da análise de espaço em JSON">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8B9;" FontSize="14" Margin="0,0,6,0" />
+                                        <TextBlock Text="JSON" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource SecondaryButton}" Padding="14,6"
+                                        Command="{Binding AnalyzeFolderCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE838;" FontSize="14" Margin="0,0,8,0" />
+                                        <TextBlock Text="Analisar outra pasta…" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
                             <!-- Região viva: o leitor de tela anuncia início, fim e cancelamento (o code-behind dispara o evento). -->
                             <TextBlock x:Name="StatusText" Style="{StaticResource Body}" VerticalAlignment="Center" TextWrapping="Wrap"
                                        AutomationProperties.LiveSetting="Polite" Text="{Binding AnalysisStatus}" />

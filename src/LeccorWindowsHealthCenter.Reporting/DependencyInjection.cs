@@ -11,6 +11,7 @@ public static class DependencyInjection
         services.AddSingleton<IReportExporter, HtmlReportExporter>();
         services.AddSingleton<IReportExporter, CsvReportExporter>();
         services.AddSingleton<IReportExporter, PdfReportExporter>();
+        services.AddSingleton<Application.Storage.ISpaceAnalysisExporter, SpaceAnalysisExporter>();
         return services;
     }
 }
