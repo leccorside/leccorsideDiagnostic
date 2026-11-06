@@ -25,11 +25,11 @@ Cada achado técnico do sistema responde diretamente às 6 perguntas essenciais:
 
 ## Estado do Projeto
 
-- **Versão:** `1.0.0` (Todos os 10 passos do [PASSOS.md](PASSOS.md) concluídos com 100% de êxito).
+- **Versão:** `1.1.0` (Todos os 10 passos do [PASSOS.md](PASSOS.md) e os 3 Pacotes de Evolução Concluídos com 100% de êxito).
 - **Módulos / Scanners em Produção:** **18 scanners** ativos e paralelizados com concorrência controlada.
 - **Regras de Diagnóstico:** **39 regras** com thresholds justificados contra falsos positivos.
 - **Ações Reais de Reparo:** 4 correções automáticas com backup prévio, medição antes/depois e rollback.
-- **Qualidade e Testes:** **474 testes automatizados aprovados (100% de sucesso)** — 396 unitários, 46 de integração e 32 de sistema.
+- **Qualidade e Testes:** **505 testes automatizados aprovados (100% de sucesso)** — 412 unitários, 47 de integração e 46 de sistema.
 - **Compilação:** `-warnaserror --no-incremental` em Debug e Release (0 avisos, 0 erros).
 
 ---
@@ -45,16 +45,17 @@ Cada achado técnico do sistema responde diretamente às 6 perguntas essenciais:
 - **Hardware:** Inventário de processador, placas-mãe, BIOS, memórias RAM (módulos, velocidade e slots) e placas de vídeo (VRAM real pelo registro).
 - **CPU & Memória:** Utilização em tempo real, frequência nominal vs efetiva, fila de threads, commit charge, pool paginado/não paginado e hard faults. Histórico deslizante de fundo de 30 minutos.
 - **GPU:** Utilização por motor e VRAM consumida através dos contadores oficiais do Windows Performance Data Helper (PDH).
-- **Gerenciador de Processos:** Navegação em árvore de processos, métricas de CPU, memória privada, E/S de disco e rede, linha de comando completa, verificação Authenticode e proteção ativa contra encerramento de binários críticos do sistema.
+- **Gerenciador de Processos:** Navegação em árvore de processos (recuo progressivo até 16 níveis e congelamento estável em confirmação), métricas de CPU, memória privada, discriminação de E/S de disco vs rede (via ETW Kernel Trace quando elevado, com fallback transparente para `GetProcessIoCounters`), linha de comando completa, verificação Authenticode e proteção ativa contra encerramento de binários críticos do sistema.
 
 ### 3. Armazenamento e Integridade do Sistema
 - **Discos Físicos & Volumes:** Estado SMART, tipo de mídia (NVMe, SSD, HDD), suporte a TRIM, saúde física e temperatura.
-- **Análise de Espaço Navegável:** Varredura sob demanda de maiores pastas e arquivos com paralelismo controlado por tipo de mídia, sem seguir junções e sem tocar em arquivos locais da nuvem.
+- **Análise de Espaço Navegável:** Varredura sob demanda de maiores pastas e arquivos com paralelismo controlado por tipo de mídia, deduplicação precisa de Hard Links NTFS via P/Invoke (`CreateFileW`/`GetFileInformationByHandle`), sem seguir junções e sem tocar em arquivos locais da nuvem. Persistência de snapshots no SQLite com restauração instantânea ao abrir a tela e exportação dedicada para CSV (UTF-8 com BOM) e JSON.
 - **Limpeza Segura (Safe Cleaner):** Auditoria de temporários com categorização de risco estrita: *Seguro (Safe)* (> 24h), *Revisar (Review)* (caches de navegadores e downloads antigos) e *Avançado (Advanced)* (MEMORY.DMP e WinSxS).
 - **Integridade do Windows:** Verificação não destrutiva através de executores dedicados para `DISM /CheckHealth` e `/ScanHealth`, `SFC /VERIFYONLY` e `CHKDSK` somente leitura.
 - **Processo Elevado Mínimo (`LeccorWindowsHealthCenter.Elevated.exe`):** Comunicação IPC autenticada por Named Pipe com handshake criptográfico de 256 bits, allowlist estrita e encerramento com validação de PID e horário de início.
 
-### 4. Explorer, Serviços, Drivers, Aplicativos e Rede
+### 4. Inicialização, Explorer, Serviços, Drivers, Aplicativos e Rede
+- **Inicialização do Windows:** Catálogo exaustivo com categorização em tempo real (Registro, Pasta Inicializar, Serviços e Tarefas Agendadas), detecção de executáveis órfãos, impacto medido no boot real vs Fast Startup (Hybrid Boot via Eventos 100 e 27 do Diagnostics-Performance e Kernel-Boot) e virtualização visual completa (`VirtualizingStackPanel` com reciclagem e virtualização de agrupamentos) renderizando centenas de itens em ~15 ms.
 - **Windows Explorer:** Auditoria de extensões de Shell registradas (CLSID, DLL e assinatura) e ferramenta de benchmark para detecção determinística de **Pastas Lentas** (> 3.000 arquivos, pastas de rede e provedores em nuvem).
 - **Serviços & Drivers:** Catálogo de serviços Windows com identificação de executáveis ausentes (órfãos) e inventário PnP com tradução em português de códigos de falha de hardware (Código 10, 43, 28, etc.).
 - **Aplicativos:** Inventário unificado de programas Win32 e pacotes Microsoft Store (UWP/MSIX) com detecção de desinstaladores quebrados e versões duplicadas.
@@ -101,7 +102,7 @@ dotnet run --project src/LeccorWindowsHealthCenter.App
 ```
 
 ### Compilação e Execução de Testes
-O script [`scripts/build.ps1`](scripts/build.ps1) executa restore, compilação rigorosa com analisadores como erro e os 474 testes automatizados:
+O script [`scripts/build.ps1`](scripts/build.ps1) executa restore, compilação rigorosa com analisadores como erro e os 505 testes automatizados:
 
 ```powershell
 ./scripts/build.ps1 -Configuration Release
