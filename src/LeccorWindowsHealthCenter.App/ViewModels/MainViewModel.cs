@@ -39,6 +39,9 @@ public sealed partial class MainViewModel : ObservableObject
         StorageViewModel storage,
         ProcessesViewModel processes,
         StartupViewModel startup,
+        WindowsViewModel windows,
+        EventsViewModel events,
+        HistoryViewModel history,
         SettingsViewModel settings)
     {
         _scan = scan;
@@ -56,14 +59,14 @@ public sealed partial class MainViewModel : ObservableObject
             new("Inicialização", "", startup),
             Planned("Serviços", "", "Serviços falhando, órfãos ou de aplicações inexistentes.", "MVP 2"),
             Planned("Aplicativos", "", "Inventário de software, crashes recorrentes e versões duplicadas.", "MVP 2"),
-            Planned("Windows", "", "Integridade do Windows (DISM, SFC, CHKDSK) e Windows Update.", "MVP 1"),
-            Planned("Eventos", "", "Event Viewer agrupado por origem/ID com recorrência nas últimas 24h.", "MVP 1"),
+            new("Windows", "", windows),
+            new("Eventos", "", events),
             Planned("Rede", "", "Gateway, DNS, latência, perda de pacotes e adaptadores.", "MVP 2"),
             Planned("Segurança", "", "Status do Windows Security/Defender e persistências suspeitas.", "MVP 4"),
             Planned("Desenvolvimento", "", "Docker, WSL, Hyper-V, Node.js, Java, .NET, Git e IDEs.", "MVP 4"),
             Planned("Limpeza", "", "Limpeza segura por categorias: Seguro, Revisar e Avançado.", "MVP 2"),
             Planned("Correções", "", "Correções seguras e análise individual de mudanças MEDIUM/HIGH.", "MVP 3"),
-            Planned("Histórico", "", "Histórico de correções com Desfazer e comparação antes/depois.", "MVP 3"),
+            new("Histórico", "", history),
             Planned("Relatórios", "", "Exportação em HTML, JSON, CSV e PDF.", "MVP 5"),
             new("Configurações", "", settings, IsFooter: true),
         ];
@@ -77,6 +80,11 @@ public sealed partial class MainViewModel : ObservableObject
         {
             SelectedMainItem = Items[1];
             await _scan.StartAsync(plan);
+        };
+
+        _scan.NavigateRequested += (_, targetPage) =>
+        {
+            NavigateToPage(targetPage);
         };
     }
 
@@ -126,6 +134,24 @@ public sealed partial class MainViewModel : ObservableObject
         if (_windowVisible)
         {
             (CurrentPage as IPageLifecycle)?.Activate();
+        }
+    }
+
+    public void NavigateToPage(string pageTitle)
+    {
+        var item = MainItems.FirstOrDefault(i => string.Equals(i.Title, pageTitle, StringComparison.OrdinalIgnoreCase))
+                ?? FooterItems.FirstOrDefault(i => string.Equals(i.Title, pageTitle, StringComparison.OrdinalIgnoreCase));
+
+        if (item is not null)
+        {
+            if (MainItems.Contains(item))
+            {
+                SelectedMainItem = item;
+            }
+            else
+            {
+                SelectedFooterItem = item;
+            }
         }
     }
 

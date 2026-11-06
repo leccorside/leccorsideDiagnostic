@@ -69,12 +69,20 @@ eventos de disco (Disk 7/153, NTFS — Passo 5, Event Viewer); limpeza dos tempo
 Fica para passos seguintes: desativar entradas de inicialização com backup e desfazer (Passo 8, Correções); finalizar
 processos de administrador (processo elevado, Passo 5); break-ui das duas telas novas.
 
-## Passo 5 — MVP 1 (d): Event Viewer e Integridade do Windows ⬜
+## Passo 5 — MVP 1 (d): Event Viewer e Integridade do Windows ✅
 
-- Event Viewer Analyzer (System, Application, Setup, WHEA, Windows Update, Kernel, Disk, NTFS) com agrupamento e recorrência em 24h + `EventSummary` no banco
-- Integridade do Windows **não destrutiva**: `DISM /CheckHealth` e `/ScanHealth`, `SFC /VERIFYONLY`, `CHKDSK` somente leitura — via `ICommandExecutor`, exibindo comandos e resultado
-- Requer elevação → este passo implementa o **processo elevado mínimo** (`LeccorWindowsHealthCenter.Elevated.exe`) com IPC autenticado, apenas para essas verificações
-- Tela de resultado completa (seção 44/73) e Histórico de varreduras
+- [x] Event Viewer Analyzer (System, Application, Setup, WHEA, Windows Update) com agrupamento por log/origem/id e recorrência em janela deslizante de 24h + persistência automática em `EventSummary` no SQLite
+- [x] Integridade do Windows **não destrutiva**: executores e parsers para `DISM /CheckHealth` (rápido) e `/ScanHealth` (profundo), `SFC /VERIFYONLY` (UTF-16LE) e `CHKDSK <drive>:` somente leitura (OEM 850)
+- [x] Processo Elevado Mínimo (`LeccorWindowsHealthCenter.Elevated.exe`): manifesto com `requireAdministrator`, Named Pipe IPC com ACL restritiva (CurrentUser, BuiltinAdmins, SYSTEM), token criptográfico de handshake de 256 bits, validação de PID do cliente via `GetNamedPipeClientProcessId`, allowlist estrita de executáveis em System32 e flags permitidas, telemetria de confiabilidade WMI de SSD/NVMe (`MSFT_StorageReliabilityCounter`) e encerramento seguro com proteção de PID
+- [x] Regras de diagnóstico novas:
+  - Event Viewer: `eventviewer.disk-io-errors` (Disk 153/7/11, NTFS 55/137), `eventviewer.gpu-driver-crash` (TDR Display 4101), `eventviewer.hardware-whea` (WHEA 17/18/19), `eventviewer.unexpected-shutdown` (Kernel-Power 41 / EventLog 6008), `eventviewer.app-crash` (Application Error 1000)
+  - Integridade: `windows.component-store-corrupted`, `windows.system-files-corrupted`, `windows.file-system-errors`
+- [x] Tela de Resultado Completa (seções 44 e 73 do PROMPT): resumo visual com Score, anel de nota e classificação geral, badges semânticos de contagem por severidade (Crítico, Alto, Médio, Baixo, Informativo), card de destaque do "Problema mais importante" com botão [Investigar], e botões de investigação contextual em cada finding direcionando à aba correspondente
+- [x] Telas e ViewModels:
+  - `WindowsView` e `WindowsViewModel`: verificações dos 3 pilares com console de saída e status de integridade
+  - `EventsView` e `EventsViewModel`: visualizador Master-Detail com contadores das últimas 24h, filtros e botão para abrir `eventvwr.msc`
+  - `HistoryView` e `HistoryViewModel`: carregamento e navegação pelos laudos anteriores salvos no SQLite
+- [x] Testes: 332 unitários, 38 integração (fontes reais de eventos, armazenamento e processos), 27 sistema (varredura completa e ViewModels) — total de **397 testes automatizados aprovados (100%)**
 
 ## Passo 6 — MVP 2 (a): Explorer, Pastas lentas, Serviços e Drivers ⬜
 

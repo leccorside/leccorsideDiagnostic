@@ -3,33 +3,35 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **19/10/2026 — Passo 4 concluído (v0.4.0): Processos e Inicialização; aguardando autorização para o Passo 5.**
+Última atualização: **06/11/2026 — Passo 5 concluído (v0.5.0): Event Viewer, Integridade do Windows, Processo Elevado Mínimo e Tela de Resultados Completa.**
 
 ---
 
 ## Estado atual
 
-- Solution `LeccorWindowsHealthCenter.sln` (formato `.sln` clássico, pedido no PROMPT) com 9 projetos em `src/` e 3 de teste.
+- Solution `LeccorWindowsHealthCenter.sln` com 10 projetos em `src/` (incluindo o novo `LeccorWindowsHealthCenter.Elevated`) e 3 de teste.
 - .NET SDK 10.0.103, WPF, CommunityToolkit.Mvvm 8.4.0, Microsoft.Extensions.* 10.0.11, Microsoft.Data.Sqlite 10.0.11,
   Serilog 4.3.1 (+ Extensions.Logging 10.0.0, Sinks.File 7.0.0, Formatting.Compact 3.0.0), System.Management 10.0.11,
-  Microsoft.Extensions.Hosting.Abstractions 10.0.11, xUnit 2.9.3.
+  System.Diagnostics.EventLog 10.0.11, Microsoft.Extensions.Hosting.Abstractions 10.0.11, xUnit 2.9.3.
 - Infraestrutura de diagnóstico completa e testada: orquestrador, RuleEngine, RiskAnalyzer, ScoringEngine,
   RepairEngine (sem ações concretas), executor de comandos seguro, SQLite com migrations, backups, logs.
-- **Scanners em produção (Passo 2):** Hardware, CPU, Memória e GPU, com histórico de fundo de 30 min e 5 regras
-  (CPU sustentada, possível limitação de frequência, pressão de memória, commit alto, possível vazamento).
-- **Scanners em produção (Passo 3):** Discos e Armazenamento, com 5 regras (pouco espaço livre, disco sinaliza problema,
-  temperatura alta, TRIM desativado em SSD, temporários/caches grandes como recomendação).
-- **Scanner em produção (Passo 4):** Inicialização (somente leitura), com 3 regras (entrada ativa apontando para arquivo
-  inexistente; executável em pasta temporária; script oculto via hospedeiro do Windows). 7 scanners e 13 regras no total.
-- App abre sem admin: Dashboard (score com cobertura "Avaliou X de 6 áreas", CPU/RAM/disco/GPU ao vivo), Varredura,
-  **Performance**, **Processos**, **Armazenamento**, **Hardware**, **Inicialização** e Configurações. Demais menus:
-  páginas "em construção" com o MVP previsto.
-- Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros. Testes: 356/356 (294 unitários,
-  37 integração, 25 sistema).
-- Telas de Performance e Hardware (16 correções) e Armazenamento (14 correções + 4 decisões) passaram pelo teste de
-  estresse break-ui; o seletor de dados de desenvolvimento (só DEBUG) cobre as três telas.
-- Consumo medido (Release, histórico ativo): 0,17% CPU no Dashboard, 0,46% na Performance, 0,00% minimizado;
-  101–120 MB privados (~160–180 MB working set).
+- **Scanners em produção:**
+  1. `hardware` (Ordem 10, Hardware)
+  2. `cpu` (Ordem 20, Performance)
+  3. `memory` (Ordem 30, Performance)
+  4. `gpu` (Ordem 40, Hardware)
+  5. `disks` (Ordem 50, Disks)
+  6. `storage` (Ordem 60, Storage)
+  7. `windows.integrity` (Ordem 65, Windows) — novo no Passo 5
+  8. `startup` (Ordem 70, Startup)
+  9. `eventviewer` (Ordem 75, Events) — novo no Passo 5
+- **Regras em produção:** 21 regras no total (13 dos passos anteriores + 8 novas do Passo 5).
+  - Novas de Integridade: `windows.component-store-corrupted`, `windows.system-files-corrupted`, `windows.file-system-errors`.
+  - Novas de Event Viewer: `eventviewer.disk-io-errors`, `eventviewer.gpu-driver-crash`, `eventviewer.hardware-whea`, `eventviewer.unexpected-shutdown`, `eventviewer.app-crash`.
+- **Processo Elevado Mínimo:** `LeccorWindowsHealthCenter.Elevated.exe` com manifesto `requireAdministrator`, canal Named Pipe com ACL restritiva, token criptográfico de handshake de 256 bits, verificação de PID cliente e allowlist fechada de comandos administrativos (DISM, SFC, CHKDSK, WMI confiabilidade de SSD/NVMe e finalização segura com proteção de PID).
+- **Telas ativas:** Dashboard, Varredura (com resultado completo, card de "Problema mais importante", badges semânticos e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Inicialização, **Windows** (nova), **Eventos** (nova), **Histórico** (nova) e Configurações.
+- Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros.
+- Testes: **397 testes aprovados (100% de sucesso)** — 332 unitários, 38 integração, 27 sistema.
 
 ## Histórico de implementações
 
@@ -480,13 +482,48 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 - Verificação: Pior caso em 1280 claro e 980 escuro, Vazio, Um, Muitos e Dados reais. Capturas em `p4fix`/`p4fix2` no
   scratchpad da sessão.
 
+### Passo 5 — MVP 1 (d): Event Viewer, Integridade do Windows e Processo Elevado (06/11/2026)
+
+- **Event Viewer Analyzer (`IEventViewerProvider` / `EventViewerScanner`):**
+  - Leitura dos logs `System`, `Application`, `Setup`, `WHEA` e `Windows Update` via `EventLogReader`.
+  - Agrupamento inteligente por log/origem/id dentro de janela deslizante de 24h com timestamps `FirstSeen` e `LastSeen`, contagem de recorrência e extração de detalhes técnicos.
+  - Persistência estruturada automática na tabela `EventSummary` do SQLite a cada varredura.
+  - 5 novas regras: `eventviewer.disk-io-errors` (Disk 153/7/11, NTFS 55/137), `eventviewer.gpu-driver-crash` (TDR Display 4101), `eventviewer.hardware-whea` (WHEA-Logger 17/18/19), `eventviewer.unexpected-shutdown` (Kernel-Power 41 / EventLog 6008), `eventviewer.app-crash` (Application Error 1000 frequente).
+- **Integridade do Windows Não Destrutiva (`IWindowsIntegrityProvider` / `WindowsIntegrityScanner`):**
+  - Executores e analisadores multilíngues (pt-BR e en-US) para os 3 pilares do SO (seção 22 do PROMPT):
+    - Component Store via DISM: `/CheckHealth` na varredura rápida e `/ScanHealth` na varredura profunda sob demanda na tela.
+    - Arquivos protegidos do sistema via SFC: `/VERIFYONLY` (somente leitura).
+    - Sistema de arquivos via CHKDSK: `chkdsk.exe <drive>:` somente leitura.
+  - 3 novas regras: `windows.component-store-corrupted`, `windows.system-files-corrupted`, `windows.file-system-errors`.
+  - **Decisão crítica de codificação de console:** SFC no Windows gera saída estritamente em **UTF-16LE** (`Encoding.Unicode`); DISM e CHKDSK geram em página **OEM** (`InstalledUICulture.TextInfo.OEMCodePage`, 850 em pt-BR). O executor trata a codificação configurável para evitar corrupção de caracteres.
+- **Processo Elevado Mínimo (`LeccorWindowsHealthCenter.Elevated.exe`):**
+  - Projeto dedicado com manifesto `requestedExecutionLevel="requireAdministrator"`. O app principal permanece rodando como usuário comum (`asInvoker`).
+  - Comunicação via Named Pipe (`\\.\pipe\LeccorHealthCenter-Elevated-<SessionId>`) com ACL restrita ao usuário atual, BuiltinAdmins e SYSTEM.
+  - Handshake de autenticação com token criptográfico de 256 bits gerado pelo processo pai.
+  - Verificação de segurança de PID cliente via P/Invoke `GetNamedPipeClientProcessId`.
+  - Allowlist estrita de operações (`ElevatedDispatcher`): executáveis obrigatoriamente dentro de `%windir%\System32`, flags imutáveis de DISM, SFC e CHKDSK, consulta WMI de `MSFT_StorageReliabilityCounter` (desgaste percentual de NVMe, temperatura e horas de uso sem privilégios no app principal) e encerramento de processos não críticos com proteção contra reaproveitamento de PID (`ExpectedStartTime`).
+  - Tratamento suave de recusa de UAC pelo usuário (`ElevationCancelledException`) sem quebrar ou congelar o aplicativo.
+  - Autodestruição programada do processo elevado após 45 s de inatividade.
+- **Tela de Resultado Completa (seções 44 e 73 do PROMPT):**
+  - Card de destaque "Problema mais importante" no topo dos resultados, com severidade, impacto, recomendação e botão `[Investigar problema]` direcionando automaticamente à tela relevante.
+  - Badges semânticos de contagem por severidade (Crítico, Alto, Médio, Baixo, Informativo).
+  - Botão contextual `[Investigar]` em cada card de finding individual.
+- **Telas Novas no Menu Principal:**
+  - `WindowsView` / `WindowsViewModel`: visualização do status dos 3 pilares com botões de verificação rápida e profunda, e terminal de saída.
+  - `EventsView` / `EventsViewModel`: visualizador Master-Detail dos eventos agrupados nas últimas 24h, filtros de severidade, busca textual e atalho para o Visualizador nativo (`eventvwr.msc`).
+  - `HistoryView` / `HistoryViewModel`: histórico de varreduras recuperado do SQLite com exibição de laudos completos passados.
+- Testes novos e cobertura:
+  - 38 novos testes unitários e de integração adicionados.
+  - Total: **397 testes automatizados aprovados (100% de sucesso)** — 332 unitários, 38 integração, 27 sistema.
+
 ## Pendências / próximos passos
 
 Na ordem combinada no `PASSOS.md`:
 
-1. **Passo 5** — Event Viewer (inclui eventos de driver de GPU e de disco: Disk 7/153, NTFS), Integridade do Windows e
-   **processo elevado + IPC** (habilita SMART detalhado, desgaste e horas ligadas dos discos).
-2. Passos 6–10 — MVP 2 a 5 (ver `PASSOS.md`).
+1. **Passo 6 (MVP 2 (a))** — Windows Explorer, Shell extensions, handlers, caches, detector de pastas lentas, Serviços e Drivers com erro.
+2. **Passo 7 (MVP 2 (b))** — Aplicativos, Rede, Windows Update e Limpeza segura por categorias (Seguro, Revisar, Avançado - somente visualização).
+3. **Passo 8 (MVP 3)** — Ações reais de correção (`IRepairAction`), Backup com rollback, Ponto de restauração do sistema e análise antes/depois.
+4. **Passos 9–10** — MVP 4 e 5 (ver `PASSOS.md`).
 
 Itens do Passo 4 para depois: desativar entrada de inicialização com backup e desfazer (Correções, Passo 8); a lista de
 processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode
@@ -506,17 +543,14 @@ espaço (relatórios chegam no Passo 10); análise de espaço não é salva no h
 - Impacto de inicialização é estimado pelo consumo atual (memória privada e CPU acumulada dos processos do mesmo
   executável), não pelo tempo de boot medido; item que não está rodando fica "não medido".
 - Assinatura verificada sem consulta de revogação (offline e rápida): certificado revogado depois de assinar não é detectado.
-- Processos protegidos não podem ser finalizados pelo app (lista fixa em `CriticalProcesses`); outros processos de
-  administrador falham com "sem permissão" até existir o processo elevado (Passo 5).
+- Processos protegidos não podem ser finalizados pelo app (lista fixa em `CriticalProcesses`); processos comuns de outros usuários/administrador agora são finalizados com segurança através do processo elevado mínimo com conferência de PID e hora de início.
 - GPU sem contadores "GPU Engine" (VMs, drivers antigos) aparece como "não disponível".
-- Discos sem administrador: vida útil, horas ligadas e SMART detalhado ficam "não disponível" (o Windows nega o acesso);
-  temperatura só quando o dispositivo informa via IOCTL. Chegam com o processo elevado (Passo 5).
+- Discos: contadores de confiabilidade e desgaste de SSD/NVMe (`MSFT_StorageReliabilityCounter`) são enriquecidos via processo elevado sob demanda.
 - Análise de espaço usa tamanho lógico: links físicos (WinSxS) contam em cada pasta, arquivos comprimidos/esparsos
   contam pelo tamanho lógico. Pastas sem permissão (sem admin) são contadas e avisadas, não lidas.
 - A análise de espaço fica só em memória (não é salva no histórico); fechar o app perde o resultado.
 - Preferências alteradas na UI (tema, modo avançado) valem só na sessão; persistência na tabela `Configuration` no Passo 10.
 - Dry Run só é configurável via `appsettings.json` (UI de Dry Run chega com as correções no Passo 8).
-- Processo elevado (`*.Elevated.exe`) e IPC ainda não existem: comandos/ações que exigem admin são recusados.
 - Backups em `%ProgramData%` recebem ACL do usuário que criou a pasta; outro usuário Windows na mesma máquina
   não conseguirá gravar backups ali (falha segura: a correção é abortada antes de alterar algo).
 - Exportação de relatório apenas JSON (HTML/CSV/PDF no MVP 5). Instalador não existe ainda (Passo 10).

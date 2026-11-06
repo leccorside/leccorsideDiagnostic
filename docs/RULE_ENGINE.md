@@ -129,6 +129,28 @@ podem disparar estão nos testes: Chrome com URL (não é hospedeiro), `rundll32
 A tela Inicialização usa os mesmos critérios (`StartupRow.Problem`). Testes: `StartupTests` (linhas de comando reais
 desta máquina, pasta temporária, cada regra disparando e não disparando).
 
+### Integridade do Windows (Passo 5)
+
+Avaliação de corrupção nos 3 pilares do sistema operacional (seção 22 do PROMPT):
+
+| Regra | Scanner | Dispara quando | Severidade | Confiança |
+| --- | --- | --- | --- | --- |
+| `windows.component-store-corrupted` | windows.integrity | DISM reporta que o repositório de componentes está corrompido ou reparável (`Repairable` ou `Corrupted`, código 14098) | Alto | 95% (confirmado pelo DISM) |
+| `windows.system-files-corrupted` | windows.integrity | SFC reporta violações de integridade em arquivos protegidos do sistema (`CorruptedCannotRepair`) | Alto | 90% (confirmado pelo SFC) |
+| `windows.file-system-errors` | windows.integrity | CHKDSK encontra erros na estrutura de arquivos do volume analisado (`ErrorsFound`) | Crítico | 95% (confirmado pelo CHKDSK) |
+
+### Visualizador de Eventos (Passo 5)
+
+Análise e correlação temporal dos canais de log nas últimas 24h (seção 21 do PROMPT):
+
+| Regra | Scanner | Dispara quando | Severidade | Confiança |
+| --- | --- | --- | --- | --- |
+| `eventviewer.disk-io-errors` | eventviewer | Eventos de falha de bloco (Disk 7), erro de controle (Disk 11) ou corrupção de sistema (NTFS 55/137) ocorrem nas últimas 24h; ou repetidos timeouts de E/S (Disk 153/storahci 129) ≥ limite | Crítico (Disk 7/11/55 ou ≥ 5); Alto (repetições de I/O) | 90% |
+| `eventviewer.gpu-driver-crash` | eventviewer | Eventos de Timeout Detection and Recovery (TDR) do driver de vídeo (Display 4101 / nvlddmkm / amdkmdag / igfx) | Alto | 90% |
+| `eventviewer.hardware-whea` | eventviewer | Erros fatais ou corrigidos de hardware reportados pela arquitetura WHEA do Windows (WHEA-Logger 17/18/19) | Crítico | 95% |
+| `eventviewer.unexpected-shutdown` | eventviewer | O sistema desligou ou reiniciou sem aviso prévio (Kernel-Power 41 ou EventLog 6008) | Alto | 90% |
+| `eventviewer.app-crash` | eventviewer | Falhas repetidas de um mesmo aplicativo (Application Error 1000) ≥ `CrashThreshold` (3 falhas) em 24h | Médio | 80% |
+
 A justificativa técnica de cada parâmetro está no próprio código (`RuleParameter.Justification`) e é verificada por
 teste (`Every_performance_rule_declares_justified_parameters`). Cada regra tem testes com uma série que **não** deve
 disparar e outra que deve (`PerformanceRulesTests`).

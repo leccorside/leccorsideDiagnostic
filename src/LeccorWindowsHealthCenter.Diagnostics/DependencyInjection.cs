@@ -46,6 +46,19 @@ public static class DependencyInjection
         services.AddSingleton<IRule, StartupMissingExecutableRule>();
         services.AddSingleton<IRule, StartupTempLocationRule>();
         services.AddSingleton<IRule, StartupScriptHostRule>();
+
+        // Passo 5 — MVP 1 (d): Event Viewer e Integridade do Windows
+        services.AddSingleton<IDiagnosticScanner, Events.EventViewerScanner>();
+        services.AddSingleton<IDiagnosticScanner, WindowsHealth.WindowsIntegrityScanner>();
+
+        services.AddSingleton<IRule, EventViewerDiskIoErrorsRule>();
+        services.AddSingleton<IRule, EventViewerGpuDriverCrashRule>();
+        services.AddSingleton<IRule, EventViewerHardwareWheaRule>();
+        services.AddSingleton<IRule, EventViewerUnexpectedShutdownRule>();
+        services.AddSingleton<IRule, EventViewerAppCrashRule>();
+        services.AddSingleton<IRule, WindowsComponentStoreRule>();
+        services.AddSingleton<IRule, WindowsSystemFilesRule>();
+        services.AddSingleton<IRule, WindowsFileSystemRule>();
         return services;
     }
 }

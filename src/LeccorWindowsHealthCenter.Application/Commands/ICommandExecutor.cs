@@ -26,6 +26,9 @@ public sealed record CommandRequest
 
     /// <summary>Limite de bytes capturados de stdout/stderr (proteção de memória).</summary>
     public int MaxOutputChars { get; init; } = 2_000_000;
+
+    /// <summary>Codificação de saída específica (ex.: Unicode para SFC, OEM para DISM). Se nulo, usa a padrão.</summary>
+    public System.Text.Encoding? OutputEncoding { get; init; }
 }
 
 public sealed record CommandResult

@@ -58,7 +58,9 @@ Implementar `CollectAsync(ScanCollector collector, CancellationToken ct)`. A bas
 | GPU | `gpu` | Hardware | sim | 40 | 2 |
 | Discos | `disks` | Disks | sim | 50 | 3 |
 | Armazenamento | `storage` | Storage | sim | 60 | 3 |
+| Integridade do Windows | `windows.integrity` | Windows | sim | 65 | 5 |
 | Inicialização | `startup` | Startup | sim | 70 | 4 |
+| Visualizador de Eventos | `eventviewer` | Events | sim | 75 | 5 |
 
 Cada scanner novo deve ser documentado aqui com: fonte de dados (WMI/contador/API/EventLog/comando),
 métricas e observações produzidas (nome, unidade, tags), custo estimado (tempo/CPU), necessidade de
@@ -158,6 +160,26 @@ elevação e comportamento quando a fonte não está disponível ("não disponí
   A tela oculta esses itens por padrão; os problemas aparecem sempre.
 - **Impacto** (só na tela, não é finding): `StartupImpact.Estimate` soma memória privada e tempo de CPU dos processos
   em execução com o mesmo executável — ≥ 100 MB ou 5 s = Médio; ≥ 300 MB ou 30 s = Alto; fora de execução = "não medido".
+
+### Integridade do Windows (`windows.integrity`)
+
+- **Fonte:** executores não destrutivos de ferramentas nativas do Windows (`dism.exe /Online /Cleanup-Image /CheckHealth` na varredura rápida ou `/ScanHealth` sob demanda, `sfc.exe /VERIFYONLY` e `chkdsk.exe C:` somente leitura).
+- **Métricas:** `windows.component_store.status` (status numérico).
+- **Observações:**
+  - `windows.component_store` (status `Healthy`, `Repairable` ou `Corrupted`, mensagem e saída);
+  - `windows.system_files` (status `IntegrityOk`, `CorruptedRepaired` ou `CorruptedCannotRepair`);
+  - `windows.file_system` (unidade, status `VolumeOk` ou `ErrorsFound`).
+- **Codificações:** `sfc.exe` em UTF-16LE (`Encoding.Unicode`); `dism.exe` e `chkdsk.exe` em código OEM (`Encoding.GetEncoding(OEMCodePage)`).
+- **Custo:** rápido (< 1 s) para DISM CheckHealth na varredura regular; varreduras profundas (SFC e DISM ScanHealth) executadas sob demanda na tela Windows. **Elevação:** sim (processo elevado mínimo via IPC seguro).
+- **Regras:** `windows.component-store-corrupted`, `windows.system-files-corrupted`, `windows.file-system-errors`.
+
+### Visualizador de Eventos (`eventviewer`)
+
+- **Fonte:** leitura dos logs do Windows (`System`, `Application`, `Setup`, `Microsoft-Windows-WHEA-Logger/Operational` e `Microsoft-Windows-WindowsUpdateClient/Operational`) via `EventLogReader` com janela deslizante de 24h.
+- **Métricas:** `eventviewer.total_errors` (count), `eventviewer.critical_errors` (count).
+- **Observações:** `eventviewer.group` por grupo de Log + Origem + EventID com atributos (`log`, `provider`, `eventId`, `level`, `count24h`, `firstSeen`, `lastSeen`, `message`, `targetResource`, `technicalDetails`). Persistido na tabela `EventSummary` do SQLite.
+- **Custo:** ~0,4–1,2 s para ler os eventos recentes com limitação de buffer (`MaxEventsPerLog`). **Elevação:** não (logs padrão são legíveis por usuários comuns; quando elevado, lê canais adicionais).
+- **Regras:** `eventviewer.disk-io-errors`, `eventviewer.gpu-driver-crash`, `eventviewer.hardware-whea`, `eventviewer.unexpected-shutdown`, `eventviewer.app-crash`.
 
 ## Métricas do dashboard (Monitoring)
 

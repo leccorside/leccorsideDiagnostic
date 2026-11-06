@@ -66,6 +66,24 @@ public sealed partial class ScanViewModel : ObservableObject
     private string _countsText = string.Empty;
 
     [ObservableProperty]
+    private int _criticalCount;
+
+    [ObservableProperty]
+    private int _highCount;
+
+    [ObservableProperty]
+    private int _mediumCount;
+
+    [ObservableProperty]
+    private int _lowCount;
+
+    [ObservableProperty]
+    private int _infoCount;
+
+    [ObservableProperty]
+    private FindingItemViewModel? _topProblem;
+
+    [ObservableProperty]
     private string _coverageText = string.Empty;
 
     [ObservableProperty]
@@ -79,6 +97,17 @@ public sealed partial class ScanViewModel : ObservableObject
 
     [ObservableProperty]
     private IReadOnlyList<string> _scannerErrors = [];
+
+    public event EventHandler<string>? NavigateRequested;
+
+    [RelayCommand]
+    private void Investigate(FindingItemViewModel? item)
+    {
+        if (item is not null && !string.IsNullOrEmpty(item.TargetPage))
+        {
+            NavigateRequested?.Invoke(this, item.TargetPage);
+        }
+    }
 
     public Task StartAsync(ScanPlan plan) => IsScanning ? Task.CompletedTask : RunAsync(plan);
 
@@ -158,11 +187,22 @@ public sealed partial class ScanViewModel : ObservableObject
         CoverageText = Display.Coverage(report.Score.Categories.Keys) ?? string.Empty;
 
         var findings = report.Findings.ToList();
-        CountsText = string.Create(CultureInfo.CurrentCulture,
-            $"{report.CountBySeverity(Severity.Critical)} crítico · {report.CountBySeverity(Severity.High)} alto · {report.CountBySeverity(Severity.Medium)} médio · {report.CountBySeverity(Severity.Low)} baixo · {report.CountBySeverity(Severity.Info)} recomendação");
+        CriticalCount = report.CountBySeverity(Severity.Critical);
+        HighCount = report.CountBySeverity(Severity.High);
+        MediumCount = report.CountBySeverity(Severity.Medium);
+        LowCount = report.CountBySeverity(Severity.Low);
+        InfoCount = report.CountBySeverity(Severity.Info);
 
-        Problems = report.Problems.Select(f => new FindingItemViewModel(f)).ToList();
+        CountsText = string.Create(CultureInfo.CurrentCulture,
+            $"{CriticalCount} crítico · {HighCount} alto · {MediumCount} médio · {LowCount} baixo · {InfoCount} recomendação");
+
+        var problemsList = report.Problems.Select(f => new FindingItemViewModel(f)).ToList();
+        Problems = problemsList;
         Recommendations = report.Recommendations.Select(f => new FindingItemViewModel(f)).ToList();
+        TopProblem = problemsList
+            .OrderByDescending(p => p.Severity)
+            .ThenByDescending(p => p.Finding.Confidence.Percent)
+            .FirstOrDefault();
         ScannerErrors = report.Results
             .Where(r => r.Status == ScannerRunStatus.Failed)
             .Select(r => $"{r.ScannerName}: {r.Error}")

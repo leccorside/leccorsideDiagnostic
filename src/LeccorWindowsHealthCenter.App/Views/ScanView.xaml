@@ -70,6 +70,11 @@
                                 <TextBlock Style="{StaticResource Body}" Text="{Binding Requirements}" />
                             </StackPanel>
                         </Grid>
+
+                        <Button Style="{StaticResource SecondaryButton}" Content="Investigar problema" Margin="0,12,0,0" HorizontalAlignment="Left"
+                                Visibility="{Binding CanInvestigate, Converter={StaticResource VisibleWhen}}"
+                                Command="{Binding DataContext.InvestigateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}" />
                     </StackPanel>
                 </Expander>
             </Border>
@@ -173,11 +178,73 @@
                             <TextBlock Style="{StaticResource SemanticText}" Tag="{Binding Rating}" FontSize="20" FontWeight="Bold" Margin="0,4"
                                        Text="{Binding RatingText}" />
                             <TextBlock Style="{StaticResource Caption}" Text="{Binding CountsText}" />
+                            <WrapPanel Margin="0,6,0,0">
+                                <Border Background="{DynamicResource CriticalBrush}" CornerRadius="4" Padding="8,3" Margin="0,0,8,4"
+                                        Visibility="{Binding CriticalCount, Converter={StaticResource VisibleWhen}}">
+                                    <TextBlock Foreground="White" FontSize="11" FontWeight="SemiBold">
+                                        <Run Text="{Binding CriticalCount, Mode=OneWay}" /> <Run Text="crítico(s)" />
+                                    </TextBlock>
+                                </Border>
+                                <Border Background="{DynamicResource HighBrush}" CornerRadius="4" Padding="8,3" Margin="0,0,8,4"
+                                        Visibility="{Binding HighCount, Converter={StaticResource VisibleWhen}}">
+                                    <TextBlock Foreground="White" FontSize="11" FontWeight="SemiBold">
+                                        <Run Text="{Binding HighCount, Mode=OneWay}" /> <Run Text="alto(s)" />
+                                    </TextBlock>
+                                </Border>
+                                <Border Background="{DynamicResource MediumBrush}" CornerRadius="4" Padding="8,3" Margin="0,0,8,4"
+                                        Visibility="{Binding MediumCount, Converter={StaticResource VisibleWhen}}">
+                                    <TextBlock Foreground="White" FontSize="11" FontWeight="SemiBold">
+                                        <Run Text="{Binding MediumCount, Mode=OneWay}" /> <Run Text="médio(s)" />
+                                    </TextBlock>
+                                </Border>
+                                <Border Background="{DynamicResource LowBrush}" CornerRadius="4" Padding="8,3" Margin="0,0,8,4"
+                                        Visibility="{Binding LowCount, Converter={StaticResource VisibleWhen}}">
+                                    <TextBlock Foreground="White" FontSize="11" FontWeight="SemiBold">
+                                        <Run Text="{Binding LowCount, Mode=OneWay}" /> <Run Text="baixo(s)" />
+                                    </TextBlock>
+                                </Border>
+                                <Border Background="{DynamicResource InfoBrush}" CornerRadius="4" Padding="8,3" Margin="0,0,8,4"
+                                        Visibility="{Binding InfoCount, Converter={StaticResource VisibleWhen}}">
+                                    <TextBlock Foreground="White" FontSize="11" FontWeight="SemiBold">
+                                        <Run Text="{Binding InfoCount, Mode=OneWay}" /> <Run Text="recomendação(ões)" />
+                                    </TextBlock>
+                                </Border>
+                            </WrapPanel>
                             <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,0" Text="{Binding CoverageText}"
                                        Visibility="{Binding CoverageText, Converter={StaticResource VisibleWhen}}" />
                             <TextBlock Style="{StaticResource Body}" Margin="0,8,0,0" Text="{Binding ResultNote}" />
                         </StackPanel>
                     </Grid>
+                </Border>
+
+                <!-- Card Destaque: Problema Mais Importante (seções 44 e 73) -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16" BorderBrush="{DynamicResource CriticalBrush}" BorderThickness="1.5"
+                        Visibility="{Binding TopProblem, Converter={StaticResource VisibleWhen}}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource SemanticText}" Tag="{Binding TopProblem.Severity}" FontSize="12" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" Text="{Binding TopProblem.SeverityText}" />
+                            <Border Background="{DynamicResource CriticalBrush}" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" Margin="0,0,10,0">
+                                <TextBlock Text="PROBLEMA MAIS IMPORTANTE" FontSize="11" FontWeight="Bold" Foreground="White" />
+                            </Border>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionTitle}" FontSize="18" Text="{Binding TopProblem.Title}" Margin="0,0,0,4" />
+                        <TextBlock Style="{StaticResource Body}" Text="{Binding TopProblem.WhatHappened}" Margin="0,0,0,8" />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Impacto" />
+                        <TextBlock Style="{StaticResource Body}" Text="{Binding TopProblem.Impact}" Margin="0,0,0,8" />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Como corrigir" />
+                        <TextBlock Style="{StaticResource Body}" Text="{Binding TopProblem.Recommendation}" Margin="0,0,0,12" />
+
+                        <DockPanel>
+                            <Button Style="{StaticResource PrimaryButton}" Content="Investigar na aba correspondente" HorizontalAlignment="Left"
+                                    Visibility="{Binding TopProblem.CanInvestigate, Converter={StaticResource VisibleWhen}}"
+                                    Command="{Binding InvestigateCommand}" CommandParameter="{Binding TopProblem}" />
+                            <TextBlock Text="{Binding TopProblem.ConfidenceText}" Style="{StaticResource Caption}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                        </DockPanel>
+                    </StackPanel>
                 </Border>
 
                 <StackPanel Visibility="{Binding ScannerErrors, Converter={StaticResource VisibleWhen}}" Margin="0,0,0,16">

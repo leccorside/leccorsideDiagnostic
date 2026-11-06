@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="System.Management" />
+    <PackageReference Include="System.Diagnostics.EventLog" />
     <PackageReference Include="Serilog" />
     <PackageReference Include="Serilog.Extensions.Logging" />
     <PackageReference Include="Serilog.Sinks.File" />

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>LeccorWindowsHealthCenter.Elevated</AssemblyName>
+    <RootNamespace>LeccorWindowsHealthCenter.Elevated</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LeccorWindowsHealthCenter.Shared\LeccorWindowsHealthCenter.Shared.csproj" />
+    <ProjectReference Include="..\LeccorWindowsHealthCenter.Application\LeccorWindowsHealthCenter.Application.csproj" />
+    <ProjectReference Include="..\LeccorWindowsHealthCenter.Infrastructure\LeccorWindowsHealthCenter.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" />
+  </ItemGroup>
+</Project>

@@ -1,3 +1,4 @@
+using LeccorWindowsHealthCenter.Application.Events;
 using LeccorWindowsHealthCenter.Application.Persistence;
 using LeccorWindowsHealthCenter.Application.SystemInfo;
 using LeccorWindowsHealthCenter.Domain;
@@ -48,6 +49,11 @@ public sealed class SqliteScanRepository : IScanRepository
             foreach (var inventory in result.Observations.Where(o => o.Kind == HardwareInventory.ObservationKind))
             {
                 await InsertHardwareSnapshotAsync(connection, transaction, report.Id, inventory, cancellationToken).ConfigureAwait(false);
+            }
+
+            foreach (var eventObs in result.Observations.Where(o => o.Kind == EventViewerNames.ObservationKind))
+            {
+                await InsertEventSummaryAsync(connection, transaction, report.Id, eventObs, cancellationToken).ConfigureAwait(false);
             }
 
             foreach (var finding in result.Findings)
@@ -238,6 +244,27 @@ public sealed class SqliteScanRepository : IScanRepository
             tags.Value = metric.Tags.Count == 0 ? DBNull.Value : DbConvert.ToJson(metric.Tags);
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private static async Task InsertEventSummaryAsync(SqliteConnection connection, SqliteTransaction transaction, Guid scanId, Observation observation, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO EventSummary (ScanId, LogName, Provider, EventId, Level, Count, Last24h, FirstSeen, LastSeen)
+            VALUES ($scan, $log, $provider, $eventId, $level, $count, $last24h, $firstSeen, $lastSeen);
+            """;
+        command.Add("$scan", scanId.ToString());
+        command.Add("$log", observation.Attributes.GetValueOrDefault(EventViewerNames.AttrLogName) ?? string.Empty);
+        command.Add("$provider", observation.Attributes.GetValueOrDefault(EventViewerNames.AttrProviderName) ?? string.Empty);
+        command.Add("$eventId", int.TryParse(observation.Attributes.GetValueOrDefault(EventViewerNames.AttrEventId), out var eid) ? eid : 0);
+        command.Add("$level", observation.Attributes.GetValueOrDefault(EventViewerNames.AttrLevel) ?? "Information");
+        var count = int.TryParse(observation.Attributes.GetValueOrDefault(EventViewerNames.AttrCount24h), out var c) ? c : 1;
+        command.Add("$count", count);
+        command.Add("$last24h", count);
+        command.Add("$firstSeen", observation.Attributes.GetValueOrDefault(EventViewerNames.AttrFirstSeen));
+        command.Add("$lastSeen", observation.Attributes.GetValueOrDefault(EventViewerNames.AttrLastSeen));
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task InsertFindingAsync(SqliteConnection connection, SqliteTransaction transaction, Guid scanId, Finding finding, CancellationToken cancellationToken)

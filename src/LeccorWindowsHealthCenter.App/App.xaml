@@ -1,4 +1,4 @@
-﻿<Application x:Class="LeccorWindowsHealthCenter.App.App"
+<Application x:Class="LeccorWindowsHealthCenter.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:LeccorWindowsHealthCenter.App.ViewModels"
@@ -97,6 +97,15 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:StartupViewModel}">
                 <views:StartupView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:WindowsViewModel}">
+                <views:WindowsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:EventsViewModel}">
+                <views:EventsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
+                <views:HistoryView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
                 <views:SettingsView />

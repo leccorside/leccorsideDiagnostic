@@ -38,7 +38,10 @@ public static class DependencyInjection
         }
 
         services.AddSingleton(new ExecutablePolicy(commandOptions.AdditionalTrustedExecutables));
+        services.AddSingleton<Application.Security.IElevatedClient, ElevatedClient>();
         services.AddSingleton<ICommandExecutor, CommandExecutor>();
+        services.AddSingleton<Application.Events.IEventViewerProvider, Events.EventViewerProvider>();
+        services.AddSingleton<Application.WindowsHealth.IWindowsIntegrityProvider, WindowsHealth.WindowsIntegrityProvider>();
 
         services.AddSingleton(new SqliteDatabase(paths.Database));
         services.AddSingleton<MigrationRunner>();

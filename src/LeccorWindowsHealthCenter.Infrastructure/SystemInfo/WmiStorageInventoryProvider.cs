@@ -17,16 +17,22 @@ public sealed class WmiStorageInventoryProvider : IStorageInventoryProvider, IDi
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
 
     private readonly IPrivilegeService _privileges;
+    private readonly Application.Security.IElevatedClient? _elevatedClient;
     private readonly ILogger<WmiStorageInventoryProvider> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private StorageInventory? _cached;
 
-    public WmiStorageInventoryProvider(IPrivilegeService privileges, ILogger<WmiStorageInventoryProvider> logger, TimeProvider timeProvider)
+    public WmiStorageInventoryProvider(
+        IPrivilegeService privileges,
+        ILogger<WmiStorageInventoryProvider> logger,
+        TimeProvider timeProvider,
+        Application.Security.IElevatedClient? elevatedClient = null)
     {
         _privileges = privileges;
         _logger = logger;
         _timeProvider = timeProvider;
+        _elevatedClient = elevatedClient;
     }
 
     public async Task<StorageInventory> GetAsync(CancellationToken cancellationToken, bool forceRefresh = false)
@@ -73,7 +79,9 @@ public sealed class WmiStorageInventoryProvider : IStorageInventoryProvider, IDi
             .Where(d => Int(d, "Number") is not null)
             .ToDictionary(d => Int(d, "Number")!.Value);
 
-        var reliability = elevated ? ReadReliability(warnings, cancellationToken) : [];
+        var reliability = elevated
+            ? ReadReliability(warnings, cancellationToken)
+            : ReadElevatedReliability(warnings, cancellationToken);
 
         var disks = new List<PhysicalDiskInfo>();
         foreach (var d in Query(StorageScope, "SELECT DeviceId, FriendlyName, Model, MediaType, BusType, Size, HealthStatus, OperationalStatus, FirmwareVersion FROM MSFT_PhysicalDisk", warnings, cancellationToken))
@@ -221,6 +229,34 @@ public sealed class WmiStorageInventoryProvider : IStorageInventoryProvider, IDi
                     Int(r, "Wear") is >= 0 and <= 100 and var wear ? wear : null,
                     Long(r, "PowerOnHours") is > 0 and var hours ? hours : null);
             });
+
+    private Dictionary<string, Reliability> ReadElevatedReliability(List<string> warnings, CancellationToken cancellationToken)
+    {
+        if (_elevatedClient is null || !_elevatedClient.IsElevatedOrAvailable)
+        {
+            return [];
+        }
+
+        try
+        {
+            var dtos = _elevatedClient.QueryStorageReliabilityAsync(cancellationToken).GetAwaiter().GetResult();
+            var dict = new Dictionary<string, Reliability>(StringComparer.OrdinalIgnoreCase);
+            foreach (var d in dtos)
+            {
+                if (d.DeviceId is not null)
+                {
+                    dict[d.DeviceId] = new Reliability(d.TemperatureCelsius, null, d.WearPercent, d.PowerOnHours);
+                }
+            }
+
+            return dict;
+        }
+        catch (Exception ex)
+        {
+            warnings.Add($"Telemetria avançada de disco via processo elevado indisponível: {ex.Message}");
+            return [];
+        }
+    }
 
     /// <summary>DisableDeleteNotification = 0 → TRIM ativo para NTFS (mesmo valor que "fsutil behavior query DisableDeleteNotify" mostra).</summary>
     private static bool? ReadNtfsTrim(List<string> warnings)

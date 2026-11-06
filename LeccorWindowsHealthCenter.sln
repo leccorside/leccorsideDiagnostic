@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeccorWindowsHealthCenter.S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeccorWindowsHealthCenter.UnitTests", "tests\UnitTests\LeccorWindowsHealthCenter.UnitTests.csproj", "{B08A9374-B8D2-4849-B779-4B62FE4EF000}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeccorWindowsHealthCenter.Elevated", "src\LeccorWindowsHealthCenter.Elevated\LeccorWindowsHealthCenter.Elevated.csproj", "{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -185,6 +187,18 @@ Global
 		{B08A9374-B8D2-4849-B779-4B62FE4EF000}.Release|x64.Build.0 = Release|Any CPU
 		{B08A9374-B8D2-4849-B779-4B62FE4EF000}.Release|x86.ActiveCfg = Release|Any CPU
 		{B08A9374-B8D2-4849-B779-4B62FE4EF000}.Release|x86.Build.0 = Release|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Debug|x64.Build.0 = Debug|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Debug|x86.Build.0 = Debug|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Release|x64.ActiveCfg = Release|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Release|x64.Build.0 = Release|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Release|x86.ActiveCfg = Release|Any CPU
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -202,5 +216,6 @@ Global
 		{7EB9F0BD-3379-4FE9-8293-9C174A21BC01} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{DDBE536E-0758-4A23-BF43-D9A563F7F52F} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{B08A9374-B8D2-4849-B779-4B62FE4EF000} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{2B4886A8-DF87-44AB-ADEA-0C59E8F7E0E7} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

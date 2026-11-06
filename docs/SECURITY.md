@@ -17,6 +17,7 @@ O Leccor Windows Health Center é tratado como **ferramenta privilegiada** (seç
 | Backups protegidos | `FileBackupStore` aplica ACL protegida (sem herança) ao diretório: SYSTEM, Administradores e o usuário atual. Escrita atômica (`.tmp` + `Move`). |
 | Banco local | SQLite em `%ProgramData%\LeccorWindowsHealthCenter\Data\health.db`. Não armazena conteúdo de arquivos pessoais. |
 | Paths | `AppPaths` exige caminho absoluto; fallback para `%LocalAppData%` quando `%ProgramData%` não é gravável. |
+| Processo elevado mínimo | `LeccorWindowsHealthCenter.Elevated.exe` executado via UAC (`Verb="runas"`) somente sob demanda. Comunicação via Named Pipe (`\\.\pipe\LeccorHealthCenter-Elevated-<SessionId>`) com ACL restritiva (CurrentUser, BuiltinAdmins, SYSTEM). Handshake criptográfico com token aleatório de 256 bits gerado pelo processo pai. Verificação de PID cliente via P/Invoke `GetNamedPipeClientProcessId`. Allowlist fechada de operações (`ElevatedOperationType`): DISM (/CheckHealth, /ScanHealth), SFC (/VERIFYONLY), CHKDSK (leitura por unidade), contadores WMI de confiabilidade de disco (`MSFT_StorageReliabilityCounter`) e encerramento de processos não críticos com proteção contra reaproveitamento de PID (`ExpectedStartTime`). Autodestruição por inatividade após 45 s. |
 
 ## Privacidade (seção 41)
 
@@ -36,7 +37,6 @@ desabilitar Defender ou Windows Update, remover telemetria indiscriminadamente, 
 
 ## Pendências de segurança
 
-- Processo elevado separado com IPC autenticado (Passo 5).
 - Assinatura de código (Authenticode) do executável e do instalador (Passo 10).
 - Verificação de assinatura dos executáveis da allowlist adicional.
 

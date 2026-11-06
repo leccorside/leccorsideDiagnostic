@@ -67,8 +67,8 @@ public sealed class HostCompositionTests : IDisposable
         Assert.NotNull(services.GetRequiredService<IStorageInventoryProvider>());
         Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Storage.ISpaceAnalyzer>());
         Assert.NotEmpty(services.GetServices<IReportExporter>());
-        Assert.Equal(["hardware", "cpu", "memory", "gpu", "disks", "storage", "startup"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
-        Assert.Equal(13, services.GetServices<IRule>().Count());
+        Assert.Equal(["hardware", "cpu", "memory", "gpu", "disks", "storage", "windows.integrity", "startup", "eventviewer"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
+        Assert.Equal(21, services.GetServices<IRule>().Count());
     }
 
     [Fact]
@@ -101,6 +101,8 @@ public sealed class HostCompositionTests : IDisposable
         Assert.Contains(ScoreCategory.Hardware, report.Score.Categories.Keys);
         Assert.Contains(ScoreCategory.Performance, report.Score.Categories.Keys);
         Assert.Contains(ScoreCategory.Storage, report.Score.Categories.Keys);
+        Assert.Contains(ScoreCategory.Windows, report.Score.Categories.Keys);
+        Assert.Contains(ScoreCategory.Stability, report.Score.Categories.Keys);
 
         await using var connection = await host.Services.GetRequiredService<SqliteDatabase>().OpenAsync(CancellationToken.None);
         await using var command = connection.CreateCommand();

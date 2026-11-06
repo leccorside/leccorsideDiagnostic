@@ -39,6 +39,20 @@ public sealed class FindingItemViewModel
 
     public string RollbackText => Finding.HasRepair ? (Finding.SupportsRollback ? "Sim" : "Não") : "—";
 
+    public string TargetPage => Finding.Category switch
+    {
+        FindingCategory.Disk or FindingCategory.Storage => "Armazenamento",
+        FindingCategory.Events => "Eventos",
+        FindingCategory.Windows => "Windows",
+        FindingCategory.Processes => "Processos",
+        FindingCategory.Startup => "Inicialização",
+        FindingCategory.Hardware or FindingCategory.Gpu => "Hardware",
+        FindingCategory.Cpu or FindingCategory.Memory => "Performance",
+        _ => string.Empty,
+    };
+
+    public bool CanInvestigate => !string.IsNullOrEmpty(TargetPage);
+
     public string Requirements
     {
         get

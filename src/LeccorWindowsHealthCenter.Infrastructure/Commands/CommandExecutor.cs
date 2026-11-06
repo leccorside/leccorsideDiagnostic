@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using LeccorWindowsHealthCenter.Application.Commands;
+using LeccorWindowsHealthCenter.Application.Security;
 using LeccorWindowsHealthCenter.Application.SystemInfo;
 using LeccorWindowsHealthCenter.Shared.Security;
 using Microsoft.Extensions.Logging;
@@ -16,13 +17,20 @@ public sealed class CommandExecutor : ICommandExecutor, IDisposable
 {
     private readonly ExecutablePolicy _policy;
     private readonly IPrivilegeService _privileges;
+    private readonly IElevatedClient? _elevatedClient;
     private readonly ILogger<CommandExecutor> _logger;
     private readonly Lazy<JobObject?> _job;
 
-    public CommandExecutor(ExecutablePolicy policy, IPrivilegeService privileges, ILogger<CommandExecutor> logger)
+    static CommandExecutor()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
+
+    public CommandExecutor(ExecutablePolicy policy, IPrivilegeService privileges, ILogger<CommandExecutor> logger, IElevatedClient? elevatedClient = null)
     {
         _policy = policy;
         _privileges = privileges;
+        _elevatedClient = elevatedClient;
         _logger = logger;
         _job = new Lazy<JobObject?>(CreateJob);
     }
@@ -33,6 +41,11 @@ public sealed class CommandExecutor : ICommandExecutor, IDisposable
 
         if (request.RequiresElevation && !_privileges.IsElevated)
         {
+            if (_elevatedClient is not null)
+            {
+                return await _elevatedClient.ExecuteCommandAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+
             throw new CommandRejectedException(
                 "Este comando exige privilégios de administrador. Operações administrativas são delegadas ao processo elevado dedicado.");
         }
@@ -49,6 +62,12 @@ public sealed class CommandExecutor : ICommandExecutor, IDisposable
             RedirectStandardInput = false,
             WorkingDirectory = Path.GetDirectoryName(request.ExecutablePath)!,
         };
+
+        if (request.OutputEncoding is not null)
+        {
+            startInfo.StandardOutputEncoding = request.OutputEncoding;
+            startInfo.StandardErrorEncoding = request.OutputEncoding;
+        }
         foreach (var argument in request.Arguments)
         {
             startInfo.ArgumentList.Add(argument);
