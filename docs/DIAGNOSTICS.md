@@ -64,6 +64,9 @@ Implementar `CollectAsync(ScanCollector collector, CancellationToken ct)`. A bas
 | Windows Explorer | `explorer` | Explorer | sim | 80 | 6 |
 | Serviços do Windows | `services` | Services | sim | 85 | 6 |
 | Dispositivos e Drivers | `drivers` | Drivers | sim | 90 | 6 |
+| Aplicativos Instalados | `apps` | Applications | sim | 95 | 7 |
+| Rede e Conectividade | `network` | Network | sim | 105 | 7 |
+| Windows Update | `windowsupdate` | WindowsUpdate | sim | 110 | 7 |
 
 Cada scanner novo deve ser documentado aqui com: fonte de dados (WMI/contador/API/EventLog/comando),
 métricas e observações produzidas (nome, unidade, tags), custo estimado (tempo/CPU), necessidade de
@@ -209,6 +212,30 @@ elevação e comportamento quando a fonte não está disponível ("não disponí
 - **Observações:** `driver.device` por dispositivo com status operacional (`deviceId`, `name`, `manufacturer`, `driverVersion`, `status`, `errorCode`, `statusMessage`, `isProblem`, `isMissing`).
 - **Custo:** ~0,3–0,8 s. **Elevação:** não.
 - **Regras:** `drivers.device-error`, `drivers.missing-driver` (Código 28 / Dispositivo desconhecido).
+
+### Aplicativos Instalados (`apps`)
+
+- **Fonte:** varredura unificada do registro Win32 (`HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall` 64/32 bits e `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall`) correlacionada com pacotes UWP/MSIX em `HKCU\Software\Classes\Local Settings\...\AppModel\Repository\Packages`.
+- **Métricas:** `apps.total.count` (count), `apps.win32.count` (count), `apps.store.count` (count), `apps.orphaned.count` (count), `apps.duplicates.count` (count).
+- **Observações:** `apps.installed` por programa (`name`, `version`, `publisher`, `source`, `size`, `installDate`, `uninstallString`, `isOrphaned`, `hasDuplicate`).
+- **Custo:** ~0,1–0,3 s. **Elevação:** não.
+- **Regras:** `apps.orphaned-uninstall`, `apps.duplicate-install`. **Regra estrita:** não desinstalar automaticamente.
+
+### Rede e Conectividade (`network`)
+
+- **Fonte:** inventário de adaptadores via `NetworkInterface.GetAllNetworkInterfaces()` (categorizando Ethernet, Wi-Fi, VPN, Docker, WSL, Hyper-V) correlacionado com testes de qualidade de rede (ping no gateway, medição de tempo de resposta DNS com `Dns.GetHostAddressesAsync` e teste de latência/perda de pacotes com destinos públicos confiáveis).
+- **Métricas:** `network.adapters.count` (count), `network.adapters.up` (count), `network.packet_loss` (%), `network.dns.latency` (ms), `network.gateway.latency` (ms).
+- **Observações:** `network.adapter` por interface física/virtual e `network.diagnostic` com status geral da conexão.
+- **Custo:** ~0,3–1,2 s. **Elevação:** não.
+- **Regras:** `network.no-gateway`, `network.dns-slow`.
+
+### Windows Update (`windowsupdate`)
+
+- **Fonte:** status dos serviços essenciais (`wuauserv`, `bits`, `dosvc`) via registro do sistema, checagem atômica de reinicialização pendente (`CBS\RebootPending`, `WindowsUpdate\Auto Update\RebootRequired`), histórico de hotfixes via `Win32_QuickFixEngineering` e falhas nas últimas 24h via canal de log `Microsoft-Windows-WindowsUpdateClient/Operational`.
+- **Métricas:** `windowsupdate.pending_count` (count), `windowsupdate.errors_24h` (count).
+- **Observações:** `windowsupdate.status` com atributos (`rebootPending`, `rebootReason`, `lastScan`, `lastInstall`, `wuauservState`, `bitsState`, `dosvcState`, `recentErrorCount`).
+- **Custo:** ~0,2–0,5 s. **Elevação:** não.
+- **Regras:** `windowsupdate.service-disabled`, `windowsupdate.reboot-pending`.
 
 ## Métricas do dashboard (Monitoring)
 

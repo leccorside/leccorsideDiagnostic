@@ -107,6 +107,18 @@
             <DataTemplate DataType="{x:Type vm:DriversViewModel}">
                 <views:DriversView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AppsViewModel}">
+                <views:AppsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:NetworkViewModel}">
+                <views:NetworkView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:WindowsUpdateViewModel}">
+                <views:WindowsUpdateView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:SafeCleanViewModel}">
+                <views:SafeCleanView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:WindowsViewModel}">
                 <views:WindowsView />
             </DataTemplate>

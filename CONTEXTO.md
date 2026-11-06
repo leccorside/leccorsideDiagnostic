@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **06/11/2026 — Passo 6 concluído (v0.6.0): Windows Explorer, Benchmark de Pastas Lentas, Inventário e Diagnóstico de Serviços, e Dispositivos/Drivers PnP.**
+Última atualização: **06/11/2026 — Passo 7 concluído (v0.7.0): Aplicativos, Rede, Windows Update e Limpeza Segura (Safe Cleaner - somente visualização).**
 
 ---
 
@@ -15,7 +15,7 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   System.Diagnostics.EventLog 10.0.11, Microsoft.Extensions.Hosting.Abstractions 10.0.11, xUnit 2.9.3.
 - Infraestrutura de diagnóstico completa e testada: orquestrador, RuleEngine, RiskAnalyzer, ScoringEngine,
   RepairEngine (sem ações concretas), executor de comandos seguro, SQLite com migrations, backups, logs.
-- **Scanners em produção (12 scanners):**
+- **Scanners em produção (15 scanners):**
   1. `hardware` (Ordem 10, Hardware)
   2. `cpu` (Ordem 20, Performance)
   3. `memory` (Ordem 30, Performance)
@@ -25,16 +25,19 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   7. `windows.integrity` (Ordem 65, Windows)
   8. `startup` (Ordem 70, Startup)
   9. `eventviewer` (Ordem 75, Events)
-  10. `explorer` (Ordem 80, Explorer) — novo no Passo 6
-  11. `services` (Ordem 85, Services) — novo no Passo 6
-  12. `drivers` (Ordem 90, Drivers) — novo no Passo 6
-- **Regras em produção:** 27 regras no total (21 anteriores + 6 novas do Passo 6).
-  - Novas de Explorer: `explorer.missing-shell-extension`, `explorer.unsigned-shell-extension`.
-  - Novas de Serviços: `services.missing-executable`, `services.failed-startup`.
-  - Novas de Drivers: `drivers.device-error`, `drivers.missing-driver`.
-- **Telas ativas:** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Inicialização, Windows, Eventos, Histórico, **Explorer** (nova: extensões, benchmark de pastas e caches), **Serviços** (nova: catálogo mestre-detalhe, status e dependências), **Drivers** (nova: dispositivos PnP, códigos de erro e fabricantes) e Configurações.
+  10. `explorer` (Ordem 80, Explorer)
+  11. `services` (Ordem 85, Services)
+  12. `drivers` (Ordem 90, Drivers)
+  13. `apps` (Ordem 95, Applications) — novo no Passo 7
+  14. `network` (Ordem 105, Network) — novo no Passo 7
+  15. `windowsupdate` (Ordem 110, WindowsUpdate) — novo no Passo 7
+- **Regras em produção:** 33 regras no total (27 anteriores + 6 novas do Passo 7).
+  - Novas de Aplicativos: `apps.orphaned-uninstall`, `apps.duplicate-install`.
+  - Novas de Rede: `network.no-gateway`, `network.dns-slow`.
+  - Novas de Windows Update: `windowsupdate.service-disabled`, `windowsupdate.reboot-pending`.
+- **Telas ativas:** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Drivers, Inicialização, Serviços, **Aplicativos** (nova: inventário Win32 e Store, busca e órfãos), Windows, **Windows Update** (nova: status dos serviços, reboot pendente e histórico de hotfixes), Eventos, **Rede** (nova: adaptadores, gateway, DNS e diagnóstico em tempo real), **Limpeza** (nova: Safe Cleaner com categorização por risco somente leitura), Histórico e Configurações.
 - Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros.
-- Testes: **424 testes aprovados (100% de sucesso)** — 355 unitários, 42 integração, 27 sistema.
+- Testes: **442 testes aprovados (100% de sucesso)** — 369 unitários, 46 integração, 27 sistema.
 
 ## Histórico de implementações
 
@@ -559,13 +562,49 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - 27 novos testes unitários e de integração adicionados.
   - Total: **424 testes automatizados aprovados (100% de sucesso)** — 355 unitários, 42 integração, 27 sistema.
 
+### Passo 7 — Aplicativos, Rede, Windows Update e Limpeza Segura (06/11/2026)
+
+- **Aplicativos Instalados (Seção 28 do PROMPT):**
+  - `InstalledAppsProvider` (`IAppsProvider`): inventário completo e unificado varrendo chaves de desinstalação Win32 (HKCU, HKLM 64-bit e WOW6432Node) e pacotes da Microsoft Store (UWP/MSIX em AppModel/Repository).
+  - Extração de nome, versão, fabricante, data de instalação, tamanho estimado e comando de desinstalação (`UninstallString`).
+  - Detecção determinística de desinstaladores órfãos (arquivos inexistentes referenciados) e aplicações com versões duplicadas instaladas.
+  - Regra estrita: nunca desinstalar automaticamente.
+- **Rede e Conectividade (Seção 27 do PROMPT):**
+  - `NetworkProvider` (`INetworkProvider`): inventário de interfaces categorizando Ethernet, Wi-Fi, VPN, Docker, WSL, Hyper-V e Loopback com status operacional, velocidade de link, MAC, IPv4, IPv6, Gateway e servidores DNS.
+  - `NetworkDiagnosticsService` (`INetworkDiagnosticsService`): teste não invasivo de qualidade de conexão: latência no gateway local, tempo de resolução de nomes DNS (`Dns.GetHostAddressesAsync`), latência para servidores públicos confiáveis e taxa de perda de pacotes.
+- **Windows Update (Seção 26 do PROMPT):**
+  - `WindowsUpdateProvider` (`IWindowsUpdateProvider`): checagem de estado dos serviços (`wuauserv`, `bits`, `dosvc`), detecção atômica de reinicialização pendente (`CBS\RebootPending`, `WindowsUpdate\Auto Update\RebootRequired`), histórico de hotfixes via `Win32_QuickFixEngineering` e falhas nas últimas 24h via Event Log do WindowsUpdateClient.
+- **Limpeza Segura (Safe Cleaner - Seção 34 do PROMPT):**
+  - `SafeCleanProvider` (`ISafeCleanProvider`): auditoria profunda e segura categorizada em 3 níveis de risco: **Seguro (Safe)** (temporários antigos > 24h, caches de miniaturas, relatórios WER e Otimização de Entrega), **Revisar (Review)** (caches de navegadores, downloads antigos > 30 dias e logs residuais) e **Avançado (Advanced)** (MEMORY.DMP e backups do WinSxS).
+  - Medição segura em modo somente leitura (sem exclusão física nesta etapa).
+- **Scanners e Regras de Diagnóstico:**
+  - `AppsScanner` (Id: `apps`, Ordem: 95, Módulo: `Applications`).
+  - `NetworkScanner` (Id: `network`, Ordem: 105, Módulo: `Network`).
+  - `WindowsUpdateScanner` (Id: `windowsupdate`, Ordem: 110, Módulo: `WindowsUpdate`).
+  - 6 novas regras implementadas:
+    - `apps.orphaned-uninstall`: entrada de desinstalação apontando para executável inexistente (Severidade Baixo).
+    - `apps.duplicate-install`: múltiplas versões registradas do mesmo aplicativo (Severidade Info).
+    - `network.no-gateway`: adaptador ativo sem conexão à internet ou gateway inacessível (Severidade Médio).
+    - `network.dns-slow`: tempo de resposta de resolução DNS superior a 200 ms (Severidade Baixo).
+    - `windowsupdate.service-disabled`: serviço `wuauserv` do Windows Update desativado (Severidade Alto).
+    - `windowsupdate.reboot-pending`: reinicialização pendente por atualizações acumuladas (Severidade Médio).
+- **Telas e ViewModels:**
+  - `AppsView` e `AppsViewModel`: inventário mestre-detalhe com estatísticas, busca por texto, filtros por categoria/problema e atalho para abrir pasta do programa.
+  - `NetworkView` e `NetworkViewModel`: painel de diagnóstico em tempo real (latência de gateway, DNS, internet pública e perda de pacotes) e lista detalhada de adaptadores físicos e virtuais.
+  - `WindowsUpdateView` e `WindowsUpdateViewModel`: card de alerta de reboot pendente, status dos serviços e histórico de atualizações instaladas.
+  - `SafeCleanView` e `SafeCleanViewModel`: painel com totais por categoria de risco, detalhamento de itens com justificativa técnica e aviso explícito de modo somente leitura.
+  - `FindingItemViewModel`: navegação contextual para `Aplicativos`, `Rede` e `Windows Update`.
+- **Testes novos:**
+  - 18 novos testes unitários e de integração adicionados.
+  - Total: **442 testes automatizados aprovados (100% de sucesso)** — 369 unitários, 46 integração, 27 sistema.
+
 ## Pendências / próximos passos
 
 Na ordem combinada no `PASSOS.md`:
 
-1. **Passo 7 (MVP 2 (b))** — Aplicativos, Rede, Windows Update e Limpeza segura por categorias (Seguro, Revisar, Avançado - somente visualização).
-2. **Passo 8 (MVP 3)** — Ações reais de correção (`IRepairAction`), Backup com rollback, Ponto de restauração do sistema e análise antes/depois.
-3. **Passos 9–10** — MVP 4 e 5 (ver `PASSOS.md`).
+1. **Passo 8 (MVP 3)** — Ações reais de correção (`IRepairAction`), Backup com rollback, Ponto de restauração do sistema e análise antes/depois.
+2. **Passo 9 (MVP 4)** — Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança.
+3. **Passo 10 (MVP 5)** — Relatórios avançados (HTML/CSV/PDF), Agendamento, Notificações, Instalador e UX.
 
 Itens do Passo 4 para depois: desativar entrada de inicialização com backup e desfazer (Correções, Passo 8); a lista de
 processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode

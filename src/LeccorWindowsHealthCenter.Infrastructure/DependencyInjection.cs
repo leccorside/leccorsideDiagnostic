@@ -46,6 +46,11 @@ public static class DependencyInjection
         services.AddSingleton<Application.Explorer.IFolderBenchmarkService, Explorer.FolderBenchmarkService>();
         services.AddSingleton<Application.Services.IServicesProvider, Services.WindowsServicesProvider>();
         services.AddSingleton<Application.Drivers.IDriversProvider, Drivers.PnpDeviceDriverProvider>();
+        services.AddSingleton<Application.Apps.IAppsProvider, Apps.InstalledAppsProvider>();
+        services.AddSingleton<Application.Network.INetworkProvider, Network.NetworkProvider>();
+        services.AddSingleton<Application.Network.INetworkDiagnosticsService, Network.NetworkDiagnosticsService>();
+        services.AddSingleton<Application.WindowsUpdate.IWindowsUpdateProvider, WindowsUpdate.WindowsUpdateProvider>();
+        services.AddSingleton<Application.Storage.ISafeCleanProvider, Storage.SafeCleanProvider>();
 
         services.AddSingleton(new SqliteDatabase(paths.Database));
         services.AddSingleton<MigrationRunner>();

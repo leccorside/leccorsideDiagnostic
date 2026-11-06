@@ -108,7 +108,33 @@ processos de administrador (processo elevado, Passo 5); break-ui das duas telas 
   - `DriversView` e `DriversViewModel`: catálogo de dispositivos com filtro de problemas e detalhes técnicos do driver
 - [x] Testes: 355 unitários, 42 integração (fontes reais do Windows), 27 sistema (varredura completa com 12 scanners) — total de **424 testes automatizados aprovados (100%)**
 
-## Passo 7 — MVP 2 (b): Aplicativos, Rede, Windows Update e Limpeza segura (visualização) ⬜
+## Passo 7 — MVP 2 (b): Aplicativos, Rede, Windows Update e Limpeza segura (visualização) ✅
+
+- [x] Aplicativos Instalados (seção 28 do PROMPT):
+  - Inventário unificado de programas Win32 (HKCU, HKLM 64 e WOW6432Node) e pacotes da Microsoft Store (UWP/MSIX), com nome, versão, fabricante, data de instalação e tamanho estimado
+  - Diagnóstico de desinstaladores quebrados/órfãos (`UninstallString` aponta para arquivo ausente no disco) e detecção de versões duplicadas instaladas
+  - Regra estrita: nunca desinstalar automaticamente
+- [x] Rede e Conectividade (seção 27 do PROMPT):
+  - Inventário completo de adaptadores físicos e virtuais (Ethernet, Wi-Fi, VPN, Docker, WSL, Hyper-V, Loopback) com status, velocidade, MAC, IPv4, IPv6, Gateway e DNS
+  - Diagnóstico não invasivo com cronometragem precisa: latência do gateway local via Ping, tempo de resolução DNS (`Dns.GetHostAddressesAsync`), latência para IPs públicos confiáveis e taxa de perda de pacotes
+- [x] Windows Update (seção 26 do PROMPT):
+  - Verificação de status dos serviços essenciais (`wuauserv`, `bits`, `dosvc`)
+  - Detecção atômica de reinicializações pendentes via registro (`CBS\RebootPending`, `WindowsUpdate\Auto Update\RebootRequired`, `PendingFileRenameOperations`)
+  - Histórico de atualizações instaladas (hotfixes via `Win32_QuickFixEngineering`) e falhas recentes nas últimas 24h
+- [x] Limpeza Segura — Visualização e Auditoria (seção 34 do PROMPT):
+  - Categorização em 3 níveis de risco estritos: **Seguro (Safe)** (temporários antigos, caches de miniaturas, relatórios WER e otimização de entrega), **Revisar (Review)** (caches de navegadores, downloads antigos e logs residuais) e **Avançado (Advanced)** (MEMORY.DMP e backups do WinSxS)
+  - Medição de bytes e contagem de arquivos sem alterar ou apagar absolutamente nada
+  - Card explícito de modo somente leitura, informando que a execução com rollback será habilitada no Passo 8 (MVP 3)
+- [x] Regras de Diagnóstico Novas (6 regras, totalizando 33 regras na solução):
+  - `apps.orphaned-uninstall` e `apps.duplicate-install`
+  - `network.no-gateway` e `network.dns-slow`
+  - `windowsupdate.service-disabled` e `windowsupdate.reboot-pending`
+- [x] Telas e ViewModels integrados à navegação principal:
+  - `AppsView` e `AppsViewModel`: inventário mestre-detalhe com filtros, busca instantânea e atalhos de desinstalação
+  - `NetworkView` e `NetworkViewModel`: painel de diagnóstico em tempo real e lista de interfaces
+  - `WindowsUpdateView` e `WindowsUpdateViewModel`: status de serviços, alerta de reboot pendente e histórico de hotfixes
+  - `SafeCleanView` e `SafeCleanViewModel`: auditoria categorizada de espaço liberável por nível de risco
+- [x] Testes: 369 unitários, 46 integração (fontes reais de rede, apps e updates), 27 sistema (composição com 15 scanners) — total de **442 testes automatizados aprovados (100%)**
 
 ## Passo 8 — MVP 3: Correções reais, Backup, Rollback, Restore Point e Antes/Depois ⬜
 

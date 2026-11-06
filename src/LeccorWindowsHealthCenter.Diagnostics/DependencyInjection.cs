@@ -71,6 +71,18 @@ public static class DependencyInjection
         services.AddSingleton<IRule, ServicesFailedStartupRule>();
         services.AddSingleton<IRule, DriversDeviceErrorRule>();
         services.AddSingleton<IRule, DriversMissingDriverRule>();
+
+        // Passo 7 — MVP 2 (b): Aplicativos, Rede e Windows Update
+        services.AddSingleton<IDiagnosticScanner, Apps.AppsScanner>();
+        services.AddSingleton<IDiagnosticScanner, Network.NetworkScanner>();
+        services.AddSingleton<IDiagnosticScanner, WindowsUpdate.WindowsUpdateScanner>();
+
+        services.AddSingleton<IRule, AppsOrphanedUninstallRule>();
+        services.AddSingleton<IRule, AppsDuplicateInstallRule>();
+        services.AddSingleton<IRule, NetworkNoGatewayRule>();
+        services.AddSingleton<IRule, NetworkDnsSlowRule>();
+        services.AddSingleton<IRule, WindowsUpdateServiceDisabledRule>();
+        services.AddSingleton<IRule, WindowsUpdateRebootPendingRule>();
         return services;
     }
 }

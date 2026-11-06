@@ -164,6 +164,19 @@ Diagnósticos de extensões do shell, integridade de serviços do Windows e hard
 | `drivers.device-error` | drivers | Dispositivo PnP reporta código de erro no Gerenciador de Dispositivos (`ConfigManagerErrorCode != 0`, exceto 28) | Alto | 95% |
 | `drivers.missing-driver` | drivers | Dispositivo PnP sem driver instalado (Código 28 / Dispositivo Desconhecido) | Médio | 95% |
 
+### Aplicativos, Rede e Windows Update (Passo 7)
+
+Diagnósticos de inventário de software, integridade de conectividade e serviços de atualização:
+
+| Regra | Scanner | Dispara quando | Severidade | Confiança |
+| --- | --- | --- | --- | --- |
+| `apps.orphaned-uninstall` | apps | Entrada de desinstalação no registro cujo executável foi removido do computador | Baixo | 95% (desinstalador órfão) |
+| `apps.duplicate-install` | apps | Programa com múltiplas versões registradas simultaneamente em disco | Informação | 90% (versão legada não removida) |
+| `network.no-gateway` | network | Testes de rede indicam que não há conexão com a internet ou gateway local está inacessível | Médio | 90% |
+| `network.dns-slow` | network | Tempo de resposta para resolução de nomes de domínio excede `ThresholdMs` (200 ms) | Baixo | 85% |
+| `windowsupdate.service-disabled` | windowsupdate | Serviço essencial `wuauserv` do Windows Update configurado como Desativado | Alto | 95% |
+| `windowsupdate.reboot-pending` | windowsupdate | Atualizações do sistema instaladas aguardando reinicialização do computador | Médio | 95% |
+
 A justificativa técnica de cada parâmetro está no próprio código (`RuleParameter.Justification`) e é verificada por
 teste (`Every_performance_rule_declares_justified_parameters`). Cada regra tem testes com uma série que **não** deve
 disparar e outra que deve (`PerformanceRulesTests`).

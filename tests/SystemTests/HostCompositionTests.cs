@@ -70,9 +70,14 @@ public sealed class HostCompositionTests : IDisposable
         Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Explorer.IFolderBenchmarkService>());
         Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Services.IServicesProvider>());
         Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Drivers.IDriversProvider>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Apps.IAppsProvider>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Network.INetworkProvider>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Network.INetworkDiagnosticsService>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.WindowsUpdate.IWindowsUpdateProvider>());
+        Assert.NotNull(services.GetRequiredService<LeccorWindowsHealthCenter.Application.Storage.ISafeCleanProvider>());
         Assert.NotEmpty(services.GetServices<IReportExporter>());
-        Assert.Equal(["hardware", "cpu", "memory", "gpu", "disks", "storage", "windows.integrity", "startup", "eventviewer", "explorer", "services", "drivers"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
-        Assert.Equal(27, services.GetServices<IRule>().Count());
+        Assert.Equal(["hardware", "cpu", "memory", "gpu", "disks", "storage", "windows.integrity", "startup", "eventviewer", "explorer", "services", "drivers", "apps", "network", "windowsupdate"], services.GetRequiredService<IScanOrchestrator>().Scanners.Select(s => s.Id));
+        Assert.Equal(33, services.GetServices<IRule>().Count());
     }
 
     [Fact]
