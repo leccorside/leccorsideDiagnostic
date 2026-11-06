@@ -1,6 +1,7 @@
 using System.Diagnostics.Eventing.Reader;
 using System.Text.RegularExpressions;
 using LeccorWindowsHealthCenter.Application.Events;
+using LeccorWindowsHealthCenter.Infrastructure.Storage;
 using LeccorWindowsHealthCenter.Shared.Security;
 using Microsoft.Extensions.Logging;
 
@@ -171,7 +172,7 @@ public sealed class EventViewerProvider : IEventViewerProvider
                 var match = Regex.Match(message, @"\\Device\\Harddisk\d+\\DR\d+|\\Device\\Harddisk\d+|Disk\s+\d+|Disco\s+\d+", RegexOptions.IgnoreCase);
                 if (match.Success)
                 {
-                    return match.Value;
+                    return DiskDeviceResolver.ResolveDisplay(match.Value);
                 }
             }
             return "Armazenamento";

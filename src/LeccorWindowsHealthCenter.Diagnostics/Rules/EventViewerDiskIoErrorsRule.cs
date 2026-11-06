@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using LeccorWindowsHealthCenter.Application.Events;
 using LeccorWindowsHealthCenter.Application.Rules;
+using LeccorWindowsHealthCenter.Diagnostics.Storage;
 using LeccorWindowsHealthCenter.Domain;
 
 namespace LeccorWindowsHealthCenter.Diagnostics.Rules;
@@ -57,6 +59,36 @@ public sealed class EventViewerDiskIoErrorsRule : IRule
             var resourceName = string.IsNullOrWhiteSpace(target) ? "Disco" : target;
             var message = obs.Attributes.GetValueOrDefault(EventViewerNames.AttrMessage) ?? string.Empty;
 
+            // Se ainda não tiver a letra da unidade resolvida, correlaciona com as observações de volume e disco
+            if (!resourceName.Contains('['))
+            {
+                var diskMatch = Regex.Match(resourceName + " " + message, @"(?:\\Device\\Harddisk|Disk\s*|Disco\s*)(\d+)", RegexOptions.IgnoreCase);
+                if (diskMatch.Success && int.TryParse(diskMatch.Groups[1].Value, out var diskNum))
+                {
+                    var volumeLetters = context.ObservationsOf(StorageNames.ObservationVolume)
+                        .Where(v => v.Number("disk") == diskNum && !string.IsNullOrWhiteSpace(v.GetAttribute("root")))
+                        .Select(v => v.GetAttribute("root")!.TrimEnd('\\'))
+                        .Distinct()
+                        .OrderBy(l => l)
+                        .ToList();
+
+                    if (volumeLetters.Count > 0)
+                    {
+                        resourceName = $"Disco {diskNum} [{string.Join(", ", volumeLetters)}]";
+                    }
+                    else
+                    {
+                        var diskObs = context.ObservationsOf(StorageNames.ObservationDisk)
+                            .FirstOrDefault(d => d.Number("number") == diskNum);
+                        var model = diskObs?.GetAttribute("name");
+                        if (!string.IsNullOrWhiteSpace(model))
+                        {
+                            resourceName = $"Disco {diskNum} [{model}]";
+                        }
+                    }
+                }
+            }
+
             var isCritical = eventId is 7 or 11 or 55 || count >= critThreshold;
             var severity = isCritical ? Severity.Critical : Severity.High;
             var confidence = isCritical ? Confidence.FromPercent(95) : Confidence.FromPercent(85);
@@ -68,10 +100,10 @@ public sealed class EventViewerDiskIoErrorsRule : IRule
                 new()
                 {
                     Source = EvidenceSource.EventLog,
-                    Description = $"{count} eventos {provider} {eventId} registrados nas últimas 24 horas",
+                    Description = $"{count} eventos {provider} {eventId} registrados nas últimas 24 horas no {resourceName}",
                     Value = count,
                     Unit = "eventos",
-                    Reference = $"{provider} / {eventId}",
+                    Reference = $"{provider} / {eventId} ({resourceName})",
                     SampleCount = count,
                     CollectedAt = DateTimeOffset.UtcNow,
                 },
@@ -86,7 +118,7 @@ public sealed class EventViewerDiskIoErrorsRule : IRule
                 Severity = severity,
                 Confidence = confidence,
                 Title = title,
-                Description = $"{count} erro(s) de comunicação ou integridade de armazenamento registrados pelo provedor {provider} (Evento {eventId}) nas últimas 24h.",
+                Description = $"{count} erro(s) de comunicação ou integridade de armazenamento registrados pelo provedor {provider} (Evento {eventId}) no {resourceName} nas últimas 24h.",
                 ProbableCause = "Falha física na unidade, desgaste de mídia, cabo SATA/NVMe com mal contato ou corrupção de estrutura NTFS.",
                 Impact = "Degradação extrema de desempenho de disco, travamentos do sistema ou risco iminente de perda de dados.",
                 Recommendation = "Verificar integridade física e conexões do armazenamento e realizar backup imediatamente.",

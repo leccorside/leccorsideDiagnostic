@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **06/11/2026 — Varredura Geral e Auditoria Técnica Concluída: 100% dos requisitos do PROMPT.txt, 10 Passos do MVP e os 3 Pacotes de Evolução (A, B e C) implementados e validados com 505 testes automatizados aprovados (0 falhas) e compilação limpa em Release (-warnaserror). README.md atualizado para v1.1.0 e publicação self-contained pronta com suporte a modo portable.**
+Última atualização: **06/11/2026 — Identificação de Letras de Unidade em Discos Físicos (C:, D:, E:, etc.): Implementado DiskDeviceResolver com mapeamento WMI (MSFT_Partition / MSFT_PhysicalDisk) com cache de 30s. EventViewerDiskIoErrorsRule, EventViewerProvider, DiskScanner e regras de disco agora exibem explicitamente as letras de volume montadas no título e nos cards (ex: "Disco 3 [F:]"), eliminando ambiguidades para o usuário. 518 testes automatizados aprovados.**
 
 ---
 
@@ -844,3 +844,28 @@ Próximos passos recomendados:
   1. Adicionar mais ações de reparo para regras existentes (ex: limpeza de entradas inválidas no PATH com backup do registro).
   2. Execução da aplicação em ambiente gráfico para homologação visual humana dos fluxos de tela.
   3. Criação de workflow de GitHub Actions para compilação do instalador Inno Setup em runner Windows.
+
+---
+
+## Melhoria de Usabilidade: Identificação Explícita de Letras de Volume em Discos Físicos (06/11/2026)
+
+### Contexto
+Nas telas de Diagnóstico e no card de destaque do Dashboard ("PROBLEMA MAIS IMPORTANTE"), eventos de I/O (ex.: Evento 153 do driver `disk`) exibiam apenas o identificador físico bruto do Windows (ex.: `Disco 3` ou `\Device\Harddisk3\DR3`). Para o usuário final, essa notação gerava dúvida sobre qual unidade real do computador estava com problema (se era o SSD do sistema `C:`, o HD secundário `D:`, ou uma unidade externa `F:`).
+
+### Solução Técnica Implementada
+1. **`DiskDeviceResolver` ([`DiskDeviceResolver.cs`](file:///d:/PROJETOS/leccorsideDiagnostic/src/LeccorWindowsHealthCenter.Infrastructure/Storage/DiskDeviceResolver.cs)):**
+   - Classe utilitária com cache com TTL de 30 segundos com controle de concorrência.
+   - Extração determinística do número do disco físico via regex (`\Device\HarddiskN`, `Disk N`, `Disco N`).
+   - Mapeamento via `MSFT_Partition` (namespace `root/Microsoft/Windows/Storage`) associando `DiskNumber` às letras de partição não nulas (`DriveLetter`), com fallback para `Win32_LogicalDiskToPartition`.
+   - Consulta ao modelo físico via `MSFT_PhysicalDisk` (`FriendlyName`/`Model`).
+   - Formatação consistente: `Disco {N} [{Letras}]` (ex.: `Disco 3 [F:]` ou `Disco 0 [C:]`). Se não houver letras de volume montadas, exibe o modelo ou `[sem letra atribuída]`.
+2. **`EventViewerProvider` ([`EventViewerProvider.cs`](file:///d:/PROJETOS/leccorsideDiagnostic/src/LeccorWindowsHealthCenter.Infrastructure/Events/EventViewerProvider.cs)):**
+   - Na extração do recurso alvo (`ExtractTargetResource`), passa o identificador bruto pelo `DiskDeviceResolver.ResolveDisplay`. A tabela da aba "Eventos" já recebe a coluna "Recurso" com a letra da unidade informada.
+3. **`EventViewerDiskIoErrorsRule` ([`EventViewerDiskIoErrorsRule.cs`](file:///d:/PROJETOS/leccorsideDiagnostic/src/LeccorWindowsHealthCenter.Diagnostics/Rules/EventViewerDiskIoErrorsRule.cs)):**
+   - Correlaciona as observações de volume (`ObservationVolume`) e disco (`ObservationDisk`) do `RuleContext` ou do `DiskDeviceResolver`.
+   - Título e descrição do Finding agora exibem: `Foram detectados eventos recorrentes de I/O (Disco 3 [F:])`.
+4. **`DiskScanner`, `DiskHealthRule` e `DiskTemperatureRule`:**
+   - Adicionada a propriedade `driveLetters` na observação de disco físico para exibir a letra da unidade também em alertas de saúde SMART e temperatura alta.
+5. **Cobertura de Testes:**
+   - Adicionados testes em [`DiskDeviceResolverTests.cs`](file:///d:/PROJETOS/leccorsideDiagnostic/tests/UnitTests/Storage/DiskDeviceResolverTests.cs) e [`EventViewerRulesTests.cs`](file:///d:/PROJETOS/leccorsideDiagnostic/tests/UnitTests/Events/EventViewerRulesTests.cs).
+   - Suíte expandida para **518 testes automatizados aprovados (100% de sucesso)**.

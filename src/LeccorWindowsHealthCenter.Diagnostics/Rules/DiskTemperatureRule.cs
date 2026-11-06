@@ -42,12 +42,14 @@ public sealed class DiskTemperatureRule : IRule
 
             var critical = disk.Number("criticalTemperature") ?? warning + context.Parameter("CriticalMarginCelsius");
             var name = disk.GetAttribute("name") ?? disk.Subject;
+            var letters = disk.GetAttribute("driveLetters");
+            var displayName = !string.IsNullOrWhiteSpace(letters) ? $"{name} [{letters}]" : name;
             yield return new Finding
             {
                 RuleId = Id,
                 ScannerId = DiskScanner.ScannerId,
                 Category = FindingCategory.Disk,
-                Title = $"{name} está quente ({celsius:0} °C)",
+                Title = $"{displayName} está quente ({celsius:0} °C)",
                 Description = $"O disco informou {celsius:0} °C, acima do limite de aviso de {warning:0} °C.",
                 Severity = celsius >= critical ? Severity.High : Severity.Medium,
 

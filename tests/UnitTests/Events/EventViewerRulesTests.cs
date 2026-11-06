@@ -183,4 +183,38 @@ public class EventViewerRulesTests
         var findings = Run(rule, [obs]);
         Assert.Empty(findings);
     }
+
+    [Fact]
+    public void EventViewerDiskIoErrorsRule_EnrichesTitleWithDriveLetters_WhenVolumesPresent()
+    {
+        var rule = new EventViewerDiskIoErrorsRule();
+        var eventObs = CreateEventObservation(
+            "System",
+            "disk",
+            153,
+            "Warning",
+            801,
+            "A operação de E/S no endereço de bloco lógico para o Disco 3 foi repetida.",
+            "Disco 3");
+
+        var volumeObs = new Observation
+        {
+            ScannerId = LeccorWindowsHealthCenter.Diagnostics.Storage.DiskScanner.ScannerId,
+            Kind = LeccorWindowsHealthCenter.Diagnostics.Storage.StorageNames.ObservationVolume,
+            Subject = "F:\\",
+            Attributes = new Dictionary<string, string>
+            {
+                ["root"] = "F:\\",
+                ["disk"] = "3",
+                ["label"] = "Backup Externo",
+            },
+        };
+
+        var findings = Run(rule, [eventObs, volumeObs]);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("Foram detectados eventos recorrentes de I/O (Disco 3 [F:])", finding.Title);
+        Assert.Contains("Disco 3 [F:]", finding.Description);
+        Assert.Equal(Severity.Critical, finding.Severity);
+    }
 }

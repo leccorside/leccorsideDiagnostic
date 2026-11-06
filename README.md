@@ -29,7 +29,7 @@ Cada achado técnico do sistema responde diretamente às 6 perguntas essenciais:
 - **Módulos / Scanners em Produção:** **18 scanners** ativos e paralelizados com concorrência controlada.
 - **Regras de Diagnóstico:** **39 regras** com thresholds justificados contra falsos positivos.
 - **Ações Reais de Reparo:** 4 correções automáticas com backup prévio, medição antes/depois e rollback.
-- **Qualidade e Testes:** **505 testes automatizados aprovados (100% de sucesso)** — 412 unitários, 47 de integração e 46 de sistema.
+- **Qualidade e Testes:** **518 testes automatizados aprovados (100% de sucesso)** — 425 unitários, 47 de integração e 46 de sistema.
 - **Compilação:** `-warnaserror --no-incremental` em Debug e Release (0 avisos, 0 erros).
 
 ---
@@ -102,7 +102,7 @@ dotnet run --project src/LeccorWindowsHealthCenter.App
 ```
 
 ### Compilação e Execução de Testes
-O script [`scripts/build.ps1`](scripts/build.ps1) executa restore, compilação rigorosa com analisadores como erro e os 505 testes automatizados:
+O script [`scripts/build.ps1`](scripts/build.ps1) executa restore, compilação rigorosa com analisadores como erro e os 518 testes automatizados:
 
 ```powershell
 ./scripts/build.ps1 -Configuration Release

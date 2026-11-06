@@ -37,10 +37,19 @@ public sealed class DiskScanner : DiagnosticScannerBase
 
         foreach (var disk in inventory.Disks)
         {
+            var letters = disk.Partitions
+                .Where(p => p.DriveLetter is not null)
+                .Select(p => $"{p.DriveLetter}:")
+                .Distinct()
+                .OrderBy(l => l)
+                .ToList();
+            var lettersDisplay = letters.Count > 0 ? string.Join(", ", letters) : string.Empty;
+
             collector.AddObservation(ObservationDisk, disk.Name, new Dictionary<string, string>
             {
                 ["number"] = Invariant(disk.Number),
                 ["name"] = disk.Name,
+                ["driveLetters"] = lettersDisplay,
                 ["kind"] = StorageText.Kind(disk.Media, disk.Bus),
                 ["bus"] = disk.Bus.ToString(),
                 ["media"] = disk.Media.ToString(),

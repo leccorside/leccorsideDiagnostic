@@ -31,13 +31,15 @@ public sealed class DiskHealthRule : IRule
             }
 
             var name = disk.GetAttribute("name") ?? disk.Subject;
+            var letters = disk.GetAttribute("driveLetters");
+            var displayName = !string.IsNullOrWhiteSpace(letters) ? $"{name} [{letters}]" : name;
             var status = disk.GetAttribute("operationalStatus");
             var evidence = new List<Evidence>
             {
                 new()
                 {
                     Source = EvidenceSource.Wmi,
-                    Description = $"Estado de saúde informado pelo Windows para {name}: {HealthText(health)}",
+                    Description = $"Estado de saúde informado pelo Windows para {displayName}: {HealthText(health)}",
                     Reference = "MSFT_PhysicalDisk.HealthStatus",
                 },
             };
@@ -57,7 +59,7 @@ public sealed class DiskHealthRule : IRule
                 RuleId = Id,
                 ScannerId = DiskScanner.ScannerId,
                 Category = FindingCategory.Disk,
-                Title = critical ? $"O disco {name} indica falha" : $"O disco {name} indica atenção",
+                Title = critical ? $"O disco {displayName} indica falha" : $"O disco {displayName} indica atenção",
                 Description = critical
                     ? "O próprio disco reportou ao Windows uma condição de falha (SMART/NVMe). Discos nesse estado podem parar de funcionar a qualquer momento."
                     : "O Windows marcou o disco com estado de atenção a partir dos dados de saúde que o dispositivo informa.",
