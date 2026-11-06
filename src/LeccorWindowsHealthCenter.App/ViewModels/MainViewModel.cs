@@ -48,6 +48,7 @@ public sealed partial class MainViewModel : ObservableObject
         EventsViewModel events,
         NetworkViewModel network,
         SafeCleanViewModel safeClean,
+        RepairsViewModel repairs,
         HistoryViewModel history,
         SettingsViewModel settings)
     {
@@ -73,7 +74,7 @@ public sealed partial class MainViewModel : ObservableObject
             Planned("Segurança", "", "Status do Windows Security/Defender e persistências suspeitas.", "MVP 4"),
             Planned("Desenvolvimento", "", "Docker, WSL, Hyper-V, Node.js, Java, .NET, Git e IDEs.", "MVP 4"),
             new("Limpeza", "", safeClean),
-            Planned("Correções", "", "Correções seguras e análise individual de mudanças MEDIUM/HIGH.", "MVP 3"),
+            new("Correções", "", repairs),
             new("Histórico", "", history),
             Planned("Relatórios", "", "Exportação em HTML, JSON, CSV e PDF.", "MVP 5"),
             new("Configurações", "", settings, IsFooter: true),

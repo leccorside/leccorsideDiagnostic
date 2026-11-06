@@ -51,6 +51,7 @@ public static class DependencyInjection
         services.AddSingleton<Application.Network.INetworkDiagnosticsService, Network.NetworkDiagnosticsService>();
         services.AddSingleton<Application.WindowsUpdate.IWindowsUpdateProvider, WindowsUpdate.WindowsUpdateProvider>();
         services.AddSingleton<Application.Storage.ISafeCleanProvider, Storage.SafeCleanProvider>();
+        services.AddSingleton<Application.Repair.IRestorePointService, Repair.RestorePointService>();
 
         services.AddSingleton(new SqliteDatabase(paths.Database));
         services.AddSingleton<MigrationRunner>();

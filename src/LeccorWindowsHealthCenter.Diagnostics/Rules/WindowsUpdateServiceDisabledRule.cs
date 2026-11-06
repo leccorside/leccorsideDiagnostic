@@ -58,6 +58,8 @@ public sealed class WindowsUpdateServiceDisabledRule : IRule
             ProbableCause = "Script de 'otimização' agressivo de terceiros ou alteração manual no registro.",
             Impact = "Deixa o sistema vulnerável a novas ameaças de segurança e impede o funcionamento correto da Microsoft Store.",
             Recommendation = "Reativar o serviço do Windows Update para o modo Automático ou Manual.",
+            RepairActionId = "repair.windowsupdate.enable-service",
+            RepairRisk = RiskLevel.Low,
             Evidence = evidence,
             RequiresElevation = true,
             RequiresRestart = false,

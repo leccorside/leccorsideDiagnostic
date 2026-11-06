@@ -136,11 +136,34 @@ processos de administrador (processo elevado, Passo 5); break-ui das duas telas 
   - `SafeCleanView` e `SafeCleanViewModel`: auditoria categorizada de espaço liberável por nível de risco
 - [x] Testes: 369 unitários, 46 integração (fontes reais de rede, apps e updates), 27 sistema (composição com 15 scanners) — total de **442 testes automatizados aprovados (100%)**
 
-## Passo 8 — MVP 3: Correções reais, Backup, Rollback, Restore Point e Antes/Depois ⬜
+## Passo 8 — MVP 3: Correções reais, Backup, Rollback, Restore Point e Antes/Depois ✅
 
-- Primeiras `IRepairAction` reais (desativar startup, desativar shell extension, limpeza SAFE), cada uma com rollback testado
-- Telas Correções ("Correções seguras — N disponíveis"), Histórico de Correções com **Desfazer**, Dry Run na UI
-- Restore Point para ações de maior impacto
+- [x] Contrato e Infraestrutura de Ponto de Restauração nativo do Windows (seção 38 do PROMPT):
+  - `IRestorePointService` em `Application/Repair` e implementação `RestorePointService` em `Infrastructure/Repair` via WMI `root\default:SystemRestore.CreateRestorePoint`.
+  - Tratamento resiliente e diagnóstico para quando a Proteção de Sistema estiver desativada no C: ou faltar elevação administrativa.
+- [x] Quatro primeiras ações de reparo reais (`IRepairAction`), todas com fluxo seguro de backup prévio obrigatório, validação e histórico:
+  - `DisableStartupEntryRepairAction` (`repair.startup.disable`): desativa entradas de inicialização automática no registro através da chave nativa `StartupApproved\Run` (0x03). Risco: Low. Rollback total restaurando o estado original.
+  - `DisableShellExtensionRepairAction` (`repair.explorer.disable-shell-extension`): bloqueia extensões órfãs ou lentas do Explorer via chave oficial `HKCU\Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked`. Risco: Low. Rollback total removendo da chave.
+  - `SafeCleanTempRepairAction` (`repair.storage.safe-clean`): implementa `IMeasurableRepairAction`. Medição antes e depois em MB. Limpeza segura de arquivos temporários (> 24h) no `User Temp`, `Windows\Temp`, miniaturas e relatórios WER / CrashDumps. Risco: Safe. Tratamento tolerante para arquivos bloqueados.
+  - `EnableWindowsUpdateServiceRepairAction` (`repair.windowsupdate.enable-service`): reativa o serviço `wuauserv` no registro de Desativado (4) para Manual (3) e inicia o serviço. Risco: Low. Rollback total restaurando o modo anterior.
+- [x] Associação das regras diagnósticas aos reparos automáticos:
+  - `WindowsUpdateServiceDisabledRule` associada a `repair.windowsupdate.enable-service`.
+  - `ExplorerMissingShellExtensionRule` associada a `repair.explorer.disable-shell-extension`.
+  - `StartupMissingExecutableRule` associada a `repair.startup.disable`.
+- [x] Interface Completa e ViewModels de Correções:
+  - `RepairsViewModel` e `RepairsView`:
+    - Aba "Correções Disponíveis": lista de ações com checkboxes, badges de risco, se exige elevação, se suporta rollback e medição antes/depois.
+    - Botão "Ponto de Restauração": invoca `IRestorePointService` sob demanda.
+    - Botão "Simular (Dry Run)": calcula e detalha as alterações planejadas sem modificar o sistema.
+    - Botão "Aplicar Selecionadas": executa em lote com backup atômico prévio e medição antes/depois.
+    - Aba "Histórico de Correções & Rollback": histórico das ações gravadas no SQLite com data, motivo, mensagem, comparação antes/depois e botão **[Desfazer]** (Rollback).
+  - Substituição de `Planned("Correções", ...)` por `new("Correções", "", repairs)` no `MainViewModel`.
+- [x] Testes:
+  - 377 testes unitários (novos testes em `RepairActionsTests`).
+  - 46 testes de integração.
+  - 28 testes de sistema (novo teste de ciclo completo em `RepairsViewModelTests`).
+  - **Total de 451 testes automatizados aprovados (100% de sucesso)**.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
 
 ## Passo 9 — MVP 4: Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer, Segurança ⬜
 

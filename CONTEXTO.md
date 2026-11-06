@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **06/11/2026 — Passo 7 concluído (v0.7.0): Aplicativos, Rede, Windows Update e Limpeza Segura (Safe Cleaner - somente visualização).**
+Última atualização: **06/11/2026 — Passo 8 concluído (v0.8.0): MVP 3: Correções reais, Backup, Rollback, Restore Point e Antes/Depois.**
 
 ---
 
@@ -14,7 +14,7 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   Serilog 4.3.1 (+ Extensions.Logging 10.0.0, Sinks.File 7.0.0, Formatting.Compact 3.0.0), System.Management 10.0.11,
   System.Diagnostics.EventLog 10.0.11, Microsoft.Extensions.Hosting.Abstractions 10.0.11, xUnit 2.9.3.
 - Infraestrutura de diagnóstico completa e testada: orquestrador, RuleEngine, RiskAnalyzer, ScoringEngine,
-  RepairEngine (sem ações concretas), executor de comandos seguro, SQLite com migrations, backups, logs.
+  RepairEngine com **4 ações reais de reparo**, Ponto de Restauração nativo do Windows, executor de comandos seguro, SQLite com migrations, backups atômicos, logs.
 - **Scanners em produção (15 scanners):**
   1. `hardware` (Ordem 10, Hardware)
   2. `cpu` (Ordem 20, Performance)
@@ -28,16 +28,24 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   10. `explorer` (Ordem 80, Explorer)
   11. `services` (Ordem 85, Services)
   12. `drivers` (Ordem 90, Drivers)
-  13. `apps` (Ordem 95, Applications) — novo no Passo 7
-  14. `network` (Ordem 105, Network) — novo no Passo 7
-  15. `windowsupdate` (Ordem 110, WindowsUpdate) — novo no Passo 7
-- **Regras em produção:** 33 regras no total (27 anteriores + 6 novas do Passo 7).
-  - Novas de Aplicativos: `apps.orphaned-uninstall`, `apps.duplicate-install`.
-  - Novas de Rede: `network.no-gateway`, `network.dns-slow`.
-  - Novas de Windows Update: `windowsupdate.service-disabled`, `windowsupdate.reboot-pending`.
-- **Telas ativas:** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Drivers, Inicialização, Serviços, **Aplicativos** (nova: inventário Win32 e Store, busca e órfãos), Windows, **Windows Update** (nova: status dos serviços, reboot pendente e histórico de hotfixes), Eventos, **Rede** (nova: adaptadores, gateway, DNS e diagnóstico em tempo real), **Limpeza** (nova: Safe Cleaner com categorização por risco somente leitura), Histórico e Configurações.
+  13. `apps` (Ordem 95, Applications)
+  14. `network` (Ordem 105, Network)
+  15. `windowsupdate` (Ordem 110, WindowsUpdate)
+- **Regras em produção:** 33 regras no total.
+  - Regras com ações de reparo associadas:
+    - `windowsupdate.service-disabled` → `repair.windowsupdate.enable-service`
+    - `explorer.missing-shell-extension` → `repair.explorer.disable-shell-extension`
+    - `startup.missing-executable` → `repair.startup.disable`
+- **Ações de Reparo Reais em Produção (4 ações):**
+  1. `DisableStartupEntryRepairAction` (`repair.startup.disable`): desativação de inicialização via `StartupApproved\Run` (0x03) preservando o comando original. Risco: Low. Rollback total.
+  2. `DisableShellExtensionRepairAction` (`repair.explorer.disable-shell-extension`): bloqueio de extensão órfã do Explorer via `Shell Extensions\Blocked`. Risco: Low. Rollback total.
+  3. `SafeCleanTempRepairAction` (`repair.storage.safe-clean`): limpeza segura de temporários (> 24h) com medição antes/depois em MB (`IMeasurableRepairAction`). Risco: Safe. Tolerante a arquivos em uso.
+  4. `EnableWindowsUpdateServiceRepairAction` (`repair.windowsupdate.enable-service`): reativação do serviço `wuauserv` no registro de Desativado (4) para Manual (3) e início do serviço. Risco: Low. Rollback total.
+- **Ponto de Restauração Nativo (`IRestorePointService`):**
+  - Implementado em `RestorePointService` via WMI `root\default:SystemRestore.CreateRestorePoint`. Suporte e diagnóstico para proteção de sistema desativada no C: ou falta de elevação.
+- **Telas ativas:** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Drivers, Inicialização, Serviços, Aplicativos, Windows, Windows Update, Eventos, Rede, Limpeza (Safe Cleaner), **Correções** (nova: Central de Correções com abas de Correções Disponíveis, Dry Run, Ponto de Restauração e Histórico de Correções com Rollback ativo), Histórico e Configurações.
 - Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros.
-- Testes: **442 testes aprovados (100% de sucesso)** — 369 unitários, 46 integração, 27 sistema.
+- Testes: **451 testes aprovados (100% de sucesso)** — 377 unitários, 46 integração, 28 sistema.
 
 ## Histórico de implementações
 
@@ -600,13 +608,31 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
 
 ## Pendências / próximos passos
 
+### Passo 8 — MVP 3: Correções reais, Backup, Rollback, Restore Point e Antes/Depois (06/11/2026)
+
+- **Primeiras 4 Ações de Reparo Reais (`IRepairAction`):**
+  - `DisableStartupEntryRepairAction` (`repair.startup.disable`): desativa entradas de inicialização no registro através de `StartupApproved\Run` (0x03), preservando a chave original. Risco: Low. Rollback total restaurando o estado anterior.
+  - `DisableShellExtensionRepairAction` (`repair.explorer.disable-shell-extension`): bloqueia extensões órfãs ou instáveis do Explorer via chave oficial `HKCU\Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked`. Risco: Low. Rollback total removendo da chave.
+  - `SafeCleanTempRepairAction` (`repair.storage.safe-clean`): implementa `IMeasurableRepairAction` (medição numérica antes/depois do tamanho em MB, `LowerIsBetter = true`). Limpeza segura de temporários (> 24h) no `User Temp`, arquivos de `Windows\Temp`, miniaturas e relatórios WER / CrashDumps. Risco: Safe. Tratamento tolerante para arquivos bloqueados.
+  - `EnableWindowsUpdateServiceRepairAction` (`repair.windowsupdate.enable-service`): restaura o tipo de inicialização de `wuauserv` de Desativado (4) para Manual (3) no registro (`SYSTEM\CurrentControlSet\Services\wuauserv\Start`) e inicializa o serviço. Risco: Low. Rollback total.
+- **Ponto de Restauração Nativo do Windows (Seção 38 do PROMPT):**
+  - `IRestorePointService` e `RestorePointService`: criação de checkpoints via WMI `root\default:SystemRestore.CreateRestorePoint(Description, RestorePointType = 12, EventType = 100)`. Tratamento para proteção desativada no C: ou falta de elevação administrativa.
+- **Medição Antes/Depois (`IMeasurableRepairAction` - Seção 39 do PROMPT):**
+  - Medição antes da alteração e após a validação. Comparação percentual e absoluta persistida no histórico SQLite e exibida no cartão da correção.
+- **Central de Correções (`RepairsView` e `RepairsViewModel`):**
+  - Integrada no menu principal como "Correções" (``).
+  - Aba "Correções Disponíveis": seleção de ações por checkbox, botões de ação global (Ponto de Restauração, Simular Dry Run, Aplicar Selecionadas, Marcar/Desmarcar Todas).
+  - Aba "Histórico de Correções & Rollback": exibe histórico do SQLite com data, motivo, mensagem, comparação antes/depois e botão **[Desfazer]** (Rollback) habilitado para correções reversíveis.
+- **Testes Automatizados:**
+  - 451 testes automatizados aprovados (377 unitários, 46 integração, 28 sistema).
+  - Build limpo com `-warnaserror --no-incremental` em Debug e Release.
+
 Na ordem combinada no `PASSOS.md`:
 
-1. **Passo 8 (MVP 3)** — Ações reais de correção (`IRepairAction`), Backup com rollback, Ponto de restauração do sistema e análise antes/depois.
-2. **Passo 9 (MVP 4)** — Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança.
-3. **Passo 10 (MVP 5)** — Relatórios avançados (HTML/CSV/PDF), Agendamento, Notificações, Instalador e UX.
+1. **Passo 9 (MVP 4)** — Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança (Windows Security/Defender e persistências suspeitas).
+2. **Passo 10 (MVP 5)** — Relatórios avançados (HTML/CSV/PDF), Agendamento, Notificações, Instalador e UX.
 
-Itens do Passo 4 para depois: desativar entrada de inicialização com backup e desfazer (Correções, Passo 8); a lista de
+Itens do Passo 4 para depois: a lista de
 processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode
 sair da área visível; abrir a tela Inicialização com ~600 entradas custa ~6,6 s de CPU (todas as linhas são criadas;
 virtualizar os grupos resolveria); no modo árvore, níveis além do 8º não recuam mais.
@@ -631,7 +657,7 @@ espaço (relatórios chegam no Passo 10); análise de espaço não é salva no h
   contam pelo tamanho lógico. Pastas sem permissão (sem admin) são contadas e avisadas, não lidas.
 - A análise de espaço fica só em memória (não é salva no histórico); fechar o app perde o resultado.
 - Preferências alteradas na UI (tema, modo avançado) valem só na sessão; persistência na tabela `Configuration` no Passo 10.
-- Dry Run só é configurável via `appsettings.json` (UI de Dry Run chega com as correções no Passo 8).
+- Dry Run disponível tanto via flag global no `appsettings.json` quanto sob demanda na interface da Central de Correções.
 - Backups em `%ProgramData%` recebem ACL do usuário que criou a pasta; outro usuário Windows na mesma máquina
   não conseguirá gravar backups ali (falha segura: a correção é abortada antes de alterar algo).
 - Exportação de relatório apenas JSON (HTML/CSV/PDF no MVP 5). Instalador não existe ainda (Passo 10).

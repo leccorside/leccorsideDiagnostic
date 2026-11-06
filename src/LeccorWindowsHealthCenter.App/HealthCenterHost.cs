@@ -69,6 +69,7 @@ public static class HealthCenterHost
         builder.Services.AddSingleton<WindowsViewModel>();
         builder.Services.AddSingleton<EventsViewModel>();
         builder.Services.AddSingleton<HistoryViewModel>();
+        builder.Services.AddSingleton<RepairsViewModel>();
         builder.Services.AddSingleton<SettingsViewModel>();
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();

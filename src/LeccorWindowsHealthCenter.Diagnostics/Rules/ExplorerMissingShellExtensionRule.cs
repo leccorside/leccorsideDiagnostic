@@ -67,6 +67,8 @@ public sealed class ExplorerMissingShellExtensionRule : IRule
                 ProbableCause = "Desinstalação incompleta de aplicativo de terceiros que deixou registros residuais de integração com o Explorer.",
                 Impact = "Pode causar atrasos de vários segundos ou travamento ao clicar com botão direito ou abrir pastas no Windows Explorer enquanto o sistema tenta carregar a biblioteca inexistente.",
                 Recommendation = "Desativar ou remover o registro órfão do menu de contexto/Shell Extension.",
+                RepairActionId = "repair.explorer.disable-shell-extension",
+                RepairRisk = RiskLevel.Low,
                 Evidence = evidence,
                 RequiresElevation = false,
                 RequiresRestart = false,

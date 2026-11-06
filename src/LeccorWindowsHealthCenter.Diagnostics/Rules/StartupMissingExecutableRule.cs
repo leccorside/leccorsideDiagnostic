@@ -68,7 +68,9 @@ public sealed class StartupMissingExecutableRule : IRule
                 Impact = service
                     ? "O serviço falha em todo boot, gera erros no log do sistema e pode atrasar a inicialização."
                     : "Nada é iniciado; a entrada só polui a lista e, em alguns casos, mostra um erro no logon.",
-                Recommendation = "Se o programa não está mais instalado, a entrada pode ser removida. A remoção com backup e desfazer chega na tela Correções; por ora, remova pelo próprio programa ou pelo Gerenciador de Tarefas.",
+                Recommendation = "Se o programa não está mais instalado, a entrada pode ser desativada com segurança. A alteração pode ser desfeita a qualquer momento.",
+                RepairActionId = "repair.startup.disable",
+                RepairRisk = RiskLevel.Low,
             };
         }
     }
