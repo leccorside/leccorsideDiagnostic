@@ -165,7 +165,45 @@ processos de administrador (processo elevado, Passo 5); break-ui das duas telas 
   - **Total de 451 testes automatizados aprovados (100% de sucesso)**.
   - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
 
-## Passo 9 — MVP 4: Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer, Segurança ⬜
+## Passo 9 — MVP 4: Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer, Segurança ✅
+
+- [x] **Developer Mode & DevTools (Seções 31, 32 e 33 do PROMPT):**
+  - `DevToolsProvider` (`IDevToolsProvider`):
+    - Detecção de runtimes e compilers instalados: Node.js, npm, Yarn, pnpm, .NET SDKs (inventário e versões), Java/JDK (`%JAVA_HOME%` e PATH), Maven, Gradle, Python e Git.
+    - Detecção de IDEs: Visual Studio Code, Visual Studio (via `vswhere`), JetBrains (via Toolbox) e Android Studio.
+    - **Docker Analyzer (Seção 32):** detecção de Docker Desktop / Engine, status de execução, backend (WSL2 / Hyper-V) e tamanho total dos discos de dados. Alerta obrigatório: volumes podem conter bancos de dados permanentes e nunca são descartados automaticamente.
+    - **WSL Analyzer (Seção 33):** detecção das distribuições WSL instaladas via registro `HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss`, versão (WSL1 vs WSL2), caminho dos discos virtuais `ext4.vhdx` e tamanho físico no disco.
+    - **Análise do PATH:** contagem de entradas de usuário e do sistema, detecção de caminhos órfãos / pastas inexistentes e verificação de comprimento total.
+- [x] **Security Scanner (Seção 30 do PROMPT):**
+  - `SecurityProvider` (`ISecurityProvider`):
+    - Consulta de produtos antivírus registrados via WMI `root\SecurityCenter2:AntiVirusProduct` com decodificação de `productState` (proteção ativa e definições em dia).
+    - Status do Firewall do Windows (`FirewallProduct`).
+    - Status do Controle de Conta de Usuário (UAC via `EnableLUA` no registro).
+    - Verificação de persistências suspeitas: IFEO (Image File Execution Options) `Debugger` hijack e bibliotecas ativas em `AppInit_DLLs`.
+    - Princípio de segurança rigoroso: não substitui o antivírus e não declara malware sem evidência suficiente.
+- [x] **Crash Analyzer (Seção 29 do PROMPT):**
+  - `CrashAnalyzerProvider` (`ICrashAnalyzerProvider`):
+    - Varredura de arquivos de despejo no disco: minidumps do kernel (`%SystemRoot%\Minidump\*.dmp`), despejo completo (`MEMORY.DMP`) e dumps de aplicações de usuário (`%LocalAppData%\CrashDumps\*.dmp`).
+    - Agregação dos últimos 30 dias: eventos de Application Error (Event ID 1000), Application Hang (Event ID 1002) e eventos críticos de BSOD / BugCheck (Event ID 1001) com identificação dos executáveis mais instáveis.
+- [x] **Scanners e Regras de Diagnóstico:**
+  - 3 novos scanners (totalizando **18 scanners** na solução):
+    - `DevToolsScanner` (`devtools`, Ordem: 115, Módulo: `Applications`)
+    - `SecurityScanner` (`security`, Ordem: 120, Módulo: `Windows`)
+    - `CrashScanner` (`crash`, Ordem: 125, Módulo: `Events`)
+  - 6 novas regras de diagnóstico (totalizando **39 regras** na solução):
+    - `dev.wsl-vhdx-large`: alerta quando o disco `ext4.vhdx` do WSL2 ultrapassa 50 GB.
+    - `dev.path-invalid-entries`: identifica caminhos órfãos ou pastas inexistentes configuradas no PATH.
+    - `security.antivirus-disabled`: alerta crítico quando a proteção em tempo real está desativada.
+    - `security.uac-disabled`: alerta alto quando o UAC está desligado no registro.
+    - `security.ifeo-hijack`: alerta crítico quando binários essenciais têm redirecionamento de Debugger.
+    - `crash.kernel-minidump-detected`: alerta sobre ocorrência recente de BSOD e despejos de kernel.
+- [x] **Telas e ViewModels no WPF:**
+  - `DevToolsViewModel` e `DevToolsView`: painéis dedicados para Docker Desktop, WSL2, runtimes instalados e integridade do PATH.
+  - `SecurityViewModel` e `SecurityView`: painel de segurança do Windows Security/Defender, Firewall, UAC e dashboard do Crash Analyzer.
+  - Integração no menu principal do `MainViewModel` substituindo placeholders por páginas reais.
+- [x] **Testes Automatizados:**
+  - 386 testes unitários, 46 testes de integração, 30 testes de sistema — total de **462 testes aprovados (100% de sucesso)**.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
 
 ## Passo 10 — MVP 5: Relatórios avançados, Agendamento, Notificações, Instalador e UX ⬜
 

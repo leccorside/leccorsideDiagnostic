@@ -83,6 +83,18 @@ public static class DependencyInjection
         services.AddSingleton<IRule, NetworkDnsSlowRule>();
         services.AddSingleton<IRule, WindowsUpdateServiceDisabledRule>();
         services.AddSingleton<IRule, WindowsUpdateRebootPendingRule>();
+
+        // Passo 9 — MVP 4: Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança
+        services.AddSingleton<IDiagnosticScanner, DevTools.DevToolsScanner>();
+        services.AddSingleton<IDiagnosticScanner, Security.SecurityScanner>();
+        services.AddSingleton<IDiagnosticScanner, Crash.CrashScanner>();
+
+        services.AddSingleton<IRule, DevWslVhdxLargeRule>();
+        services.AddSingleton<IRule, DevPathInvalidEntriesRule>();
+        services.AddSingleton<IRule, SecurityAntivirusDisabledRule>();
+        services.AddSingleton<IRule, SecurityUacDisabledRule>();
+        services.AddSingleton<IRule, SecurityIfeoHijackRule>();
+        services.AddSingleton<IRule, CrashKernelMinidumpRule>();
         return services;
     }
 }

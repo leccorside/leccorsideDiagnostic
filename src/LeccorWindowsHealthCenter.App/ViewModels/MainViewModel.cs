@@ -49,6 +49,8 @@ public sealed partial class MainViewModel : ObservableObject
         NetworkViewModel network,
         SafeCleanViewModel safeClean,
         RepairsViewModel repairs,
+        SecurityViewModel security,
+        DevToolsViewModel devTools,
         HistoryViewModel history,
         SettingsViewModel settings)
     {
@@ -71,8 +73,8 @@ public sealed partial class MainViewModel : ObservableObject
             new("Windows Update", "", windowsUpdate),
             new("Eventos", "", events),
             new("Rede", "", network),
-            Planned("Segurança", "", "Status do Windows Security/Defender e persistências suspeitas.", "MVP 4"),
-            Planned("Desenvolvimento", "", "Docker, WSL, Hyper-V, Node.js, Java, .NET, Git e IDEs.", "MVP 4"),
+            new("Segurança", "", security),
+            new("Desenvolvimento", "", devTools),
             new("Limpeza", "", safeClean),
             new("Correções", "", repairs),
             new("Histórico", "", history),

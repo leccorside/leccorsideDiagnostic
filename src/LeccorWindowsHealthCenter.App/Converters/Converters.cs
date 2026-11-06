@@ -45,6 +45,21 @@ public sealed class ScoreToValueConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+public sealed class BoolToStatusConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool b)
+        {
+            return b ? "Ativo / Em execução" : "Inativo / Desativado";
+        }
+        return "Desconhecido";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>
 /// Seta de ordenação do cabeçalho: valores = [coluna ordenada, decrescente?, modo árvore?], parâmetro = coluna do
 /// cabeçalho. Devolve o glifo Fluent (ChevronDown/ChevronUp) ou vazio quando o cabeçalho não é a coluna ordenada ou

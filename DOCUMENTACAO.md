@@ -3,7 +3,7 @@
 Documento central de referência. Detalhes por assunto em `docs/` (links ao final de cada seção).
 **Atualizar ao final de cada ação** (regra do projeto).
 
-Versão documentada: **0.4.0 (Passo 4 — Processos e Inicialização)**.
+Versão documentada: **0.9.0 (Passo 9 — Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança)**.
 
 ---
 

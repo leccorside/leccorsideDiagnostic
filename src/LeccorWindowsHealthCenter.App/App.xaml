@@ -14,6 +14,7 @@
             </ResourceDictionary.MergedDictionaries>
 
             <conv:VisibleWhenConverter x:Key="VisibleWhen" />
+            <conv:BoolToStatusConverter x:Key="BoolToStatusConverter" />
             <conv:ScoreToValueConverter x:Key="ScoreToValue" />
             <conv:EnumEqualsConverter x:Key="EnumEquals" />
             <conv:SortGlyphConverter x:Key="SortGlyph" />
@@ -130,6 +131,12 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:RepairsViewModel}">
                 <views:RepairsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:DevToolsViewModel}">
+                <views:DevToolsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:SecurityViewModel}">
+                <views:SecurityView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
                 <views:SettingsView />

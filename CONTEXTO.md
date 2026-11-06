@@ -3,7 +3,7 @@
 Resumo vivo do projeto para retomar o trabalho em qualquer sessão. **Atualizar ao final de cada ação.**
 Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Referência técnica: `DOCUMENTACAO.md`.
 
-Última atualização: **06/11/2026 — Passo 8 concluído (v0.8.0): MVP 3: Correções reais, Backup, Rollback, Restore Point e Antes/Depois.**
+Última atualização: **06/11/2026 — Passo 9 concluído (v0.9.0): MVP 4: Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança.**
 
 ---
 
@@ -15,7 +15,7 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   System.Diagnostics.EventLog 10.0.11, Microsoft.Extensions.Hosting.Abstractions 10.0.11, xUnit 2.9.3.
 - Infraestrutura de diagnóstico completa e testada: orquestrador, RuleEngine, RiskAnalyzer, ScoringEngine,
   RepairEngine com **4 ações reais de reparo**, Ponto de Restauração nativo do Windows, executor de comandos seguro, SQLite com migrations, backups atômicos, logs.
-- **Scanners em produção (15 scanners):**
+- **Scanners em produção (18 scanners):**
   1. `hardware` (Ordem 10, Hardware)
   2. `cpu` (Ordem 20, Performance)
   3. `memory` (Ordem 30, Performance)
@@ -31,11 +31,21 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   13. `apps` (Ordem 95, Applications)
   14. `network` (Ordem 105, Network)
   15. `windowsupdate` (Ordem 110, WindowsUpdate)
-- **Regras em produção:** 33 regras no total.
+  16. `devtools` (Ordem 115, Applications)
+  17. `security` (Ordem 120, Windows)
+  18. `crash` (Ordem 125, Events)
+- **Regras em produção:** 39 regras no total.
   - Regras com ações de reparo associadas:
     - `windowsupdate.service-disabled` → `repair.windowsupdate.enable-service`
     - `explorer.missing-shell-extension` → `repair.explorer.disable-shell-extension`
     - `startup.missing-executable` → `repair.startup.disable`
+  - Novas regras do Passo 9:
+    - `dev.wsl-vhdx-large`: alerta quando o disco `ext4.vhdx` do WSL2 ultrapassa 50 GB.
+    - `dev.path-invalid-entries`: identifica caminhos órfãos ou pastas inexistentes configuradas no PATH.
+    - `security.antivirus-disabled`: alerta crítico quando a proteção em tempo real está desativada.
+    - `security.uac-disabled`: alerta alto quando o UAC está desligado no registro.
+    - `security.ifeo-hijack`: alerta crítico quando binários essenciais têm redirecionamento de Debugger.
+    - `crash.kernel-minidump-detected`: alerta sobre ocorrência recente de BSOD e despejos de kernel.
 - **Ações de Reparo Reais em Produção (4 ações):**
   1. `DisableStartupEntryRepairAction` (`repair.startup.disable`): desativação de inicialização via `StartupApproved\Run` (0x03) preservando o comando original. Risco: Low. Rollback total.
   2. `DisableShellExtensionRepairAction` (`repair.explorer.disable-shell-extension`): bloqueio de extensão órfã do Explorer via `Shell Extensions\Blocked`. Risco: Low. Rollback total.
@@ -43,9 +53,9 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   4. `EnableWindowsUpdateServiceRepairAction` (`repair.windowsupdate.enable-service`): reativação do serviço `wuauserv` no registro de Desativado (4) para Manual (3) e início do serviço. Risco: Low. Rollback total.
 - **Ponto de Restauração Nativo (`IRestorePointService`):**
   - Implementado em `RestorePointService` via WMI `root\default:SystemRestore.CreateRestorePoint`. Suporte e diagnóstico para proteção de sistema desativada no C: ou falta de elevação.
-- **Telas ativas:** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Drivers, Inicialização, Serviços, Aplicativos, Windows, Windows Update, Eventos, Rede, Limpeza (Safe Cleaner), **Correções** (nova: Central de Correções com abas de Correções Disponíveis, Dry Run, Ponto de Restauração e Histórico de Correções com Rollback ativo), Histórico e Configurações.
+- **Telas ativas:** Dashboard, Varredura (resultado completo, card "Problema mais importante", badges e botões "Investigar"), Performance, Processos, Armazenamento, Hardware, Drivers, Inicialização, Serviços, Aplicativos, Windows, Windows Update, Eventos, Rede, Limpeza (Safe Cleaner), Correções (Central de Correções com abas de Correções Disponíveis, Dry Run, Ponto de Restauração e Histórico de Correções com Rollback ativo), **Desenvolvimento** (nova: DevTools, Docker Desktop, WSL2 e análise de PATH), **Segurança** (nova: Windows Defender/Antivírus, Firewall, UAC, Persistências suspeitas e Crash Analyzer), Histórico e Configurações.
 - Build Debug e Release com `-warnaserror` e `--no-incremental`: 0 avisos, 0 erros.
-- Testes: **451 testes aprovados (100% de sucesso)** — 377 unitários, 46 integração, 28 sistema.
+- Testes: **462 testes aprovados (100% de sucesso)** — 386 unitários, 46 integração, 30 sistema.
 
 ## Histórico de implementações
 
@@ -606,8 +616,6 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - 18 novos testes unitários e de integração adicionados.
   - Total: **442 testes automatizados aprovados (100% de sucesso)** — 369 unitários, 46 integração, 27 sistema.
 
-## Pendências / próximos passos
-
 ### Passo 8 — MVP 3: Correções reais, Backup, Rollback, Restore Point e Antes/Depois (06/11/2026)
 
 - **Primeiras 4 Ações de Reparo Reais (`IRepairAction`):**
@@ -627,10 +635,51 @@ Requisitos completos: `PROMPT.txt` (fonte da verdade). Plano: `PASSOS.md`. Refer
   - 451 testes automatizados aprovados (377 unitários, 46 integração, 28 sistema).
   - Build limpo com `-warnaserror --no-incremental` em Debug e Release.
 
+### Passo 9 — MVP 4: Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança (06/11/2026)
+
+- **Developer Mode & DevTools (Seções 31, 32 e 33 do PROMPT):**
+  - `DevToolsProvider` (`IDevToolsProvider`):
+    - Inventário completo de runtimes e compilers instalados: Node.js, npm, Yarn, pnpm, .NET SDKs (múltiplas versões), Java/JDK (`%JAVA_HOME%` e PATH), Maven, Gradle, Python e Git.
+    - Inventário de IDEs instaladas: Visual Studio Code, Visual Studio (via `vswhere`), JetBrains (via Toolbox) e Android Studio.
+    - **Docker Analyzer:** detecção de Docker Desktop / Engine, status operacional, backend configurado (WSL2 / Hyper-V) e tamanho físico de dados em disco. Alerta obrigatório: volumes podem conter bancos de dados permanentes e nunca são descartados automaticamente.
+    - **WSL Analyzer:** detecção das distribuições WSL instaladas via registro `HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss`, versão (WSL1 vs WSL2), caminho dos discos virtuais `ext4.vhdx` e tamanho físico no disco.
+    - **Análise da variável PATH:** contagem de entradas de usuário e de sistema, detecção determinística de caminhos órfãos / pastas inexistentes e verificação de comprimento total.
+- **Security Scanner (Seção 30 do PROMPT):**
+  - `SecurityProvider` (`ISecurityProvider`):
+    - Consulta de produtos antivírus registrados via WMI `root\SecurityCenter2:AntiVirusProduct` decodificando `productState` (proteção ativa em tempo real e assinaturas em dia).
+    - Status do Firewall do Windows (`FirewallProduct`).
+    - Status do Controle de Conta de Usuário (UAC via `EnableLUA` no registro).
+    - Auditoria de persistências potencialmente suspeitas: IFEO (Image File Execution Options) `Debugger` hijack e bibliotecas ativas em `AppInit_DLLs`.
+    - Princípio de segurança rigoroso: não substitui o antivírus do usuário e não classifica programas como malware sem prova conclusiva.
+- **Crash Analyzer (Seção 29 do PROMPT):**
+  - `CrashAnalyzerProvider` (`ICrashAnalyzerProvider`):
+    - Varredura de arquivos de despejo no disco: minidumps do kernel (`%SystemRoot%\Minidump\*.dmp`), despejo completo (`MEMORY.DMP`) e dumps de aplicações de usuário (`%LocalAppData%\CrashDumps\*.dmp`).
+    - Agregação dos últimos 30 dias via Event Log: Application Error (Event ID 1000), Application Hang (Event ID 1002) e eventos críticos de BSOD / BugCheck (Event ID 1001) com identificação e contagem dos executáveis com mais falhas.
+- **Scanners e Regras de Diagnóstico:**
+  - 3 novos scanners (totalizando **18 scanners**):
+    - `DevToolsScanner` (`devtools`, Ordem: 115, Módulo: `Applications`)
+    - `SecurityScanner` (`security`, Ordem: 120, Módulo: `Windows`)
+    - `CrashScanner` (`crash`, Ordem: 125, Módulo: `Events`)
+  - 6 novas regras de diagnóstico (totalizando **39 regras**):
+    - `dev.wsl-vhdx-large`: alerta quando o disco `ext4.vhdx` do WSL2 ultrapassa 50 GB.
+    - `dev.path-invalid-entries`: identifica caminhos órfãos ou pastas inexistentes configuradas no PATH.
+    - `security.antivirus-disabled`: alerta crítico quando a proteção em tempo real está desativada.
+    - `security.uac-disabled`: alerta alto quando o UAC está desligado no registro.
+    - `security.ifeo-hijack`: alerta crítico quando binários essenciais têm redirecionamento de Debugger.
+    - `crash.kernel-minidump-detected`: alerta sobre ocorrência recente de BSOD e despejos de kernel.
+- **Telas e ViewModels no WPF:**
+  - `DevToolsViewModel` e `DevToolsView`: painéis dedicados para Docker Desktop, WSL2, runtimes instalados e integridade do PATH.
+  - `SecurityViewModel` e `SecurityView`: painel de segurança do Windows Defender/Antivírus, Firewall, UAC, persistências e dashboard do Crash Analyzer.
+  - Menus integrados no `MainViewModel`: "Desenvolvimento" (``) e "Segurança" (``).
+- **Testes Automatizados:**
+  - **462 testes automatizados aprovados (100% de sucesso)** — 386 unitários, 46 integração, 30 sistema.
+  - Compilação limpa em Release com `-warnaserror --no-incremental` (0 avisos, 0 erros).
+
+## Pendências / próximos passos
+
 Na ordem combinada no `PASSOS.md`:
 
-1. **Passo 9 (MVP 4)** — Docker, WSL, Ferramentas de desenvolvimento, Crash Analyzer e Segurança (Windows Security/Defender e persistências suspeitas).
-2. **Passo 10 (MVP 5)** — Relatórios avançados (HTML/CSV/PDF), Agendamento, Notificações, Instalador e UX.
+1. **Passo 10 (MVP 5)** — Relatórios avançados (HTML com design profissional, CSV e PDF), Agendamento via Task Scheduler, Notificações do Windows, Persistência das preferências do usuário (`Configuration`), Instalador (instalar/atualizar/reparar/desinstalar preservando histórico e backups) e build `win-arm64`.
 
 Itens do Passo 4 para depois: a lista de
 processos reordena a cada 2 s pela coluna escolhida (como o Gerenciador de Tarefas), então a linha selecionada pode
